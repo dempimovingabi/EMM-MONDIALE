@@ -110,8 +110,21 @@
       </div>
       <div class="input-group"><label>Nom de l'entité</label><input type="text" id="jNomEntite" placeholder="Ex : KELE-KELE"></div>
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="jResponsable"></div>
-      <button class="btn-primary" onclick="ajouterEntite()">Enregistrer l'entité</button>
-      <button class="btn-secondary" onclick="reinitialiserFormEntite()">🔄 Réinitialiser le formulaire</button>
+      <button class="btn-primary" onclick="ajouterEntite()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormEntite()">🔄 Réinitialiser</button>
+    </div>
+
+    <!-- FILTRE ENTITÉS -->
+    <div class="card">
+      <h3>🔍 Filtre des entités</h3>
+      <div class="input-group">
+        <select id="filtreEntites" onchange="afficherListeEntites()">
+          <option value="actif">Actives uniquement</option>
+          <option value="archive">Archivées uniquement</option>
+          <option value="tous">Toutes</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Recherche</label><input type="text" id="searchEntiteListe" placeholder="Nom entité..." oninput="afficherListeEntites()"></div>
     </div>
 
     <div class="card">
@@ -128,6 +141,18 @@
       <div class="input-group"><label>Nouveaux venus</label><input type="number" id="jNouveaux" value="0"></div>
       <button class="btn-primary" onclick="enregistrerParticipation()">Enregistrer</button>
       <button class="btn-secondary" onclick="reinitialiserFormParticipation()">🔄 Réinitialiser</button>
+    </div>
+
+    <!-- FILTRE PARTICIPATIONS -->
+    <div class="card">
+      <h3>🔍 Filtre des participations</h3>
+      <div class="input-group">
+        <select id="filtreParticipations" onchange="afficherJournaliere()">
+          <option value="actif">Actives uniquement</option>
+          <option value="archive">Archivées uniquement</option>
+          <option value="tous">Toutes</option>
+        </select>
+      </div>
     </div>
 
     <div class="card">
@@ -198,9 +223,10 @@
       <button class="btn-secondary" onclick="reinitialiserFormFiche()">🔄 Réinitialiser</button>
     </div>
 
+    <!-- FILTRE FICHES -->
     <div class="card">
       <h3>🔍 Recherche fiche mensuelle</h3>
-      <div class="input-group"><label>Nom entité</label><input type="text" id="searchFreq" placeholder="Rechercher..." oninput="rechercherFreq()"></div>
+      <div class="input-group"><label>Nom entité</label><input type="text" id="searchFreq" placeholder="Rechercher..."></div>
       <div class="input-group"><label>Année</label><input type="text" id="searchFreqAnnee" placeholder="Ex : 2026"></div>
       <div class="input-group"><label>Mois</label>
         <select id="searchFreqMois">
@@ -209,6 +235,13 @@
           <option>Avril</option><option>Mai</option><option>Juin</option>
           <option>Juillet</option><option>Août</option><option>Septembre</option>
           <option>Octobre</option><option>Novembre</option><option>Décembre</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Statut</label>
+        <select id="searchFreqStatut">
+          <option value="actif">Actives uniquement</option>
+          <option value="archive">Archivées uniquement</option>
+          <option value="tous">Toutes</option>
         </select>
       </div>
       <button class="btn-secondary" onclick="rechercherFreqAvance()">🔍 Rechercher</button>
@@ -254,7 +287,6 @@
       </div>
       <div class="input-group"><label>Montant prévu ($)</label><input type="number" id="cMontant" value="200"></div>
       <div class="input-group"><label>Taux (1$ = FC)</label><input type="number" id="cTaux" value="2300"></div>
-
       <div class="input-group">
         <label>📷 Photo passeport du candidat</label>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
@@ -265,7 +297,6 @@
         <input type="file" id="cPhotoGallery" accept="image/*" onchange="previewPhotoCandidat(event)" style="display:none">
         <div id="cPhotoPreview" style="margin-top:10px;text-align:center"></div>
       </div>
-
       <button class="btn-primary" onclick="ajouterCandidat()">Enregistrer le candidat</button>
       <button class="btn-secondary" onclick="reinitialiserFormCandidat()">🔄 Réinitialiser</button>
     </div>
@@ -289,22 +320,22 @@
     <div class="card">
       <h3>🔍 Recherche candidat</h3>
       <input type="text" id="searchCand" placeholder="Rechercher un candidat..." oninput="afficherCandidats()">
+      <div class="input-group" style="margin-top:8px">
+        <label>Statut</label>
+        <select id="filtreCandidats" onchange="afficherCandidats()">
+          <option value="actif">Actifs (en cours + terminés)</option>
+          <option value="en_cours">En cours uniquement</option>
+          <option value="termine">Terminés uniquement</option>
+          <option value="archive">Archivés uniquement</option>
+          <option value="tous">Tous</option>
+        </select>
+      </div>
       <button class="btn-secondary" onclick="reinitialiserRechercheCand()">🔄 Réinitialiser</button>
     </div>
 
     <div class="card">
-      <h3>📋 Candidats (En cours)</h3>
+      <h3>📋 Liste des candidats</h3>
       <div id="listeCandidats"></div>
-    </div>
-
-    <div class="card">
-      <h3>📦 Candidats archivés</h3>
-      <div id="listeArchives"></div>
-    </div>
-
-    <div class="card">
-      <h3>✅ Candidats terminés</h3>
-      <div id="listeTermines"></div>
     </div>
 
     <div class="card">
@@ -319,7 +350,6 @@
       <div class="input-group"><label>Montant</label><input type="number" id="vMontant" value="0"></div>
       <div class="input-group"><label>Taux</label><input type="number" id="vTaux" value="2300"></div>
       <div class="input-group"><label>Date</label><input type="date" id="vDate"></div>
-
       <div class="input-group">
         <label>✍️ Signature du candidat</label>
         <canvas id="vSignatureCanvas" style="border:2px dashed #0a6e2c;border-radius:8px;width:100%;height:180px;background:#fafafa;touch-action:none;display:block"></canvas>
@@ -328,9 +358,19 @@
           <span id="vSignatureStatus" style="font-size:12px;color:#888">Aucune signature</span>
         </div>
       </div>
-
       <button class="btn-primary" onclick="enregistrerVersement()">Enregistrer</button>
       <button class="btn-secondary" onclick="reinitialiserFormVersement()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Filtre versements</h3>
+      <div class="input-group">
+        <select id="filtreVersements" onchange="afficherVersements()">
+          <option value="actif">Actifs uniquement</option>
+          <option value="archive">Archivés uniquement</option>
+          <option value="tous">Tous</option>
+        </select>
+      </div>
     </div>
 
     <div class="card">
@@ -389,19 +429,14 @@
       <div class="input-group"><label>Nom de l'entité</label><input type="text" id="dNomEntite" placeholder="Ex : BIANCKYA"></div>
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="dResponsable"></div>
       <div class="input-group"><label>Nombre d'enveloppes</label><input type="number" id="dEnveloppes" value="0"></div>
-
       <h4>🏗️ Offrandes de construction</h4>
       <div class="input-group"><label>FC</label><input type="number" id="dConstrFC" value="0"></div>
       <div class="input-group"><label>USD</label><input type="number" id="dConstrUSD" value="0"></div>
-
       <h4>⛪ Offrandes normales</h4>
       <div class="input-group"><label>FC</label><input type="number" id="dNormFC" value="0"></div>
       <div class="input-group"><label>USD</label><input type="number" id="dNormUSD" value="0"></div>
-
-      <!-- ⬇️ NOUVEAU : MENU DÉROULANT POUR OFFRANDES ⬇️ -->
       <h4>🎁 Offrandes spéciales</h4>
       <p style="font-size:12px;color:#666;margin-bottom:8px">Choisissez la catégorie, entrez le nom et les montants, puis ajoutez.</p>
-
       <div class="input-group">
         <label>Catégorie d'offrande</label>
         <select id="dOffrandeCategorie">
@@ -411,34 +446,17 @@
           <option value="photo">Photo sacrée</option>
           <option value="shinrei">Shinrei Saichi</option>
           <option value="gosh">Goshintai familiale</option>
-       b  <option value="mita">Mitamaya</option>
+          <option value="mita">Mitamaya</option>
         </select>
       </div>
-
-      <div class="input-group">
-        <label>Nom de la personne</label>
-        <input type="text" id="dOffrandeNom" placeholder="Nom de celui qui a versé">
-      </div>
-
-      <div class="input-group">
-        <label>Montant FC</label>
-        <input type="number" id="dOffrandeFC" value="0">
-      </div>
-
-      <div class="input-group">
-        <label>Montant USD</label>
-        <input type="number" id="dOffrandeUSD" value="0">
-      </div>
-
+      <div class="input-group"><label>Nom de la personne</label><input type="text" id="dOffrandeNom" placeholder="Nom de celui qui a versé"></div>
+      <div class="input-group"><label>Montant FC</label><input type="number" id="dOffrandeFC" value="0"></div>
+      <div class="input-group"><label>Montant USD</label><input type="number" id="dOffrandeUSD" value="0"></div>
       <button class="btn-primary" onclick="ajouterOffrandeUnifiee()">➕ Ajouter cette offrande</button>
-
-      <!-- Affichage des offrandes par catégorie -->
       <div id="affichageOffrandes" style="margin-top:14px"></div>
-
       <h4>🚌 Transport</h4>
       <div class="input-group"><label>FC</label><input type="number" id="dTransFC" value="0"></div>
       <div class="input-group"><label>USD</label><input type="number" id="dTransUSD" value="0"></div>
-
       <button class="btn-primary" onclick="enregistrerEntiteSeance()" style="background:linear-gradient(135deg,#e65100,#ff6d00)">💾 Enregistrer cette entité</button>
       <button class="btn-secondary" onclick="reinitialiserFormEntiteSeance()">🔄 Réinitialiser le formulaire</button>
     </div>
@@ -464,6 +482,8 @@
 
     <div class="card">
       <h3>🔍 Recherche dépouillement</h3>
+      <p style="font-size:12px;color:#666;margin-bottom:8px">Étape 1 : entité. Étape 2 : filtre mois/année/phase.</p>
+      <div class="input-group"><label>Nom entité</label><input type="text" id="searchDepEntite" placeholder="Ex : BIANCKYA" oninput="rechercherDepouillement()"></div>
       <div class="input-group"><label>Année</label><input type="text" id="searchDepAnnee" placeholder="Ex : 2026"></div>
       <div class="input-group"><label>Mois</label>
         <select id="searchDepMois">
@@ -483,7 +503,13 @@
           <option value="4">4ème phase</option>
         </select>
       </div>
-      <div class="input-group"><label>Nom entité</label><input type="text" id="searchDepEntite" placeholder="Ex : BIANCKYA"></div>
+      <div class="input-group"><label>Statut</label>
+        <select id="searchDepStatut">
+          <option value="actif">Actifs uniquement</option>
+          <option value="archive">Archivés uniquement</option>
+          <option value="tous">Tous</option>
+        </select>
+      </div>
       <button class="btn-secondary" onclick="rechercherDepouillement()">🔍 Rechercher</button>
       <button class="btn-secondary" onclick="reinitialiserRechercheDep()">🔄 Réinitialiser</button>
       <div id="resultatRechercheDep"></div>
