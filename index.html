@@ -398,65 +398,42 @@
       <div class="input-group"><label>FC</label><input type="number" id="dNormFC" value="0"></div>
       <div class="input-group"><label>USD</label><input type="number" id="dNormUSD" value="0"></div>
 
-      <h4>🌟 Initiation</h4>
-      <div id="listInit"></div>
-      <div class="row-flex">
-        <input type="text" id="dInitNom" placeholder="Nom">
-        <input type="number" id="dInitFC" placeholder="FC" value="0">
-        <input type="number" id="dInitUSD" placeholder="USD" value="0">
-        <button class="btn-mini" onclick="ajouterOffrande('init')">➕</button>
-      </div>
-      <p class="total-line">Total : <span id="totInit">0 FC / 0 $</span></p>
+      <!-- ⬇️ NOUVEAU : MENU DÉROULANT POUR OFFRANDES ⬇️ -->
+      <h4>🎁 Offrandes spéciales</h4>
+      <p style="font-size:12px;color:#666;margin-bottom:8px">Choisissez la catégorie, entrez le nom et les montants, puis ajoutez.</p>
 
-      <h4>🕊️ Sorei Saichi</h4>
-      <div id="listSorei"></div>
-      <div class="row-flex">
-        <input type="text" id="dSoreiNom" placeholder="Nom">
-        <input type="number" id="dSoreiFC" placeholder="FC" value="0">
-        <input type="number" id="dSoreiUSD" placeholder="USD" value="0">
-        <button class="btn-mini" onclick="ajouterOffrande('sorei')">➕</button>
+      <div class="input-group">
+        <label>Catégorie d'offrande</label>
+        <select id="dOffrandeCategorie">
+          <option value="init">🌟 Initiation</option>
+          <option value="sorei">🕊️ Sorei Saichi</option>
+          <option value="kannon">🪷 Kannon</option>
+          <option value="photo">🖼️ Photo sacrée</option>
+          <option value="shinrei">✨ Shinrei Saichi</option>
+          <option value="gosh">🏠 Goshintai familiale</option>
+          <option value="mita">🕉️ Mitamaya</option>
+        </select>
       </div>
-      <p class="total-line">Total : <span id="totSorei">0 FC / 0 $</span></p>
 
-      <h4>🪷 Kannon</h4>
-      <div id="listKannon"></div>
-      <div class="row-flex">
-        <input type="text" id="dKannonNom" placeholder="Nom">
-        <input type="number" id="dKannonFC" placeholder="FC" value="0">
-        <input type="number" id="dKannonUSD" placeholder="USD" value="0">
-        <button class="btn-mini" onclick="ajouterOffrande('kannon')">➕</button>
+      <div class="input-group">
+        <label>Nom de la personne</label>
+        <input type="text" id="dOffrandeNom" placeholder="Nom de celui qui a versé">
       </div>
-      <p class="total-line">Total : <span id="totKannon">0 FC / 0 $</span></p>
 
-      <h4>🖼️ Photo sacrée</h4>
-      <div id="listPhoto"></div>
-      <div class="row-flex">
-        <input type="text" id="dPhotoNom" placeholder="Nom">
-        <input type="number" id="dPhotoFC" placeholder="FC" value="0">
-        <input type="number" id="dPhotoUSD" placeholder="USD" value="0">
-        <button class="btn-mini" onclick="ajouterOffrande('photo')">➕</button>
+      <div class="input-group">
+        <label>Montant FC</label>
+        <input type="number" id="dOffrandeFC" value="0">
       </div>
-      <p class="total-line">Total : <span id="totPhoto">0 FC / 0 $</span></p>
 
-      <h4>🏠 Goshintai familiale</h4>
-      <div id="listGosh"></div>
-      <div class="row-flex">
-        <input type="text" id="dGoshNom" placeholder="Nom">
-        <input type="number" id="dGoshFC" placeholder="FC" value="0">
-        <input type="number" id="dGoshUSD" placeholder="USD" value="0">
-        <button class="btn-mini" onclick="ajouterOffrande('gosh')">➕</button>
+      <div class="input-group">
+        <label>Montant USD</label>
+        <input type="number" id="dOffrandeUSD" value="0">
       </div>
-      <p class="total-line">Total : <span id="totGosh">0 FC / 0 $</span></p>
 
-      <h4>🕉️ Mitamaya</h4>
-      <div id="listMita"></div>
-      <div class="row-flex">
-        <input type="text" id="dMitaNom" placeholder="Nom">
-        <input type="number" id="dMitaFC" placeholder="FC" value="0">
-        <input type="number" id="dMitaUSD" placeholder="USD" value="0">
-        <button class="btn-mini" onclick="ajouterOffrande('mita')">➕</button>
-      </div>
-      <p class="total-line">Total : <span id="totMita">0 FC / 0 $</span></p>
+      <button class="btn-primary" onclick="ajouterOffrandeUnifiee()">➕ Ajouter cette offrande</button>
+
+      <!-- Affichage des offrandes par catégorie -->
+      <div id="affichageOffrandes" style="margin-top:14px"></div>
 
       <h4>🚌 Transport</h4>
       <div class="input-group"><label>FC</label><input type="number" id="dTransFC" value="0"></div>
@@ -573,4 +550,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-      </html>
+        </html>
