@@ -1,11 +1,14 @@
-const CACHE_NAME = 'emm-mondial-v2';
+const CACHE_NAME = 'emm-mondial-v3';
 const URLS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './db.js',
-  './manifest.json'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './logo.png'
 ];
 
 self.addEventListener('install', function(event) {
