@@ -89,13 +89,13 @@ function isAdmin() { return currentUser && currentUser.role === 'admin'; }
 
 // Libellés des catégories
 var CATEGORIES_OFFRANDES = {
-  init: '🌟 Initiation',
-  sorei: '🕊️ Sorei Saichi',
-  kannon: '🪷 Kannon',
-  photo: '🖼️ Photo sacrée',
-  shinrei: '✨ Shinrei Saichi',
-  gosh: '🏠 Goshintai familiale',
-  mita: '🕉️ Mitamaya'
+  init: 'Initiation',
+  sorei: 'Sorei Saichi',
+  kannon: 'Kannon',
+  photo: 'Photo sacrée',
+  shinrei: 'Shinrei Saichi',
+  gosh: 'Goshintai familiale',
+  mita: 'Mitamaya'
 };
 
 // ========== ANNONCES ==========
