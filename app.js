@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v3
+// EMM MONDIAL — LOGIQUE PRINCIPALE v4
 // ============================================
 
 var currentUser = null;
@@ -33,7 +33,11 @@ function switchMainTab(name, btn) {
   btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'general') afficherDashboard();
-  if (name === 'finance') setTimeout(initSignature, 100);
+  if (name === 'finance') {
+    setTimeout(initSignature, 100);
+    setTimeout(initSignature, 400);
+    setTimeout(initSignature, 800);
+  }
 }
 
 // ========== LOGIN / LOGOUT ==========
@@ -140,12 +144,9 @@ function ajouterEntite() {
 }
 
 function reinitialiserFormEntite() {
-  var a = document.getElementById('jNomEntite');
-  var b = document.getElementById('jResponsable');
-  var c = document.getElementById('jTypeEntite');
-  if (a) a.value = '';
-  if (b) b.value = '';
-  if (c) c.selectedIndex = 0;
+  var a = document.getElementById('jNomEntite'); if (a) a.value = '';
+  var b = document.getElementById('jResponsable'); if (b) b.value = '';
+  var c = document.getElementById('jTypeEntite'); if (c) c.selectedIndex = 0;
 }
 
 function rafraichirEntites() {
@@ -187,12 +188,9 @@ function modifierEntite(id) {
   var list = DB.get('entites', []);
   var e = list.find(function(x) { return x.id === id; });
   if (!e) return;
-  var type = prompt('Type :', e.type);
-  if (type === null) return;
-  var nom = prompt('Nom :', e.nom);
-  if (nom === null) return;
-  var resp = prompt('Responsable :', e.responsable);
-  if (resp === null) return;
+  var type = prompt('Type :', e.type); if (type === null) return;
+  var nom = prompt('Nom :', e.nom); if (nom === null) return;
+  var resp = prompt('Responsable :', e.responsable); if (resp === null) return;
   var nouveauNom = nom.trim().toUpperCase();
   if (!nouveauNom) return alert('Nom vide');
   var doublon = list.find(function(x) { return x.id !== id && x.nom === nouveauNom; });
@@ -352,26 +350,19 @@ function modifierFiche(id) {
   var list = DB.get('fichesMensuelles', []);
   var f = list.find(function(x) { return x.id === id; });
   if (!f) return;
-  var resp = prompt('Responsable :', f.responsable);
-  if (resp === null) return;
+  var resp = prompt('Responsable :', f.responsable); if (resp === null) return;
   f.responsable = resp.trim();
-  var themes = prompt('Thèmes :', f.themes);
-  if (themes === null) return;
+  var themes = prompt('Thèmes :', f.themes); if (themes === null) return;
   f.themes = themes;
-  var graces = prompt('Grâces :', f.graces);
-  if (graces === null) return;
+  var graces = prompt('Grâces :', f.graces); if (graces === null) return;
   f.graces = graces;
-  var points = prompt('Points :', f.points);
-  if (points === null) return;
+  var points = prompt('Points :', f.points); if (points === null) return;
   f.points = points;
-  var sol = prompt('Solutions :', f.solutions);
-  if (sol === null) return;
+  var sol = prompt('Solutions :', f.solutions); if (sol === null) return;
   f.solutions = sol;
-  var obj = prompt('Objectifs :', f.objectifs);
-  if (obj === null) return;
+  var obj = prompt('Objectifs :', f.objectifs); if (obj === null) return;
   f.objectifs = obj;
-  var act = prompt('Actions :', f.actions);
-  if (act === null) return;
+  var act = prompt('Actions :', f.actions); if (act === null) return;
   f.actions = act;
   DB.set('fichesMensuelles', list);
   alert('✅ Modifiée');
@@ -483,36 +474,63 @@ function previewPhotoCandidat(ev) {
   reader.readAsDataURL(file);
 }
 
-// ========== MODULE II — SIGNATURE ==========
+// ========== MODULE II — SIGNATURE (CORRIGÉE) ==========
 function initSignature() {
   var canvas = document.getElementById('vSignatureCanvas');
-  if (!canvas || canvas.dataset.init === '1') return;
-  canvas.dataset.init = '1';
-  signatureCanvas = canvas;
+  if (!canvas) return;
+
   var ratio = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) {
+    setTimeout(initSignature, 200);
+    return;
+  }
+
   canvas.width = rect.width * ratio;
   canvas.height = rect.height * ratio;
+  signatureCanvas = canvas;
   signatureCtx = canvas.getContext('2d');
+  signatureCtx.setTransform(1, 0, 0, 1, 0, 0);
   signatureCtx.scale(ratio, ratio);
-  signatureCtx.lineWidth = 2.5;
+  signatureCtx.lineWidth = 3;
   signatureCtx.lineCap = 'round';
   signatureCtx.lineJoin = 'round';
   signatureCtx.strokeStyle = '#111';
+
+  if (canvas.dataset.listeners === '1') return;
+  canvas.dataset.listeners = '1';
+
   var drawing = false, lastX = 0, lastY = 0;
-  function pos(e) { var r = canvas.getBoundingClientRect(); var p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; }
-  function start(e) { e.preventDefault(); drawing = true; var p = pos(e); lastX = p.x; lastY = p.y; }
-  function move(e) {
-    if (!drawing) return;
+
+  function getPos(e) {
+    var r = canvas.getBoundingClientRect();
+    var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e);
+    return { x: p.clientX - r.left, y: p.clientY - r.top };
+  }
+  function start(e) {
     e.preventDefault();
-    var p = pos(e);
-    signatureCtx.beginPath(); signatureCtx.moveTo(lastX, lastY); signatureCtx.lineTo(p.x, p.y); signatureCtx.stroke();
-    lastX = p.x; lastY = p.y;
+    drawing = true;
+    var p = getPos(e); lastX = p.x; lastY = p.y;
+    signatureCtx.beginPath();
+    signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+    signatureCtx.fill();
     signatureVide = false;
     var st = document.getElementById('vSignatureStatus');
     if (st) { st.textContent = '✅ Signature enregistrée'; st.style.color = '#0a6e2c'; }
   }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var p = getPos(e);
+    signatureCtx.beginPath();
+    signatureCtx.moveTo(lastX, lastY);
+    signatureCtx.lineTo(p.x, p.y);
+    signatureCtx.stroke();
+    lastX = p.x; lastY = p.y;
+    signatureVide = false;
+  }
   function stop() { drawing = false; }
+
   canvas.addEventListener('mousedown', start);
   canvas.addEventListener('mousemove', move);
   canvas.addEventListener('mouseup', stop);
@@ -520,6 +538,7 @@ function initSignature() {
   canvas.addEventListener('touchstart', start, { passive: false });
   canvas.addEventListener('touchmove', move, { passive: false });
   canvas.addEventListener('touchend', stop);
+  canvas.addEventListener('touchcancel', stop);
 }
 
 function effacerSignature() {
@@ -663,7 +682,7 @@ function modifierCandidat(cid) {
 }
 
 function archiverCandidat(cid) {
-  if (!confirm('📦 Archiver ce candidat ? Il n\'apparaîtra plus dans les listes actives.')) return;
+  if (!confirm('📦 Archiver ce candidat ?')) return;
   var list = DB.get('candidats', []);
   var c = list.find(function(x) { return x.id === cid; });
   if (!c) return;
@@ -759,7 +778,7 @@ function verserRapide(cid) {
     initSignature();
     var v = document.getElementById('vMontant');
     if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 300);
+  }, 500);
 }
 
 function enregistrerVersement() {
@@ -905,7 +924,7 @@ function reinitialiserRechercheEntite() {
   if (box) box.innerHTML = '';
 }
 
-// ========== REÇU AVEC PHOTO + SIGNATURE ==========
+// ========== REÇU ==========
 function imprimerRecu(vid) {
   var v = DB.get('versements', []).find(function(x) { return x.id === vid; });
   if (!v) return;
@@ -1118,20 +1137,14 @@ function rapportFinDetaille() {
   document.getElementById('rapportFinBox').innerHTML = html;
 }
 
-// ========== MODULE III — SÉANCE DE DÉPOUILLEMENT ==========
+// ========== MODULE III — SÉANCE ==========
 function demarrerSeance() {
   var annee = document.getElementById('dAnnee').value;
   var mois = document.getElementById('dMois').value;
   var phase = document.getElementById('dPhase').value;
   var date = document.getElementById('dDate').value;
   if (!annee || !mois || !date) return alert('⚠️ Remplissez tous les champs');
-  seanceActive = {
-    id: uid(),
-    annee: annee, mois: mois, phase: phase, date: date,
-    entites: [],
-    depensesGenerales: [],
-    dateCreation: new Date().toISOString()
-  };
+  seanceActive = { id: uid(), annee: annee, mois: mois, phase: phase, date: date, entites: [], depensesGenerales: [], dateCreation: new Date().toISOString() };
   document.getElementById('seanceStatus').innerHTML = '<p style="color:#0a6e2c;font-weight:600">✅ Séance ' + mois + ' ' + annee + ' — Phase ' + phase + ' démarrée</p>';
   document.getElementById('cardEntiteActive').style.display = 'block';
   document.getElementById('cardEntitesSeance').style.display = 'block';
@@ -1151,9 +1164,7 @@ function reinitialiserSeance() {
   document.getElementById('cardDepensesSeance').style.display = 'none';
   reinitialiserFormEntiteSeance();
   reinitialiserFormDepenseSeance();
-  ['listInit','listSorei','listKannon','listPhoto','listGosh','listMita'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.innerHTML = '';
-  });
+  ['listInit','listSorei','listKannon','listPhoto','listGosh','listMita'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
   tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], gosh: [], mita: [] };
   ['init','sorei','kannon','photo','gosh','mita'].forEach(function(t) { afficherOffrandes(t); });
   document.getElementById('depResultatSeance').innerHTML = '';
@@ -1187,7 +1198,7 @@ function enregistrerEntiteSeance() {
   ['init','sorei','kannon','photo','gosh','mita'].forEach(function(t) { afficherOffrandes(t); });
   reinitialiserFormEntiteSeance();
   afficherEntitesSeance();
-  alert('✅ Entité enregistrée : ' + nom + '\n\nVous pouvez passer à l\'entité suivante.');
+  alert('✅ Entité enregistrée : ' + nom);
 }
 
 function reinitialiserFormEntiteSeance() {
@@ -1278,10 +1289,13 @@ function calculerTotauxSeance() {
   var genUSD = seanceActive.depensesGenerales.reduce(function(a, x) { return a + x.usd; }, 0);
 
   html += '<h4>💸 Dépenses générales</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Total dépenses</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
+  html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
+  seanceActive.depensesGenerales.forEach(function(x) {
+    html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
+  });
   html += '</tbody><tfoot>';
-  html += '<tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr>';
+  html += '<tr><td>TOTAL DÉPENSES</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
+  html += '<tr style="background:#fff3e0"><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr>';
   html += '</tfoot></table></div>';
 
   document.getElementById('depResultatSeance').innerHTML = html;
@@ -1442,7 +1456,7 @@ function retirerOffrande(type, idx) {
   afficherOffrandes(type);
 }
 
-// ========== RAPPORTS MODULE III ==========
+// ========== RAPPORTS MODULE III (CORRIGÉ) ==========
 function rapportDepGlobal() {
   var deps = DB.get('depouillements', []);
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
@@ -1465,11 +1479,16 @@ function rapportDepDetaille() {
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement.</p>'; return; }
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — DÉPOUILLEMENT</h3></div>';
   deps.forEach(function(d) {
+    html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:16px 0 10px;border-left:5px solid #0a6e2c">';
+    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 Séance : ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
+    html += '</div>';
+
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
       html += '<div class="entity-block">';
       html += '<h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
-      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + ' | Date : ' + fmtDate(d.date) + '</div>';
+      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">👤 Responsable : ' + echapper(e.responsable) + ' | 📅 ' + d.mois + ' ' + d.annee + ' | 🗓️ ' + fmtDate(d.date) + '</div>';
       html += '<div class="table-wrapper"><table class="data-table"><tbody>';
       html += '<tr><td>Construction</td><td class="num">' + e.constrFC.toLocaleString() + ' FC</td><td class="num">' + e.constrUSD.toLocaleString() + ' $</td></tr>';
       html += '<tr><td>Normales</td><td class="num">' + e.normFC.toLocaleString() + ' FC</td><td class="num">' + e.normUSD.toLocaleString() + ' $</td></tr>';
@@ -1485,22 +1504,97 @@ function rapportDepDetaille() {
       html += '<tr><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
       html += '</tfoot></table></div></div>';
     });
+
+    if (d.depensesGenerales && d.depensesGenerales.length) {
+      html += '<div class="entity-block" style="border-left-color:#c62828">';
+      html += '<h4 style="color:#c62828">💸 Dépenses générales de la séance</h4>';
+      html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
+      var genFC = 0, genUSD = 0;
+      d.depensesGenerales.forEach(function(x) {
+        genFC += x.fc; genUSD += x.usd;
+        html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
+      });
+      html += '</tbody><tfoot><tr><td>TOTAL DÉPENSES</td><td class="num">' + genFC.toLocaleString() + ' FC</td><td class="num">' + genUSD.toLocaleString() + ' $</td></tr></tfoot>';
+      html += '</table></div></div>';
+    }
+
+    var totalSoldeFC = 0, totalSoldeUSD = 0;
+    d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalSoldeFC += s.soldeFC; totalSoldeUSD += s.soldeUSD; });
+    var totalGenFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
+    var totalGenUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
+
+    html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin-top:10px;border:2px solid #e65100">';
+    html += '<div style="font-size:13px;color:#e65100;font-weight:700;margin-bottom:6px">🧮 RÉCAPITULATIF DE LA SÉANCE</div>';
+    html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+    html += '<tr><td>Total soldes entités</td><td class="num">' + totalSoldeFC.toLocaleString() + ' FC</td><td class="num">' + totalSoldeUSD.toLocaleString() + ' $</td></tr>';
+    html += '<tr><td>Total dépenses générales</td><td class="num">- ' + totalGenFC.toLocaleString() + ' FC</td><td class="num">- ' + totalGenUSD.toLocaleString() + ' $</td></tr>';
+    html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC</td><td class="num">' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
+    html += '</div>';
   });
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
 function soldeTransferer() {
   var deps = DB.get('depouillements', []);
-  var soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
+  if (!deps.length) {
+    document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement enregistré.</p>';
+    return;
+  }
+
+  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3><p>Détail complet par séance</p></div>';
+
+  var totalSoldeFC = 0, totalSoldeUSD = 0;
+  var totalGenFC = 0, totalGenUSD = 0;
+
   deps.forEach(function(d) {
+    var soldeFC = 0, soldeUSD = 0;
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
-    d.depensesGenerales.forEach(function(x) { genFC += x.fc; genUSD += x.usd; });
+
+    var genFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
+    var genUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
+
+    totalSoldeFC += soldeFC;
+    totalSoldeUSD += soldeUSD;
+    totalGenFC += genFC;
+    totalGenUSD += genUSD;
+
+    html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c">';
+    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div>';
+    html += '</div>';
+
+    html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
+    d.entites.forEach(function(e) {
+      var s = sumEntiteDep(e);
+      html += '<tr><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td>';
+      html += '<td class="num">' + s.soldeFC.toLocaleString() + '</td>';
+      html += '<td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
+    });
+    html += '</tbody><tfoot><tr><td>TOTAL SOLDES ENTITÉS</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
+
+    if (d.depensesGenerales && d.depensesGenerales.length) {
+      html += '<div class="table-wrapper"><table class="data-table" style="margin-top:8px"><thead><tr><th>Motif de dépense</th><th>FC</th><th>USD</th></tr></thead><tbody>';
+      d.depensesGenerales.forEach(function(x) {
+        html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
+      });
+      html += '</tbody><tfoot><tr><td>TOTAL DÉPENSES</td><td class="num">' + genFC.toLocaleString() + ' FC</td><td class="num">' + genUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
+    } else {
+      html += '<p style="font-size:12px;color:#888;margin:6px 0">Aucune dépense générale pour cette séance.</p>';
+    }
+
+    html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100">';
+    html += '<div style="font-size:14px;color:#e65100;font-weight:700">💰 SOLDE À TRANSFÉRER (cette séance)</div>';
+    html += '<div style="font-size:16px;color:#0a6e2c;font-weight:700;margin-top:6px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div>';
+    html += '</div>';
   });
-  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3></div>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Solde entités</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr>';
-  html += '<tr><td>Dépenses générales</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
-  html += '</tbody><tfoot><tr><td>À LA BANQUE</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
+
+  html += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
+  html += '<div style="font-size:14px;font-weight:700;margin-bottom:8px">🌍 TOTAUX GÉNÉRAUX (toutes séances)</div>';
+  html += '<div style="font-size:12px;margin:4px 0">Total soldes entités : <strong>' + totalSoldeFC.toLocaleString() + ' FC / ' + totalSoldeUSD.toLocaleString() + ' $</strong></div>';
+  html += '<div style="font-size:12px;margin:4px 0">Total dépenses générales : <strong>- ' + totalGenFC.toLocaleString() + ' FC / - ' + totalGenUSD.toLocaleString() + ' $</strong></div>';
+  html += '<div style="font-size:16px;font-weight:700;margin-top:10px;border-top:1px solid rgba(255,255,255,0.3);padding-top:10px">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
+  html += '</div>';
+
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
@@ -1785,4 +1879,5 @@ function refreshAll() {
 window.addEventListener('load', function() {
   showSplash();
   setTimeout(initSignature, 500);
+  setTimeout(initSignature, 1500);
 });
