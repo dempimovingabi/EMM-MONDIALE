@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v5
+// EMM MONDIAL — LOGIQUE PRINCIPALE v7
 // ============================================
 
 var currentUser = null;
@@ -7,6 +7,12 @@ var photoCandidatTemp = null;
 var signatureCanvas = null, signatureCtx = null, signatureVide = true;
 var seanceActive = null;
 var tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
+
+var CATEGORIES_OFFRANDES = {
+  init: 'Initiation', sorei: 'Sorei Saichi', kannon: 'Kannon',
+  photo: 'Photo sacrée', shinrei: 'Shinrei Saichi',
+  gosh: 'Goshintai familiale', mita: 'Mitamaya'
+};
 
 // ========== SPLASH ==========
 function showSplash() {
@@ -87,16 +93,13 @@ function echapper(s) {
 }
 function isAdmin() { return currentUser && currentUser.role === 'admin'; }
 
-// Libellés des catégories
-var CATEGORIES_OFFRANDES = {
-  init: 'Initiation',
-  sorei: 'Sorei Saichi',
-  kannon: 'Kannon',
-  photo: 'Photo sacrée',
-  shinrei: 'Shinrei Saichi',
-  gosh: 'Goshintai familiale',
-  mita: 'Mitamaya'
-};
+// Filtre une liste selon archived + filtre
+function filtrerListe(list, filtre) {
+  if (filtre === 'archive') return list.filter(function(x) { return x.archived === true; });
+  if (filtre === 'tous') return list;
+  // 'actif' par défaut
+  return list.filter(function(x) { return !x.archived; });
+}
 
 // ========== ANNONCES ==========
 function afficherAnnonces() {
@@ -108,7 +111,11 @@ function afficherAnnonces() {
   list.slice().reverse().forEach(function(a) {
     html += '<div class="item-list"><strong>📢 ' + a.date + '</strong><br>' + echapper(a.texte);
     if (isAdmin()) {
-      html += '<div style="margin-top:6px"><button class="btn-mini danger" onclick="supprimerAnnonce(\'' + a.id + '\')">🗑️ Supprimer</button></div>';
+      html += '<div style="margin-top:6px">';
+      html += '<button class="btn-mini orange" onclick="modifierAnnonce(\'' + a.id + '\')">✏️</button>';
+      html += '<button class="btn-mini ' + (a.archived ? 'blue' : 'gray') + '" onclick="archiverAnnonce(\'' + a.id + '\')">' + (a.archived ? '↩️' : '📦') + '</button>';
+      html += '<button class="btn-mini danger" onclick="supprimerAnnonce(\'' + a.id + '\')">🗑️</button>';
+      html += '</div>';
     }
     html += '</div>';
   });
@@ -120,7 +127,7 @@ function publierAnnonce() {
   var texte = document.getElementById('annonceText').value.trim();
   if (!texte) return alert('Écrivez une annonce');
   var list = DB.get('annonces', []);
-  list.push({ id: uid(), texte: texte, date: new Date().toLocaleDateString('fr-FR'), auteur: currentUser.nom });
+  list.push({ id: uid(), texte: texte, date: new Date().toLocaleDateString('fr-FR'), auteur: currentUser.nom, archived: false });
   DB.set('annonces', list);
   reinitialiserFormAnnonce();
   afficherAnnonces();
@@ -130,6 +137,30 @@ function publierAnnonce() {
 function reinitialiserFormAnnonce() {
   var el = document.getElementById('annonceText');
   if (el) el.value = '';
+}
+
+function modifierAnnonce(id) {
+  if (!isAdmin()) return alert('Réservé admin');
+  var list = DB.get('annonces', []);
+  var a = list.find(function(x) { return x.id === id; });
+  if (!a) return;
+  var txt = prompt('Modifier l\'annonce :', a.texte);
+  if (txt === null) return;
+  a.texte = txt.trim();
+  DB.set('annonces', list);
+  afficherAnnonces();
+  alert('✅ Modifiée');
+}
+
+function archiverAnnonce(id) {
+  if (!isAdmin()) return alert('Réservé admin');
+  var list = DB.get('annonces', []);
+  var a = list.find(function(x) { return x.id === id; });
+  if (!a) return;
+  a.archived = !a.archived;
+  DB.set('annonces', list);
+  afficherAnnonces();
+  alert(a.archived ? '📦 Archivée' : '↩️ Restaurée');
 }
 
 function supprimerAnnonce(id) {
@@ -146,8 +177,8 @@ function ajouterEntite() {
   var resp = document.getElementById('jResponsable').value.trim();
   if (!nom || !resp) return alert('Remplissez tous les champs');
   var entites = DB.get('entites', []);
-  if (entites.find(function(e) { return e.nom === nom; })) return alert('Cette entité existe déjà');
-  entites.push({ id: uid(), type: type, nom: nom, responsable: resp });
+  if (entites.find(function(e) { return e.nom === nom && !e.archived; })) return alert('Cette entité existe déjà');
+  entites.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false });
   DB.set('entites', entites);
   reinitialiserFormEntite();
   refreshAll();
@@ -161,7 +192,7 @@ function reinitialiserFormEntite() {
 }
 
 function rafraichirEntites() {
-  var entites = DB.get('entites', []);
+  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; });
   ['jEntiteSelect', 'mEntite'].forEach(function(id) {
     var sel = document.getElementById(id);
     if (!sel) return;
@@ -179,16 +210,21 @@ function getEntiteNom(id) {
 }
 
 function afficherListeEntites() {
+  var filtre = document.getElementById('filtreEntites') ? document.getElementById('filtreEntites').value : 'actif';
+  var search = (document.getElementById('searchEntiteListe') ? document.getElementById('searchEntiteListe').value : '').toUpperCase();
   var entites = DB.get('entites', []);
+  entites = filtrerListe(entites, filtre);
+  if (search) entites = entites.filter(function(e) { return e.nom.indexOf(search) !== -1; });
   var box = document.getElementById('listeEntites');
   if (!box) return;
-  if (!entites.length) { box.innerHTML = '<p>Aucune entité enregistrée.</p>'; return; }
+  if (!entites.length) { box.innerHTML = '<p>Aucune entité.</p>'; return; }
   var html = '';
   entites.forEach(function(e) {
-    html += '<div class="item-list" style="padding:12px">';
-    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600;margin-bottom:4px">🏛️ ' + echapper(e.type) + ' - ' + echapper(e.nom) + '</div>';
+    html += '<div class="item-list" style="padding:12px' + (e.archived ? ';opacity:0.7;background:#f0f0f0' : '') + '">';
+    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600;margin-bottom:4px">🏛️ ' + echapper(e.type) + ' - ' + echapper(e.nom) + (e.archived ? ' <span class="badge badge-archive">📦 Archivée</span>' : '') + '</div>';
     html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(e.responsable) + '</div>';
     html += '<button class="btn-mini orange" onclick="modifierEntite(\'' + e.id + '\')">✏️ Modifier</button> ';
+    html += '<button class="btn-mini ' + (e.archived ? 'blue' : 'gray') + '" onclick="archiverEntite(\'' + e.id + '\')">' + (e.archived ? '↩️ Désarchiver' : '📦 Archiver') + '</button> ';
     html += '<button class="btn-mini danger" onclick="supprimerEntite(\'' + e.id + '\')">🗑️ Supprimer</button>';
     html += '</div>';
   });
@@ -204,7 +240,7 @@ function modifierEntite(id) {
   var resp = prompt('Responsable :', e.responsable); if (resp === null) return;
   var nouveauNom = nom.trim().toUpperCase();
   if (!nouveauNom) return alert('Nom vide');
-  var doublon = list.find(function(x) { return x.id !== id && x.nom === nouveauNom; });
+  var doublon = list.find(function(x) { return x.id !== id && x.nom === nouveauNom && !x.archived; });
   if (doublon) return alert('⚠️ Nom déjà utilisé');
   e.type = type.trim() || e.type;
   e.nom = nouveauNom;
@@ -212,6 +248,21 @@ function modifierEntite(id) {
   DB.set('entites', list);
   refreshAll();
   alert('✅ Modifiée');
+}
+
+function archiverEntite(id) {
+  var list = DB.get('entites', []);
+  var e = list.find(function(x) { return x.id === id; });
+  if (!e) return;
+  if (!e.archived) {
+    if (!confirm('📦 Archiver "' + e.nom + '" ?\n\nElle n\'apparaîtra plus dans les listes actives.')) return;
+    e.archived = true;
+  } else {
+    e.archived = false;
+  }
+  DB.set('entites', list);
+  refreshAll();
+  alert(e.archived ? '📦 Archivée' : '↩️ Restaurée');
 }
 
 function supprimerEntite(id) {
@@ -237,7 +288,7 @@ function enregistrerParticipation() {
   if (!entiteId) return alert('⚠️ Enregistrez d\'abord une entité');
   if (!date) return alert('Choisissez une date');
   var list = DB.get('participations', []);
-  list.push({ id: uid(), entiteId: entiteId, date: date, m: m, s: s, n: n, createdAt: new Date().toISOString(), auteur: currentUser ? currentUser.nom : '' });
+  list.push({ id: uid(), entiteId: entiteId, date: date, m: m, s: s, n: n, createdAt: new Date().toISOString(), auteur: currentUser ? currentUser.nom : '', archived: false });
   DB.set('participations', list);
   reinitialiserFormParticipation();
   afficherJournaliere();
@@ -252,7 +303,9 @@ function reinitialiserFormParticipation() {
 }
 
 function afficherJournaliere() {
-  var parts = DB.get('participations', []);
+  var filtre = document.getElementById('filtreParticipations') ? document.getElementById('filtreParticipations').value : 'actif';
+  var allParts = DB.get('participations', []);
+  var parts = filtrerListe(allParts, filtre);
   var box = document.getElementById('listeJournaliere');
   if (!box) return;
   if (!parts.length) { box.innerHTML = '<p>Aucune donnée.</p>'; return; }
@@ -268,8 +321,9 @@ function afficherJournaliere() {
     html += '<div class="table-wrapper"><table class="data-table">';
     html += '<thead><tr><th>Date</th><th>M</th><th>S</th><th>NV</th><th>Actions</th></tr></thead><tbody>';
     lignes.forEach(function(p) {
-      html += '<tr><td>' + fmtDate(p.date) + '</td><td class="num">' + p.m + '</td><td class="num">' + p.s + '</td><td class="num">' + p.n + '</td>';
+      html += '<tr' + (p.archived ? ' style="opacity:0.6"' : '') + '><td>' + fmtDate(p.date) + '</td><td class="num">' + p.m + '</td><td class="num">' + p.s + '</td><td class="num">' + p.n + '</td>';
       html += '<td><button class="btn-mini orange" onclick="modifierParticipation(\'' + p.id + '\')">✏️</button>';
+      html += '<button class="btn-mini ' + (p.archived ? 'blue' : 'gray') + '" onclick="archiverParticipation(\'' + p.id + '\')">' + (p.archived ? '↩️' : '📦') + '</button>';
       html += '<button class="btn-mini danger" onclick="supprimerParticipation(\'' + p.id + '\')">🗑️</button></td></tr>';
     });
     html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + tm + '</td><td class="num">' + ts + '</td><td class="num">' + tn + '</td><td></td></tr></tfoot>';
@@ -291,6 +345,16 @@ function modifierParticipation(id) {
   DB.set('participations', list);
   afficherJournaliere();
   alert('✅ Modifiée');
+}
+
+function archiverParticipation(id) {
+  var list = DB.get('participations', []);
+  var p = list.find(function(x) { return x.id === id; });
+  if (!p) return;
+  p.archived = !p.archived;
+  DB.set('participations', list);
+  afficherJournaliere();
+  alert(p.archived ? '📦 Archivée' : '↩️ Restaurée');
 }
 
 function supprimerParticipation(id) {
@@ -315,6 +379,7 @@ function enregistrerFicheMensuelle() {
     solutions: document.getElementById('mSolutions').value,
     objectifs: document.getElementById('mObjectifs').value,
     actions: document.getElementById('mActions').value,
+    archived: false,
     dateCreation: new Date().toISOString()
   };
   numericIds.forEach(function(id) { var el = document.getElementById(id); f[id] = el ? (parseInt(el.value) || 0) : 0; });
@@ -333,10 +398,13 @@ function reinitialiserFormFiche() {
 }
 
 function tableFicheMensuelle(f) {
-  var h = '<div class="entity-block">';
-  h += '<h4>📍 ' + echapper(getEntiteNom(f.entiteId)) + ' — ' + echapper(f.mois) + ' ' + echapper(f.annee) + '</h4>';
+  var h = '<div class="entity-block"' + (f.archived ? ' style="opacity:0.7;background:#f0f0f0"' : '') + '>';
+  h += '<h4>📍 ' + echapper(getEntiteNom(f.entiteId)) + ' — ' + echapper(f.mois) + ' ' + echapper(f.annee);
+  if (f.archived) h += ' <span class="badge badge-archive">📦 Archivée</span>';
+  h += '</h4>';
   h += '<div style="margin-bottom:8px;display:flex;gap:4px;flex-wrap:wrap">';
   h += '<button class="btn-mini orange" onclick="modifierFiche(\'' + f.id + '\')">✏️ Modifier</button>';
+  h += '<button class="btn-mini ' + (f.archived ? 'blue' : 'gray') + '" onclick="archiverFiche(\'' + f.id + '\')">' + (f.archived ? '↩️ Désarchiver' : '📦 Archiver') + '</button>';
   h += '<button class="btn-mini danger" onclick="supprimerFiche(\'' + f.id + '\')">🗑️ Supprimer</button>';
   h += '</div>';
   h += '<div class="table-wrapper"><table class="data-table"><tbody>';
@@ -380,6 +448,16 @@ function modifierFiche(id) {
   rechercherFreqAvance();
 }
 
+function archiverFiche(id) {
+  var list = DB.get('fichesMensuelles', []);
+  var f = list.find(function(x) { return x.id === id; });
+  if (!f) return;
+  f.archived = !f.archived;
+  DB.set('fichesMensuelles', list);
+  alert(f.archived ? '📦 Archivée' : '↩️ Restaurée');
+  rechercherFreqAvance();
+}
+
 function supprimerFiche(id) {
   if (!confirm('⚠️ Supprimer cette fiche ?')) return;
   DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(x) { return x.id !== id; }));
@@ -387,22 +465,16 @@ function supprimerFiche(id) {
   rapportFreqDetaille();
 }
 
-function rechercherFreq() {
-  var q = document.getElementById('searchFreq').value.toLowerCase().trim();
-  if (!q) { document.getElementById('rapportFreqBox').innerHTML = ''; return; }
-  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return getEntiteNom(f.entiteId).toLowerCase().indexOf(q) !== -1; });
-  var html = '<h3>Résultats (' + fiches.length + ')</h3>';
-  if (!fiches.length) html += '<p>Aucun résultat.</p>';
-  else fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
-  document.getElementById('rapportFreqBox').innerHTML = html;
-}
-
 function rechercherFreqAvance() {
-  var q = (document.getElementById('searchFreq').value || '').toLowerCase().trim();
+  var q = (document.getElementById('searchFreq').value || '').toUpperCase().trim();
   var annee = (document.getElementById('searchFreqAnnee').value || '').trim();
   var mois = document.getElementById('searchFreqMois').value;
-  var fiches = DB.get('fichesMensuelles', []).filter(function(f) {
-    var okQ = !q || getEntiteNom(f.entiteId).toLowerCase().indexOf(q) !== -1;
+  var statut = document.getElementById('searchFreqStatut').value;
+  var fiches = DB.get('fichesMensuelles', []);
+  fiches = filtrerListe(fiches, statut);
+  fiches = fiches.filter(function(f) {
+    var nom = getEntiteNom(f.entiteId).toUpperCase();
+    var okQ = !q || nom.indexOf(q) !== -1;
     var okA = !annee || String(f.annee) === annee;
     var okM = !mois || f.mois === mois;
     return okQ && okA && okM;
@@ -417,13 +489,14 @@ function reinitialiserRechercheFreq() {
   var a = document.getElementById('searchFreq'); if (a) a.value = '';
   var b = document.getElementById('searchFreqAnnee'); if (b) b.value = '';
   var c = document.getElementById('searchFreqMois'); if (c) c.selectedIndex = 0;
+  var d = document.getElementById('searchFreqStatut'); if (d) d.selectedIndex = 0;
   document.getElementById('rapportFreqBox').innerHTML = '';
 }
 
 // ========== RAPPORTS MODULE I ==========
 function rapportFreqGlobal() {
-  var fiches = DB.get('fichesMensuelles', []);
-  var parts = DB.get('participations', []);
+  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
+  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
   var tm = 0, ts = 0, tn = 0;
   parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
   var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FRÉQUENCES</h3></div>';
@@ -434,29 +507,12 @@ function rapportFreqGlobal() {
   html += '<tr><td>Total Sympathisants</td><td class="num">' + ts + '</td></tr>';
   html += '<tr><td>Total Nouveaux</td><td class="num">' + tn + '</td></tr>';
   html += '</tbody></table></div>';
-  if (fiches.length) {
-    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📌 Détails par entité</h4>';
-    var parEntite = {};
-    fiches.forEach(function(f) { if (!parEntite[f.entiteId]) parEntite[f.entiteId] = []; parEntite[f.entiteId].push(f); });
-    Object.keys(parEntite).forEach(function(eid) {
-      var liste = parEntite[eid];
-      var sm = 0, ss = 0, sn = 0;
-      liste.forEach(function(f) { sm += (f.mFMembres || 0); ss += (f.mFSympathisants || 0); sn += (f.mFNouveaux || 0); });
-      html += '<div class="entity-block">';
-      html += '<h4>📍 ' + echapper(getEntiteNom(eid)) + '</h4>';
-      html += '<div class="table-wrapper"><table class="data-table">';
-      html += '<thead><tr><th>Mois</th><th>M</th><th>S</th><th>NV</th></tr></thead><tbody>';
-      liste.forEach(function(f) { html += '<tr><td>' + echapper(f.mois) + ' ' + f.annee + '</td><td class="num">' + (f.mFMembres || 0) + '</td><td class="num">' + (f.mFSympathisants || 0) + '</td><td class="num">' + (f.mFNouveaux || 0) + '</td></tr>'; });
-      html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + sm + '</td><td class="num">' + ss + '</td><td class="num">' + sn + '</td></tr></tfoot>';
-      html += '</table></div></div>';
-    });
-  }
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
 function rapportFreqDetaille() {
-  var fiches = DB.get('fichesMensuelles', []);
-  if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche.</p>'; return; }
+  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
+  if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active.</p>'; return; }
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FRÉQUENCES</h3></div>';
   fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
   document.getElementById('rapportFreqBox').innerHTML = html;
@@ -489,14 +545,9 @@ function previewPhotoCandidat(ev) {
 function initSignature() {
   var canvas = document.getElementById('vSignatureCanvas');
   if (!canvas) return;
-
   var ratio = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) {
-    setTimeout(initSignature, 200);
-    return;
-  }
-
+  if (rect.width === 0 || rect.height === 0) { setTimeout(initSignature, 200); return; }
   canvas.width = rect.width * ratio;
   canvas.height = rect.height * ratio;
   signatureCanvas = canvas;
@@ -507,24 +558,18 @@ function initSignature() {
   signatureCtx.lineCap = 'round';
   signatureCtx.lineJoin = 'round';
   signatureCtx.strokeStyle = '#111';
-
   if (canvas.dataset.listeners === '1') return;
   canvas.dataset.listeners = '1';
-
   var drawing = false, lastX = 0, lastY = 0;
-
   function getPos(e) {
     var r = canvas.getBoundingClientRect();
     var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e);
     return { x: p.clientX - r.left, y: p.clientY - r.top };
   }
   function start(e) {
-    e.preventDefault();
-    drawing = true;
+    e.preventDefault(); drawing = true;
     var p = getPos(e); lastX = p.x; lastY = p.y;
-    signatureCtx.beginPath();
-    signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
-    signatureCtx.fill();
+    signatureCtx.beginPath(); signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); signatureCtx.fill();
     signatureVide = false;
     var st = document.getElementById('vSignatureStatus');
     if (st) { st.textContent = '✅ Signature enregistrée'; st.style.color = '#0a6e2c'; }
@@ -533,15 +578,11 @@ function initSignature() {
     if (!drawing) return;
     e.preventDefault();
     var p = getPos(e);
-    signatureCtx.beginPath();
-    signatureCtx.moveTo(lastX, lastY);
-    signatureCtx.lineTo(p.x, p.y);
-    signatureCtx.stroke();
+    signatureCtx.beginPath(); signatureCtx.moveTo(lastX, lastY); signatureCtx.lineTo(p.x, p.y); signatureCtx.stroke();
     lastX = p.x; lastY = p.y;
     signatureVide = false;
   }
   function stop() { drawing = false; }
-
   canvas.addEventListener('mousedown', start);
   canvas.addEventListener('mousemove', move);
   canvas.addEventListener('mouseup', stop);
@@ -572,13 +613,13 @@ function ajouterCandidat() {
   if (!nom) return alert('Entrez le nom');
   if (!nomEntite) return alert('Entrez l\'entité');
   var list = DB.get('candidats', []);
-  var existe = list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.statut === 'en_cours'; });
+  var existe = list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.statut === 'en_cours' && !c.archived; });
   if (existe) return alert('⚠️ Candidat déjà en cours pour ce motif');
   list.push({
     id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite,
     responsable: responsable, motif: motif, montantPrevu: montant, taux: taux,
     totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(),
-    photo: photoCandidatTemp || null
+    photo: photoCandidatTemp || null, archived: false
   });
   DB.set('candidats', list);
   reinitialiserFormCandidat();
@@ -599,37 +640,45 @@ function reinitialiserFormCandidat() {
 
 function afficherCandidats() {
   var search = (document.getElementById('searchCand') ? document.getElementById('searchCand').value : '').toLowerCase();
-  var list = DB.get('candidats', []).filter(function(c) { return c.statut === 'en_cours'; });
+  var filtre = document.getElementById('filtreCandidats') ? document.getElementById('filtreCandidats').value : 'actif';
+  var allCands = DB.get('candidats', []);
+  var list = allCands.slice();
+  // Filtre statut
+  if (filtre === 'en_cours') list = list.filter(function(c) { return c.statut === 'en_cours' && !c.archived; });
+  else if (filtre === 'termine') list = list.filter(function(c) { return c.statut === 'termine' && !c.archived; });
+  else if (filtre === 'archive') list = list.filter(function(c) { return c.archived === true; });
+  else if (filtre === 'actif') list = list.filter(function(c) { return !c.archived && c.statut !== 'archive'; });
+  // Sinon 'tous' : tout
   if (search) list = list.filter(function(c) { return c.nom.toLowerCase().indexOf(search) !== -1; });
   list.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
   var box = document.getElementById('listeCandidats');
   if (!box) return;
-  if (!list.length) { box.innerHTML = '<p>Aucun candidat en cours.</p>'; }
+  if (!list.length) { box.innerHTML = '<p>Aucun candidat.</p>'; }
   else {
     var html = '<div class="table-wrapper"><table class="data-table">';
-    html += '<thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
+    html += '<thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Statut</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
     list.forEach(function(c) {
-      html += '<tr><td style="text-align:center">';
+      var badge = c.archived ? '<span class="badge badge-archive">📦</span>' : (c.statut === 'termine' ? '<span class="badge badge-ok">✅</span>' : '<span class="badge badge-progress">⏳</span>');
+      html += '<tr' + (c.archived ? ' style="opacity:0.6"' : '') + '><td style="text-align:center">';
       if (c.photo) html += '<img src="' + c.photo + '" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
       else html += '<div style="width:42px;height:42px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:16px">👤</div>';
       html += '</td>';
       html += '<td>' + echapper(c.nom) + '</td>';
       html += '<td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td>';
       html += '<td>' + echapper(c.motif) + '</td>';
+      html += '<td>' + badge + '</td>';
       html += '<td class="num">' + c.totalVerse.toFixed(2) + '$</td>';
       html += '<td>';
       html += '<button class="btn-mini" onclick="verserRapide(\'' + c.id + '\')">💵</button>';
       html += '<button class="btn-mini blue" onclick="changerPhoto(\'' + c.id + '\')">📷</button>';
       html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')">✏️</button>';
-      html += '<button class="btn-mini gray" onclick="archiverCandidat(\'' + c.id + '\')">📦</button>';
+      html += '<button class="btn-mini ' + (c.archived ? 'blue' : 'gray') + '" onclick="archiverCandidat(\'' + c.id + '\')">' + (c.archived ? '↩️' : '📦') + '</button>';
       html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')">🗑️</button>';
       html += '</td></tr>';
     });
     html += '</tbody></table></div>';
     box.innerHTML = html;
   }
-  afficherArchives();
-  afficherTermines();
 }
 
 function voirPhoto(cid) {
@@ -693,84 +742,45 @@ function modifierCandidat(cid) {
 }
 
 function archiverCandidat(cid) {
-  if (!confirm('📦 Archiver ce candidat ?')) return;
   var list = DB.get('candidats', []);
   var c = list.find(function(x) { return x.id === cid; });
   if (!c) return;
-  c.statut = 'archive';
+  if (!c.archived) {
+    if (!confirm('📦 Archiver "' + c.nom + '" ?')) return;
+    c.archived = true;
+  } else {
+    c.archived = false;
+  }
   DB.set('candidats', list);
   refreshAll();
-  alert('✅ Archivé');
+  alert(c.archived ? '📦 Archivé' : '↩️ Restauré');
 }
 
-function desarchiverCandidat(cid) {
-  if (!confirm('↩️ Restaurer ce candidat ?')) return;
-  var list = DB.get('candidats', []);
-  var c = list.find(function(x) { return x.id === cid; });
-  if (!c) return;
-  c.statut = c.totalVerse >= c.montantPrevu - 0.01 ? 'termine' : 'en_cours';
-  DB.set('candidats', list);
+function supprimerCandidat(cid) {
+  if (!confirm('⚠️ Supprimer ce candidat et TOUS ses versements ?')) return;
+  DB.set('candidats', DB.get('candidats', []).filter(function(c) { return c.id !== cid; }));
+  DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== cid; }));
   refreshAll();
-  alert('✅ Restauré');
+  alert('✅ Supprimé');
 }
 
-function afficherArchives() {
-  var list = DB.get('candidats', []).filter(function(c) { return c.statut === 'archive'; });
-  list.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
-  var box = document.getElementById('listeArchives');
-  if (!box) return;
-  if (!list.length) { box.innerHTML = '<p>Aucun candidat archivé.</p>'; return; }
-  var html = '<div class="table-wrapper"><table class="data-table">';
-  html += '<thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
-  list.forEach(function(c) {
-    html += '<tr><td style="text-align:center">';
-    if (c.photo) html += '<img src="' + c.photo + '" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #999">';
-    else html += '<div style="width:38px;height:38px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:14px">👤</div>';
-    html += '</td>';
-    html += '<td>' + echapper(c.nom) + '</td>';
-    html += '<td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td>';
-    html += '<td>' + echapper(c.motif) + '</td>';
-    html += '<td class="num">' + c.totalVerse.toFixed(2) + '$</td>';
-    html += '<td>';
-    html += '<button class="btn-mini blue" onclick="desarchiverCandidat(\'' + c.id + '\')">↩️ Restaurer</button>';
-    html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')">🗑️</button>';
-    html += '</td></tr>';
-  });
-  html += '</tbody></table></div>';
-  box.innerHTML = html;
+function reinitialiserRechercheCand() {
+  var el = document.getElementById('searchCand'); if (el) el.value = '';
+  var f = document.getElementById('filtreCandidats'); if (f) f.selectedIndex = 0;
+  afficherCandidats();
 }
 
-function afficherTermines() {
-  var list = DB.get('candidats', []).filter(function(c) { return c.statut === 'termine'; });
-  list.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
-  var box = document.getElementById('listeTermines');
-  if (!box) return;
-  if (!list.length) { box.innerHTML = '<p>Aucun candidat terminé.</p>'; return; }
-  var html = '<div class="table-wrapper"><table class="data-table">';
-  html += '<thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
-  list.forEach(function(c) {
-    html += '<tr><td style="text-align:center">';
-    if (c.photo) html += '<img src="' + c.photo + '" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
-    else html += '<div style="width:38px;height:38px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:14px">👤</div>';
-    html += '</td>';
-    html += '<td>' + echapper(c.nom) + '</td>';
-    html += '<td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td>';
-    html += '<td>' + echapper(c.motif) + '</td>';
-    html += '<td class="num">' + c.totalVerse.toFixed(2) + '$</td>';
-    html += '<td>';
-    html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')">✏️</button>';
-    html += '<button class="btn-mini gray" onclick="archiverCandidat(\'' + c.id + '\')">📦</button>';
-    html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')">🗑️</button>';
-    html += '</td></tr>';
-  });
-  html += '</tbody></table></div>';
-  box.innerHTML = html;
+function reinitialiserRechercheEntite() {
+  var a = document.getElementById('searchEntiteFinance'); if (a) a.value = '';
+  var b = document.getElementById('searchEntiteType'); if (b) b.selectedIndex = 0;
+  var box = document.getElementById('resultatRechercheEntite');
+  if (box) box.innerHTML = '';
 }
 
 function rafraichirCandidatsSelect() {
   var sel = document.getElementById('vCandidat');
   if (!sel) return;
-  var list = DB.get('candidats', []).filter(function(c) { return c.statut === 'en_cours'; });
+  var list = DB.get('candidats', []).filter(function(c) { return c.statut === 'en_cours' && !c.archived; });
   list.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
   var val = sel.value;
   var opts = '';
@@ -804,7 +814,7 @@ function enregistrerVersement() {
   var montantUSD = monnaie === 'FC' ? (montant / taux) : montant;
   var signatureData = signatureCanvas.toDataURL('image/png');
   var vers = DB.get('versements', []);
-  vers.push({ id: uid(), candId: candId, monnaie: monnaie, montantOrigine: montant, montantUSD: montantUSD, taux: taux, date: date, dateCreation: new Date().toISOString(), signature: signatureData });
+  vers.push({ id: uid(), candId: candId, monnaie: monnaie, montantOrigine: montant, montantUSD: montantUSD, taux: taux, date: date, dateCreation: new Date().toISOString(), signature: signatureData, archived: false });
   DB.set('versements', vers);
   var cands = DB.get('candidats', []);
   var c = cands.find(function(x) { return x.id === candId; });
@@ -825,7 +835,9 @@ function reinitialiserFormVersement() {
 }
 
 function afficherVersements() {
-  var vers = DB.get('versements', []);
+  var filtre = document.getElementById('filtreVersements') ? document.getElementById('filtreVersements').value : 'actif';
+  var allVers = DB.get('versements', []);
+  var vers = filtrerListe(allVers, filtre);
   var box = document.getElementById('historiqueVersements');
   if (!box) return;
   if (!vers.length) { box.innerHTML = '<p>Aucun versement.</p>'; return; }
@@ -850,13 +862,14 @@ function afficherVersements() {
     html += '<div style="font-size:12px;color:#666;margin-bottom:8px">' + echapper(c.typeEntite) + ' - <strong>' + echapper(c.nomEntite) + '</strong> | ' + echapper(c.motif) + '</div>';
     html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>FC</th><th>USD</th><th>Signé</th><th>Actions</th></tr></thead><tbody>';
     lignes.forEach(function(v) {
-      html += '<tr>';
+      html += '<tr' + (v.archived ? ' style="opacity:0.6"' : '') + '>';
       html += '<td>' + fmtDate(v.date) + '</td>';
       html += '<td class="num">' + (v.monnaie === 'FC' ? v.montantOrigine.toLocaleString() : '-') + '</td>';
       html += '<td class="num">' + v.montantUSD.toFixed(2) + '$</td>';
       html += '<td style="text-align:center">' + (v.signature ? '<img src="' + v.signature + '" style="height:26px;cursor:pointer;border:1px solid #ddd;background:white" onclick="voirSignature(\'' + v.id + '\')">' : '—') + '</td>';
       html += '<td>';
       html += '<button class="btn-mini orange" onclick="modifierVersement(\'' + v.id + '\')">✏️</button>';
+      html += '<button class="btn-mini ' + (v.archived ? 'blue' : 'gray') + '" onclick="archiverVersement(\'' + v.id + '\')">' + (v.archived ? '↩️' : '📦') + '</button>';
       html += '<button class="btn-mini danger" onclick="supprimerVersement(\'' + v.id + '\')">🗑️</button>';
       html += '<button class="btn-mini blue" onclick="imprimerRecu(\'' + v.id + '\')">🖨️</button>';
       html += '</td></tr>';
@@ -900,6 +913,16 @@ function modifierVersement(vid) {
   alert('✅ Modifié');
 }
 
+function archiverVersement(vid) {
+  var list = DB.get('versements', []);
+  var v = list.find(function(x) { return x.id === vid; });
+  if (!v) return;
+  v.archived = !v.archived;
+  DB.set('versements', list);
+  afficherVersements();
+  alert(v.archived ? '📦 Archivé' : '↩️ Restauré');
+}
+
 function supprimerVersement(vid) {
   if (!confirm('⚠️ Supprimer ce versement ?')) return;
   var list = DB.get('versements', []);
@@ -912,27 +935,6 @@ function supprimerVersement(vid) {
   DB.set('versements', list.filter(function(x) { return x.id !== vid; }));
   refreshAll();
   alert('✅ Supprimé');
-}
-
-function supprimerCandidat(cid) {
-  if (!confirm('⚠️ Supprimer ce candidat et TOUS ses versements ?')) return;
-  DB.set('candidats', DB.get('candidats', []).filter(function(c) { return c.id !== cid; }));
-  DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== cid; }));
-  refreshAll();
-  alert('✅ Supprimé');
-}
-
-function reinitialiserRechercheCand() {
-  var el = document.getElementById('searchCand');
-  if (el) el.value = '';
-  afficherCandidats();
-}
-
-function reinitialiserRechercheEntite() {
-  var a = document.getElementById('searchEntiteFinance'); if (a) a.value = '';
-  var b = document.getElementById('searchEntiteType'); if (b) b.selectedIndex = 0;
-  var box = document.getElementById('resultatRechercheEntite');
-  if (box) box.innerHTML = '';
 }
 
 // ========== REÇU ==========
@@ -983,7 +985,7 @@ function rechercherParEntite() {
   var box = document.getElementById('resultatRechercheEntite');
   if (!box) return;
   if (!q && !type) { box.innerHTML = '<p style="color:#888;font-size:13px">Entrez un nom pour voir les candidats.</p>'; return; }
-  var cands = DB.get('candidats', []).filter(function(c) {
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).filter(function(c) {
     var okQ = !q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1);
     var okT = !type || c.typeEntite === type;
     return okQ && okT;
@@ -1004,7 +1006,7 @@ function rechercherParEntite() {
     liste.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
     liste.forEach(function(c) {
       var solde = c.montantPrevu - (c.totalVerse || 0);
-      var badge = c.statut === 'termine' ? '<span class="badge badge-ok">✅ Terminé</span>' : (c.statut === 'en_cours' ? '<span class="badge badge-progress">⏳ En cours</span>' : '<span class="badge badge-archive">📦 Archivé</span>');
+      var badge = c.statut === 'termine' ? '<span class="badge badge-ok">✅ Terminé</span>' : '<span class="badge badge-progress">⏳ En cours</span>';
       html += '<tr><td style="text-align:center">';
       if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
       else html += '<div style="width:36px;height:36px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:14px">👤</div>';
@@ -1022,7 +1024,7 @@ function rechercherParEntite() {
 function afficherReleveVersement(candId) {
   var c = DB.get('candidats', []).find(function(x) { return x.id === candId; });
   if (!c) return alert('Candidat introuvable');
-  var vers = DB.get('versements', []).filter(function(v) { return v.candId === candId; });
+  var vers = DB.get('versements', []).filter(function(v) { return v.candId === candId && !v.archived; });
   vers.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
   var totalUSD = 0, totalFC = 0;
   vers.forEach(function(v) { totalUSD += v.montantUSD; if (v.monnaie === 'FC') totalFC += v.montantOrigine; });
@@ -1048,7 +1050,7 @@ function afficherReleveVersement(candId) {
   w.document.write('<p><strong>Entité :</strong> ' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</p>');
   w.document.write('<p><strong>Responsable :</strong> ' + echapper(c.responsable || '-') + '</p>');
   w.document.write('<p><strong>Motif :</strong> ' + echapper(c.motif) + '</p>');
-  w.document.write('<p><strong>Statut :</strong> ' + (c.statut === 'termine' ? 'Terminé' : c.statut === 'en_cours' ? 'En cours' : 'Archivé') + '</p>');
+  w.document.write('<p><strong>Statut :</strong> ' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</p>');
   w.document.write('<p><strong>Date d\'inscription :</strong> ' + fmtDate(c.dateInscription) + '</p></div>');
   w.document.write('<h2>Détail des versements (' + vers.length + ')</h2>');
   if (vers.length) {
@@ -1072,13 +1074,13 @@ function relevéCompletEntite() {
   var q = (document.getElementById('searchEntiteFinance').value || '').trim().toUpperCase();
   var type = document.getElementById('searchEntiteType').value;
   if (!q && !type) return alert('Entrez d\'abord un nom');
-  var cands = DB.get('candidats', []).filter(function(c) {
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).filter(function(c) {
     var okQ = !q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1);
     var okT = !type || c.typeEntite === type;
     return okQ && okT;
   });
   if (!cands.length) return alert('Aucun candidat');
-  var vers = DB.get('versements', []);
+  var vers = DB.get('versements', []).filter(function(v) { return !v.archived; });
   var parEntite = {};
   cands.forEach(function(c) { var key = c.typeEntite + ' - ' + c.nomEntite; if (!parEntite[key]) parEntite[key] = []; parEntite[key].push(c); });
   var w = window.open('', '_blank');
@@ -1101,7 +1103,7 @@ function relevéCompletEntite() {
     liste.forEach(function(c) {
       var nb = vers.filter(function(v) { return v.candId === c.id; }).length;
       var solde = c.montantPrevu - (c.totalVerse || 0);
-      w.document.write('<tr><td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + (c.statut === 'termine' ? 'Terminé' : c.statut === 'en_cours' ? 'En cours' : 'Archivé') + '</td><td class="num">' + c.montantPrevu + '$</td><td class="num">' + (c.totalVerse || 0).toFixed(2) + '$</td><td class="num">' + solde.toFixed(2) + '$</td><td class="num">' + nb + '</td></tr>');
+      w.document.write('<tr><td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</td><td class="num">' + c.montantPrevu + '$</td><td class="num">' + (c.totalVerse || 0).toFixed(2) + '$</td><td class="num">' + solde.toFixed(2) + '$</td><td class="num">' + nb + '</td></tr>');
     });
     w.document.write('</tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">' + totalPrevu.toFixed(2) + '$</td><td class="num">' + totalVerse.toFixed(2) + '$</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td><td></td></tr></tfoot></table>');
   });
@@ -1113,8 +1115,8 @@ function relevéCompletEntite() {
 
 // ========== RAPPORTS MODULE II ==========
 function rapportFinGlobal() {
-  var cands = DB.get('candidats', []).filter(function(c) { return c.statut !== 'archive'; });
-  var vers = DB.get('versements', []);
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
+  var vers = DB.get('versements', []).filter(function(v) { return !v.archived; });
   var totalVerse = 0, totalPrevu = 0;
   cands.forEach(function(c) { totalVerse += (c.totalVerse || 0); totalPrevu += c.montantPrevu; });
   var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FINANCE</h3></div>';
@@ -1130,7 +1132,7 @@ function rapportFinGlobal() {
 }
 
 function rapportFinDetaille() {
-  var cands = DB.get('candidats', []).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3></div>';
   if (!cands.length) html += '<p>Aucun candidat.</p>';
   else {
@@ -1140,7 +1142,7 @@ function rapportFinDetaille() {
       if (c.photo) html += '<img src="' + c.photo + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
       else html += '<div style="width:34px;height:34px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:14px">👤</div>';
       html += '</td><td>' + echapper(c.nom) + '</td><td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td><td>' + echapper(c.motif) + '</td>';
-      html += '<td>' + (c.statut === 'termine' ? '✅' : c.statut === 'en_cours' ? '⏳' : '📦') + '</td>';
+      html += '<td>' + (c.statut === 'termine' ? '✅' : '⏳') + '</td>';
       html += '<td class="num">' + c.montantPrevu + '$</td><td class="num">' + c.totalVerse.toFixed(2) + '$</td><td class="num">' + (c.montantPrevu - c.totalVerse).toFixed(2) + '$</td></tr>';
     });
     html += '</tbody></table></div>';
@@ -1155,7 +1157,7 @@ function demarrerSeance() {
   var phase = document.getElementById('dPhase').value;
   var date = document.getElementById('dDate').value;
   if (!annee || !mois || !date) return alert('⚠️ Remplissez tous les champs');
-  seanceActive = { id: uid(), annee: annee, mois: mois, phase: phase, date: date, entites: [], depensesGenerales: [], dateCreation: new Date().toISOString() };
+  seanceActive = { id: uid(), annee: annee, mois: mois, phase: phase, date: date, entites: [], depensesGenerales: [], archived: false, dateCreation: new Date().toISOString() };
   document.getElementById('seanceStatus').innerHTML = '<p style="color:#0a6e2c;font-weight:600">✅ Séance ' + mois + ' ' + annee + ' — Phase ' + phase + ' démarrée</p>';
   document.getElementById('cardEntiteActive').style.display = 'block';
   document.getElementById('cardEntitesSeance').style.display = 'block';
@@ -1166,7 +1168,7 @@ function demarrerSeance() {
 
 function reinitialiserSeance() {
   if (seanceActive) {
-    if (!confirm('⚠️ Réinitialiser la séance en cours ? Les entités déjà enregistrées seront perdues.')) return;
+    if (!confirm('⚠️ Réinitialiser la séance en cours ?')) return;
   }
   seanceActive = null;
   document.getElementById('seanceStatus').innerHTML = '';
@@ -1181,7 +1183,6 @@ function reinitialiserSeance() {
   alert('✅ Séance réinitialisée');
 }
 
-// ⬇️ NOUVELLE FONCTION : Ajouter une offrande unifiée ⬇️
 function ajouterOffrandeUnifiee() {
   var cat = document.getElementById('dOffrandeCategorie').value;
   var nom = document.getElementById('dOffrandeNom').value.trim();
@@ -1196,7 +1197,6 @@ function ajouterOffrandeUnifiee() {
   afficherOffrandes();
 }
 
-// ⬇️ NOUVELLE FONCTION : Afficher toutes les offrandes ⬇️
 function afficherOffrandes() {
   var box = document.getElementById('affichageOffrandes');
   if (!box) return;
@@ -1216,12 +1216,12 @@ function afficherOffrandes() {
       html += '<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td>';
       html += '<td><button class="btn-mini danger" onclick="retirerOffrande(\'' + cat + '\',' + i + ')">✖</button></td></tr>';
     });
-    html += '</tbody><tfoot><tr><td>TOTAL ' + CATEGORIES_OFFRANDES[cat].split(' ').slice(1).join(' ') + '</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td><td></td></tr></tfoot></table>';
+    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td><td></td></tr></tfoot></table>';
     html += '</div>';
   });
   if (totalGeneralFC > 0 || totalGeneralUSD > 0) {
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;border:2px solid #0a6e2c">';
-    html += '<div style="font-weight:700;color:#0a6e2c;font-size:13px">🧮 TOTAL GÉNÉRAL OFFRANDES SPÉCIALES</div>';
+    html += '<div style="font-weight:700;color:#0a6e2c;font-size:13px">TOTAL GÉNÉRAL OFFRANDES SPÉCIALES</div>';
     html += '<div style="font-size:14px;color:#0a6e2c;font-weight:700;margin-top:4px">' + totalGeneralFC.toLocaleString() + ' FC / ' + totalGeneralUSD.toLocaleString() + ' $</div>';
     html += '</div>';
   }
@@ -1287,7 +1287,7 @@ function afficherEntitesSeance() {
 }
 
 function retirerEntiteSeance(i) {
-  if (!confirm('⚠️ Retirer cette entité de la séance ?')) return;
+  if (!confirm('⚠️ Retirer cette entité ?')) return;
   seanceActive.entites.splice(i, 1);
   afficherEntitesSeance();
 }
@@ -1349,10 +1349,8 @@ function calculerTotauxSeance() {
     html += '<td class="num">' + s.soldeFC.toLocaleString() + '</td><td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
   });
   html += '</tbody><tfoot><tr><td>TOTAL ENTITÉS</td><td class="num">' + totalFC.toLocaleString() + '</td><td class="num">' + totalUSD.toLocaleString() + '</td><td class="num">' + soldeFC.toLocaleString() + '</td><td class="num">' + soldeUSD.toLocaleString() + '</td></tr></tfoot></table></div>';
-
   var genFC = seanceActive.depensesGenerales.reduce(function(a, x) { return a + x.fc; }, 0);
   var genUSD = seanceActive.depensesGenerales.reduce(function(a, x) { return a + x.usd; }, 0);
-
   html += '<h4>💸 Dépenses générales</h4>';
   html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
   seanceActive.depensesGenerales.forEach(function(x) {
@@ -1362,7 +1360,6 @@ function calculerTotauxSeance() {
   html += '<tr><td>TOTAL DÉPENSES</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
   html += '<tr style="background:#fff3e0"><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr>';
   html += '</tfoot></table></div>';
-
   document.getElementById('depResultatSeance').innerHTML = html;
 }
 
@@ -1394,8 +1391,11 @@ function rechercherDepouillement() {
   var annee = (document.getElementById('searchDepAnnee').value || '').trim();
   var mois = document.getElementById('searchDepMois').value;
   var phase = document.getElementById('searchDepPhase').value;
+  var statut = document.getElementById('searchDepStatut').value;
   var entite = (document.getElementById('searchDepEntite').value || '').trim().toUpperCase();
-  var deps = DB.get('depouillements', []).filter(function(d) {
+  var deps = DB.get('depouillements', []);
+  deps = filtrerListe(deps, statut);
+  deps = deps.filter(function(d) {
     var okA = !annee || String(d.annee) === annee;
     var okM = !mois || d.mois === mois;
     var okP = !phase || String(d.phase) === phase;
@@ -1406,9 +1406,13 @@ function rechercherDepouillement() {
   if (!deps.length) { box.innerHTML = '<p style="color:#888">Aucun résultat.</p>'; return; }
   var html = '<h4>Résultats (' + deps.length + ')</h4>';
   deps.forEach(function(d) {
-    html += '<div class="entity-block">';
-    html += '<h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + ' (' + fmtDate(d.date) + ')</h4>';
+    html += '<div class="entity-block"' + (d.archived ? ' style="opacity:0.7;background:#f0f0f0"' : '') + '>';
+    html += '<h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + ' (' + fmtDate(d.date) + ')';
+    if (d.archived) html += ' <span class="badge badge-archive">📦 Archivé</span>';
+    html += '</h4>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">';
+    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')">✏️ Modifier</button>';
+    html += '<button class="btn-mini ' + (d.archived ? 'blue' : 'gray') + '" onclick="archiverDepouillement(\'' + d.id + '\')">' + (d.archived ? '↩️ Désarchiver' : '📦 Archiver') + '</button>';
     html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')">🗑️ Supprimer</button>';
     html += '</div>';
     html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Total FC</th><th>Total USD</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
@@ -1428,13 +1432,14 @@ function reinitialiserRechercheDep() {
   var b = document.getElementById('searchDepMois'); if (b) b.selectedIndex = 0;
   var c = document.getElementById('searchDepPhase'); if (c) c.selectedIndex = 0;
   var d = document.getElementById('searchDepEntite'); if (d) d.value = '';
+  var e = document.getElementById('searchDepStatut'); if (e) e.selectedIndex = 0;
   document.getElementById('resultatRechercheDep').innerHTML = '';
 }
 
 function rechercherDepGeneral() {
   var annee = (document.getElementById('gSearchAnnee').value || '').trim();
   var mois = document.getElementById('gSearchMois').value;
-  var deps = DB.get('depouillements', []).filter(function(d) {
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; }).filter(function(d) {
     var okA = !annee || String(d.annee) === annee;
     var okM = !mois || d.mois === mois;
     return okA && okM;
@@ -1458,6 +1463,33 @@ function reinitialiserRechercheGeneral() {
   document.getElementById('resultatRechercheGeneral').innerHTML = '';
 }
 
+function modifierDepouillement(id) {
+  var list = DB.get('depouillements', []);
+  var d = list.find(function(x) { return x.id === id; });
+  if (!d) return;
+  var mois = prompt('Mois :', d.mois); if (mois === null) return;
+  var annee = prompt('Année :', d.annee); if (annee === null) return;
+  var phase = prompt('Phase (1-4) :', d.phase); if (phase === null) return;
+  var date = prompt('Date (AAAA-MM-JJ) :', d.date); if (date === null) return;
+  d.mois = mois.trim();
+  d.annee = annee.trim();
+  d.phase = phase.trim();
+  d.date = date.trim();
+  DB.set('depouillements', list);
+  rechercherDepouillement();
+  alert('✅ Modifié');
+}
+
+function archiverDepouillement(id) {
+  var list = DB.get('depouillements', []);
+  var d = list.find(function(x) { return x.id === id; });
+  if (!d) return;
+  d.archived = !d.archived;
+  DB.set('depouillements', list);
+  rechercherDepouillement();
+  alert(d.archived ? '📦 Archivé' : '↩️ Restauré');
+}
+
 function supprimerDepouillement(id) {
   if (!confirm('⚠️ Supprimer ce dépouillement ?')) return;
   DB.set('depouillements', DB.get('depouillements', []).filter(function(d) { return d.id !== id; }));
@@ -1467,7 +1499,7 @@ function supprimerDepouillement(id) {
 
 // ========== RAPPORTS MODULE III ==========
 function rapportDepGlobal() {
-  var deps = DB.get('depouillements', []);
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
   deps.forEach(function(d) {
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalFC += s.totFC; totalUSD += s.totUSD; soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
@@ -1483,38 +1515,31 @@ function rapportDepGlobal() {
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
-// ⬇️ RAPPORT DÉTAILLÉ AVEC NOMS DES VERSANTS ⬇️
 function rapportDepDetaille() {
-  var deps = DB.get('depouillements', []);
-  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement.</p>'; return; }
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif.</p>'; return; }
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — DÉPOUILLEMENT</h3></div>';
   deps.forEach(function(d) {
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:16px 0 10px;border-left:5px solid #0a6e2c">';
     html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 Séance : ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
     html += '</div>';
-
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
       html += '<div class="entity-block">';
       html += '<h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
-      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">👤 Responsable : ' + echapper(e.responsable) + ' | 📅 ' + d.mois + ' ' + d.annee + ' | 🗓️ ' + fmtDate(d.date) + '</div>';
-
-      // Tableau principal
+      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">👤 ' + echapper(e.responsable) + ' | 📅 ' + d.mois + ' ' + d.annee + ' | 🗓️ ' + fmtDate(d.date) + '</div>';
       html += '<div class="table-wrapper"><table class="data-table"><tbody>';
       html += '<tr><td>Construction</td><td class="num">' + e.constrFC.toLocaleString() + ' FC</td><td class="num">' + e.constrUSD.toLocaleString() + ' $</td></tr>';
       html += '<tr><td>Normales</td><td class="num">' + e.normFC.toLocaleString() + ' FC</td><td class="num">' + e.normUSD.toLocaleString() + ' $</td></tr>';
       html += '</tbody></table></div>';
-
-      // ⬇️ NOUVEAU : Détail des offrandes avec noms ⬇️
       var categoriesAvecDonnees = [];
       Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
         var arr = e[cat] || [];
         if (arr.length) categoriesAvecDonnees.push({ cat: cat, arr: arr });
       });
-
       if (categoriesAvecDonnees.length) {
-        html += '<h5 style="color:#0a6e2c;font-size:13px;margin:10px 0 6px">🎁 Offrandes spéciales détaillées</h5>';
+        html += '<h5 style="color:#0a6e2c;font-size:13px;margin:10px 0 6px">Offrandes spéciales détaillées</h5>';
         categoriesAvecDonnees.forEach(function(item) {
           var totFC = item.arr.reduce(function(a, o) { return a + o.fc; }, 0);
           var totUSD = item.arr.reduce(function(a, o) { return a + o.usd; }, 0);
@@ -1528,15 +1553,12 @@ function rapportDepDetaille() {
           html += '</div>';
         });
       }
-
-      // Totaux
       html += '<div class="table-wrapper"><table class="data-table"><tfoot>';
       html += '<tr><td>TOTAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>';
       html += '<tr><td>Transport</td><td class="num">- ' + e.transFC.toLocaleString() + ' FC</td><td class="num">- ' + e.transUSD.toLocaleString() + ' $</td></tr>';
       html += '<tr style="background:#e8f5e9"><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
       html += '</tfoot></table></div></div>';
     });
-
     if (d.depensesGenerales && d.depensesGenerales.length) {
       html += '<div class="entity-block" style="border-left-color:#c62828">';
       html += '<h4 style="color:#c62828">💸 Dépenses générales de la séance</h4>';
@@ -1549,14 +1571,12 @@ function rapportDepDetaille() {
       html += '</tbody><tfoot><tr><td>TOTAL DÉPENSES</td><td class="num">' + genFC.toLocaleString() + ' FC</td><td class="num">' + genUSD.toLocaleString() + ' $</td></tr></tfoot>';
       html += '</table></div></div>';
     }
-
     var totalSoldeFC = 0, totalSoldeUSD = 0;
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalSoldeFC += s.soldeFC; totalSoldeUSD += s.soldeUSD; });
     var totalGenFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
     var totalGenUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
-
     html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin-top:10px;border:2px solid #e65100">';
-    html += '<div style="font-size:13px;color:#e65100;font-weight:700;margin-bottom:6px">🧮 RÉCAPITULATIF DE LA SÉANCE</div>';
+    html += '<div style="font-size:13px;color:#e65100;font-weight:700;margin-bottom:6px">RÉCAPITULATIF DE LA SÉANCE</div>';
     html += '<div class="table-wrapper"><table class="data-table"><tbody>';
     html += '<tr><td>Total soldes entités</td><td class="num">' + totalSoldeFC.toLocaleString() + ' FC</td><td class="num">' + totalSoldeUSD.toLocaleString() + ' $</td></tr>';
     html += '<tr><td>Total dépenses générales</td><td class="num">- ' + totalGenFC.toLocaleString() + ' FC</td><td class="num">- ' + totalGenUSD.toLocaleString() + ' $</td></tr>';
@@ -1567,34 +1587,20 @@ function rapportDepDetaille() {
 }
 
 function soldeTransferer() {
-  var deps = DB.get('depouillements', []);
-  if (!deps.length) {
-    document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement enregistré.</p>';
-    return;
-  }
-
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif.</p>'; return; }
   var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3><p>Détail complet par séance</p></div>';
-
-  var totalSoldeFC = 0, totalSoldeUSD = 0;
-  var totalGenFC = 0, totalGenUSD = 0;
-
+  var totalSoldeFC = 0, totalSoldeUSD = 0, totalGenFC = 0, totalGenUSD = 0;
   deps.forEach(function(d) {
     var soldeFC = 0, soldeUSD = 0;
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
-
     var genFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
     var genUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
-
-    totalSoldeFC += soldeFC;
-    totalSoldeUSD += soldeUSD;
-    totalGenFC += genFC;
-    totalGenUSD += genUSD;
-
+    totalSoldeFC += soldeFC; totalSoldeUSD += soldeUSD; totalGenFC += genFC; totalGenUSD += genUSD;
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c">';
     html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div>';
     html += '</div>';
-
     html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
@@ -1603,56 +1609,50 @@ function soldeTransferer() {
       html += '<td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
     });
     html += '</tbody><tfoot><tr><td>TOTAL SOLDES ENTITÉS</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
-
     if (d.depensesGenerales && d.depensesGenerales.length) {
       html += '<div class="table-wrapper"><table class="data-table" style="margin-top:8px"><thead><tr><th>Motif de dépense</th><th>FC</th><th>USD</th></tr></thead><tbody>';
       d.depensesGenerales.forEach(function(x) {
         html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
       });
       html += '</tbody><tfoot><tr><td>TOTAL DÉPENSES</td><td class="num">' + genFC.toLocaleString() + ' FC</td><td class="num">' + genUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
-    } else {
-      html += '<p style="font-size:12px;color:#888;margin:6px 0">Aucune dépense générale pour cette séance.</p>';
     }
-
     html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100">';
-    html += '<div style="font-size:14px;color:#e65100;font-weight:700">💰 SOLDE À TRANSFÉRER (cette séance)</div>';
+    html += '<div style="font-size:14px;color:#e65100;font-weight:700">SOLDE À TRANSFÉRER (cette séance)</div>';
     html += '<div style="font-size:16px;color:#0a6e2c;font-weight:700;margin-top:6px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div>';
     html += '</div>';
   });
-
   html += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
-  html += '<div style="font-size:14px;font-weight:700;margin-bottom:8px">🌍 TOTAUX GÉNÉRAUX (toutes séances)</div>';
+  html += '<div style="font-size:14px;font-weight:700;margin-bottom:8px">🌍 TOTAUX GÉNÉRAUX (toutes séances actives)</div>';
   html += '<div style="font-size:12px;margin:4px 0">Total soldes entités : <strong>' + totalSoldeFC.toLocaleString() + ' FC / ' + totalSoldeUSD.toLocaleString() + ' $</strong></div>';
   html += '<div style="font-size:12px;margin:4px 0">Total dépenses générales : <strong>- ' + totalGenFC.toLocaleString() + ' FC / - ' + totalGenUSD.toLocaleString() + ' $</strong></div>';
   html += '<div style="font-size:16px;font-weight:700;margin-top:10px;border-top:1px solid rgba(255,255,255,0.3);padding-top:10px">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
   html += '</div>';
-
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
-// ========== TABLEAU DE BORD ==========
+// ========== DASHBOARD ==========
 function afficherDashboard() {
   var box = document.getElementById('dashboardBox');
   if (!box) return;
-  var entites = DB.get('entites', []).length;
-  var parts = DB.get('participations', []);
+  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
+  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
   var totPart = parts.reduce(function(a, p) { return a + p.m + p.s + p.n; }, 0);
-  var fiches = DB.get('fichesMensuelles', []).length;
-  var cands = DB.get('candidats', []).filter(function(c) { return c.statut !== 'archive'; });
+  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; }).length;
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
   var totalVerse = cands.reduce(function(a, c) { return a + (c.totalVerse || 0); }, 0);
-  var deps = DB.get('depouillements', []);
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var soldeDepFC = 0, soldeDepUSD = 0;
   deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
   var html = '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
-  html += '<tr><td>Entités enregistrées</td><td class="num">' + entites + '</td></tr>';
+  html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
   html += '<tr><td>Total présences</td><td class="num">' + totPart + '</td></tr>';
   html += '<tr><td>Fiches mensuelles</td><td class="num">' + fiches + '</td></tr>';
   html += '<tr><th colspan="2">💰 MODULE II — FINANCE</th></tr>';
   html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
   html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + ' $</td></tr>';
   html += '<tr><th colspan="2">🧾 MODULE III — DÉPOUILLEMENT</th></tr>';
-  html += '<tr><td>Séances enregistrées</td><td class="num">' + deps.length + '</td></tr>';
+  html += '<tr><td>Séances actives</td><td class="num">' + deps.length + '</td></tr>';
   html += '<tr><td>Solde total FC</td><td class="num">' + soldeDepFC.toLocaleString() + ' FC</td></tr>';
   html += '<tr><td>Solde total USD</td><td class="num">' + soldeDepUSD.toLocaleString() + ' $</td></tr>';
   html += '</tbody></table></div>';
@@ -1663,8 +1663,8 @@ function rapportGeneralConsolide() {
   var box = document.getElementById('rapportGeneralBox');
   var html = '<div class="rapport-header"><h3>🌍 RAPPORT GÉNÉRAL CONSOLIDÉ</h3><p>EMM MONDIAL — Tous Modules</p></div>';
   html += '<p style="text-align:center;font-size:12px;color:#666;margin-bottom:14px">Généré par <strong>' + echapper(currentUser ? currentUser.nom : '') + '</strong> le ' + new Date().toLocaleString('fr-FR') + '</p>';
-  var entites = DB.get('entites', []).length;
-  var parts = DB.get('participations', []);
+  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
+  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
   var tm = 0, ts = 0, tn = 0;
   parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
   html += '<h4 style="color:#0a6e2c;margin:14px 0 8px">📈 MODULE I — FRÉQUENCES</h4>';
@@ -1674,7 +1674,7 @@ function rapportGeneralConsolide() {
   html += '<tr><td>Sympathisants</td><td class="num">' + ts + '</td></tr>';
   html += '<tr><td>Nouveaux venus</td><td class="num">' + tn + '</td></tr>';
   html += '</tbody></table></div>';
-  var cands = DB.get('candidats', []).filter(function(c) { return c.statut !== 'archive'; });
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
   var totalVerse = 0, totalPrevu = 0;
   cands.forEach(function(c) { totalVerse += c.totalVerse || 0; totalPrevu += c.montantPrevu; });
   html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">💰 MODULE II — FINANCE</h4>';
@@ -1684,7 +1684,7 @@ function rapportGeneralConsolide() {
   html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr>';
   html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr>';
   html += '</tbody></table></div>';
-  var deps = DB.get('depouillements', []);
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
   deps.forEach(function(d) {
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
