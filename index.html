@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a6e2c">
+<title>EMM MONDIAL</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splashScreen" class="screen active">
+  <div class="splash-content">
+    <img src="icons/logo.png" alt="EMM" class="splash-logo" onerror="this.style.display='none'; document.getElementById('splashFallback').style.display='flex';">
+    <div id="splashFallback" class="splash-fallback" style="display:none">EMM</div>
+    <h1 class="splash-title">ÉGLISE MESSIANIQUE MONDIALE</h1>
+    <h2 class="splash-subtitle">EMM MONDIAL</h2>
+    <div class="splash-loader"></div>
+  </div>
+</div>
+
+<!-- CONNEXION -->
+<div id="loginScreen" class="screen">
+  <div class="login-box">
+    <img src="icons/logo.png" alt="EMM" class="login-logo" onerror="this.style.display='none'; document.getElementById('loginFallback').style.display='flex';">
+    <div id="loginFallback" class="login-fallback" style="display:none">EMM</div>
+    <h1>ÉGLISE MESSIANIQUE MONDIALE</h1>
+    <h2>EMM MONDIAL</h2>
+    <p class="subtitle">Gestion des Membres</p>
+    <div class="input-group"><label>Nom d'utilisateur</label><input type="text" id="loginUsername" placeholder="Entrez votre nom d'utilisateur" autocomplete="username"></div>
+    <div class="input-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="Entrez votre mot de passe" autocomplete="current-password" onkeypress="if(event.key==='Enter')login()"></div>
+    <button class="btn-primary" onclick="login()">Se connecter</button>
+    <p id="loginError" class="error-msg"></p>
+  </div>
+</div>
+
+<!-- ACCUEIL -->
+<div id="mainScreen" class="screen">
+  <header class="app-header">
+    <img src="icons/logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    <div class="header-logo-fallback" style="display:none">EMM</div>
+    <div><h1>EMM MONDIAL</h1><p id="userRoleLabel">Gestion des Membres</p></div>
+    <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
+  </header>
+
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchMainTab('general', this)">📊 Général</button>
+    <button class="main-tab" onclick="switchMainTab('frequence', this)">📈 Fréquence</button>
+    <button class="main-tab" onclick="switchMainTab('finance', this)">💰 Finance</button>
+    <button class="main-tab" onclick="switchMainTab('depouillement', this)">🧾 Dépouillement</button>
+    <button class="main-tab" onclick="switchMainTab('admin', this)">⚙️ Admin</button>
+  </div>
+
+  <!-- ONGLET GÉNÉRAL -->
+  <div id="tab-general" class="main-tab-content active">
+    <div class="card">
+      <h3>📢 Annonces</h3>
+      <div id="announcementsBox" class="announcements"><p>Aucune annonce.</p></div>
+    </div>
+    <div class="card">
+      <h3>👋 Bienvenue</h3>
+      <div id="welcomeBox"></div>
+    </div>
+    <div class="card">
+      <h3>📊 Tableau de bord</h3>
+      <div id="dashboardBox"></div>
+    </div>
+    <div class="card">
+      <h3>🔍 Recherche dépouillement (Général)</h3>
+      <div class="input-group"><label>Année</label><input type="text" id="gSearchAnnee" placeholder="Ex : 2026"></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="gSearchMois">
+          <option value="">-- Tous les mois --</option>
+          <option>Janvier</option><option>Février</option><option>Mars</option>
+          <option>Avril</option><option>Mai</option><option>Juin</option>
+          <option>Juillet</option><option>Août</option><option>Septembre</option>
+          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
+        </select>
+      </div>
+      <button class="btn-secondary" onclick="rechercherDepGeneral()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheGeneral()">🔄 Réinitialiser</button>
+      <div id="resultatRechercheGeneral"></div>
+    </div>
+    <div class="card">
+      <h3>🌍 Rapport Général Consolidé</h3>
+      <button class="btn-primary" onclick="rapportGeneralConsolide()">📊 Générer</button>
+      <button class="btn-secondary" onclick="imprimerGeneral()">🖨️ Imprimer</button>
+      <button class="btn-secondary" onclick="exporterWordGeneral()">📄 Word</button>
+      <button class="btn-secondary" onclick="exporterPDFGeneral()">📕 PDF</button>
+      <button class="btn-secondary" onclick="partagerGeneral()">📤 Envoyer</button>
+      <div id="rapportGeneralBox"></div>
+    </div>
+    <div class="card" style="text-align:center">
+      <button class="btn-secondary" onclick="logout()" style="background:#ffebee;color:#c62828;border-color:#c62828">🚪 Se déconnecter</button>
+    </div>
+  </div>
+
+  <!-- ONGLET FRÉQUENCE -->
+  <div id="tab-frequence" class="main-tab-content">
+    <div class="card">
+      <h3>➕ Enregistrer une entité</h3>
+      <div class="input-group"><label>Type d'entité</label>
+        <select id="jTypeEntite">
+          <option>Jorhei Center</option>
+          <option>Unité religieuse</option>
+          <option>Foyer de lumière</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="jNomEntite" placeholder="Ex : KELE-KELE"></div>
+      <div class="input-group"><label>Nom du responsable</label><input type="text" id="jResponsable"></div>
+      <button class="btn-primary" onclick="ajouterEntite()">Enregistrer l'entité</button>
+      <button class="btn-secondary" onclick="reinitialiserFormEntite()">🔄 Réinitialiser le formulaire</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Liste des entités</h3>
+      <div id="listeEntites"></div>
+    </div>
+
+    <div class="card">
+      <h3>📝 Participation journalière</h3>
+      <div class="input-group"><label>Entité</label><select id="jEntiteSelect"></select></div>
+      <div class="input-group"><label>Date</label><input type="date" id="jDate"></div>
+      <div class="input-group"><label>Membres</label><input type="number" id="jMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="jSympathisants" value="0"></div>
+      <div class="input-group"><label>Nouveaux venus</label><input type="number" id="jNouveaux" value="0"></div>
+      <button class="btn-primary" onclick="enregistrerParticipation()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormParticipation()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Relevé de pointage journalier</h3>
+      <div id="listeJournaliere"></div>
+    </div>
+
+    <div class="card">
+      <h3>📆 Fiche mensuelle</h3>
+      <div class="input-group"><label>Entité</label><select id="mEntite"></select></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="mMois">
+          <option>Janvier</option><option>Février</option><option>Mars</option>
+          <option>Avril</option><option>Mai</option><option>Juin</option>
+          <option>Juillet</option><option>Août</option><option>Septembre</option>
+          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Année</label><input type="number" id="mAnnee" value="2026"></div>
+      <div class="input-group"><label>Responsable</label><input type="text" id="mResponsable"></div>
+      <h4>Présentation</h4>
+      <div class="input-group"><label>Nombre d'Encadreurs</label><input type="number" id="mEncadreurs" value="0"></div>
+      <div class="input-group"><label>Jour réunion d'évaluation</label>
+        <select id="mJourReunion">
+          <option>Lundi</option><option>Mardi</option><option>Mercredi</option>
+          <option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Membres actifs</label><input type="number" id="mMembresActifs" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mSympathisants" value="0"></div>
+      <h4>Fréquentation culte mensuel</h4>
+      <div class="input-group"><label>Membres</label><input type="number" id="mFMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mFSympathisants" value="0"></div>
+      <div class="input-group"><label>Nouveaux venus</label><input type="number" id="mFNouveaux" value="0"></div>
+      <h4>Activités</h4>
+      <div class="input-group"><label>Foyers Lumière</label><input type="number" id="mFoyersLumiere" value="0"></div>
+      <div class="input-group"><label>Avec Goshintai</label><input type="number" id="mAvecGoshintai" value="0"></div>
+      <div class="input-group"><label>Sans Goshintai</label><input type="number" id="mSansGoshintai" value="0"></div>
+      <div class="input-group"><label>Foyers sympathisants</label><input type="number" id="mFoyersSymp" value="0"></div>
+      <div class="input-group"><label>Fleurs distribuées</label><input type="number" id="mFleurs" value="0"></div>
+      <div class="input-group"><label>Potagers</label><input type="number" id="mPotagers" value="0"></div>
+      <div class="input-group"><label>Total potagers</label><input type="number" id="mTotalPotagers" value="0"></div>
+      <div class="input-group"><label>Maisons ouvertes</label><input type="number" id="mMaisonsOuvertes" value="0"></div>
+      <div class="input-group"><label>Témoignages</label><input type="number" id="mTemoignages" value="0"></div>
+      <h4>Confirmation</h4>
+      <div class="input-group"><label>Candidats Goshintai</label><input type="number" id="mCandGoshintai" value="0"></div>
+      <div class="input-group"><label>Confirmés initiation</label><input type="number" id="mConfInit" value="0"></div>
+      <div class="input-group"><label>Confirmés ré-initiation</label><input type="number" id="mConfReinit" value="0"></div>
+      <div class="input-group"><label>Confirmés Shoku</label><input type="number" id="mConfShoku" value="0"></div>
+      <div class="input-group"><label>Confirmés Kannon</label><input type="number" id="mConfKannon" value="0"></div>
+      <div class="input-group"><label>Confirmés Mitamaya</label><input type="number" id="mConfMitamaya" value="0"></div>
+      <h4>Assistance religieuse</h4>
+      <div class="input-group"><label>Maisons membres</label><input type="number" id="mAssistMembres" value="0"></div>
+      <div class="input-group"><label>Maisons sympathisants</label><input type="number" id="mAssistSymp" value="0"></div>
+      <div class="input-group"><label>Concessions</label><input type="number" id="mConcessions" value="0"></div>
+      <div class="input-group"><label>Terrains</label><input type="number" id="mTerrains" value="0"></div>
+      <div class="input-group"><label>Campagnes</label><input type="number" id="mCampagnes" value="0"></div>
+      <h4>Formation</h4>
+      <div class="input-group"><label>Cours enseignements</label><input type="number" id="mCoursEns" value="0"></div>
+      <div class="input-group"><label>Thèmes</label><textarea id="mThemes" rows="3"></textarea></div>
+      <div class="input-group"><label>Cours fleurs</label><input type="number" id="mCoursFleurs" value="0"></div>
+      <h4>Grâces reçues</h4><textarea id="mGraces" rows="3"></textarea>
+      <h4>Points à améliorer</h4><textarea id="mPoints" rows="3"></textarea>
+      <h4>Solutions proposées</h4><textarea id="mSolutions" rows="3"></textarea>
+      <h4>Objectifs</h4><textarea id="mObjectifs" rows="3"></textarea>
+      <h4>Actions</h4><textarea id="mActions" rows="3"></textarea>
+      <button class="btn-primary" onclick="enregistrerFicheMensuelle()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormFiche()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche fiche mensuelle</h3>
+      <div class="input-group"><label>Nom entité</label><input type="text" id="searchFreq" placeholder="Rechercher..." oninput="rechercherFreq()"></div>
+      <div class="input-group"><label>Année</label><input type="text" id="searchFreqAnnee" placeholder="Ex : 2026"></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="searchFreqMois">
+          <option value="">-- Tous --</option>
+          <option>Janvier</option><option>Février</option><option>Mars</option>
+          <option>Avril</option><option>Mai</option><option>Juin</option>
+          <option>Juillet</option><option>Août</option><option>Septembre</option>
+          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
+        </select>
+      </div>
+      <button class="btn-secondary" onclick="rechercherFreqAvance()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheFreq()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>📊 Rapports Module I</h3>
+      <button class="btn-primary" onclick="rapportFreqGlobal()">📊 Global</button>
+      <button class="btn-secondary" onclick="rapportFreqDetaille()">📋 Détaillé</button>
+      <button class="btn-secondary" onclick="imprimerRapportFreq()">🖨️ Imprimer</button>
+      <button class="btn-secondary" onclick="exporterWordFreq()">📄 Word</button>
+      <button class="btn-secondary" onclick="exporterPDFFreq()">📕 PDF</button>
+      <button class="btn-secondary" onclick="partagerRapportFreq()">📤 Envoyer</button>
+      <div id="rapportFreqBox"></div>
+    </div>
+  </div>
+
+  <!-- ONGLET FINANCE -->
+  <div id="tab-finance" class="main-tab-content">
+    <div class="card">
+      <h3>➕ Ajouter un candidat</h3>
+      <div class="input-group"><label>Nom complet</label><input type="text" id="cNom" placeholder="Ex : TSHIBOLA Hortense"></div>
+      <div class="input-group"><label>Type d'entité</label>
+        <select id="cTypeEntite">
+          <option>Jorhei Center</option>
+          <option>Unité religieuse</option>
+          <option>Foyer de lumière</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="cNomEntite" placeholder="Ex : BIANCKYA"></div>
+      <div class="input-group"><label>Nom du responsable</label><input type="text" id="cResponsable"></div>
+      <div class="input-group"><label>Motif</label>
+        <select id="cMotif">
+          <option>Initiation</option>
+          <option>Ré-initiation</option>
+          <option>Photo sacrée</option>
+          <option>Shoku</option>
+          <option>Kannon</option>
+          <option>Goshintai familiale</option>
+          <option>Mitamaya</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Montant prévu ($)</label><input type="number" id="cMontant" value="200"></div>
+      <div class="input-group"><label>Taux (1$ = FC)</label><input type="number" id="cTaux" value="2300"></div>
+
+      <div class="input-group">
+        <label>📷 Photo passeport du candidat</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <button type="button" class="btn-mini blue" onclick="document.getElementById('cPhotoCamera').click()" style="flex:1;padding:10px">📸 Caméra</button>
+          <button type="button" class="btn-mini orange" onclick="document.getElementById('cPhotoGallery').click()" style="flex:1;padding:10px">🖼️ Galerie</button>
+        </div>
+        <input type="file" id="cPhotoCamera" accept="image/*" capture="user" onchange="previewPhotoCandidat(event)" style="display:none">
+        <input type="file" id="cPhotoGallery" accept="image/*" onchange="previewPhotoCandidat(event)" style="display:none">
+        <div id="cPhotoPreview" style="margin-top:10px;text-align:center"></div>
+      </div>
+
+      <button class="btn-primary" onclick="ajouterCandidat()">Enregistrer le candidat</button>
+      <button class="btn-secondary" onclick="reinitialiserFormCandidat()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche par entité</h3>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="searchEntiteFinance" placeholder="Ex : BIANCKYA" oninput="rechercherParEntite()"></div>
+      <div class="input-group"><label>Type (optionnel)</label>
+        <select id="searchEntiteType" onchange="rechercherParEntite()">
+          <option value="">-- Tous --</option>
+          <option>Jorhei Center</option>
+          <option>Unité religieuse</option>
+          <option>Foyer de lumière</option>
+        </select>
+      </div>
+      <button class="btn-secondary" onclick="relevéCompletEntite()">🖨️ Relevé complet</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheEntite()">🔄 Réinitialiser</button>
+      <div id="resultatRechercheEntite"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche candidat</h3>
+      <input type="text" id="searchCand" placeholder="Rechercher un candidat..." oninput="afficherCandidats()">
+      <button class="btn-secondary" onclick="reinitialiserRechercheCand()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Candidats (En cours)</h3>
+      <div id="listeCandidats"></div>
+    </div>
+
+    <div class="card">
+      <h3>📦 Candidats archivés</h3>
+      <div id="listeArchives"></div>
+    </div>
+
+    <div class="card">
+      <h3>✅ Candidats terminés</h3>
+      <div id="listeTermines"></div>
+    </div>
+
+    <div class="card">
+      <h3>💵 Nouveau versement</h3>
+      <div class="input-group"><label>Candidat</label><select id="vCandidat"></select></div>
+      <div class="input-group"><label>Monnaie</label>
+        <select id="vMonnaie">
+          <option value="USD">USD ($)</option>
+          <option value="FC">FC</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Montant</label><input type="number" id="vMontant" value="0"></div>
+      <div class="input-group"><label>Taux</label><input type="number" id="vTaux" value="2300"></div>
+      <div class="input-group"><label>Date</label><input type="date" id="vDate"></div>
+
+      <div class="input-group">
+        <label>✍️ Signature du candidat</label>
+        <canvas id="vSignatureCanvas" style="border:2px dashed #0a6e2c;border-radius:8px;width:100%;height:180px;background:#fafafa;touch-action:none;display:block"></canvas>
+        <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button type="button" class="btn-mini gray" onclick="effacerSignature()">🧹 Effacer</button>
+          <span id="vSignatureStatus" style="font-size:12px;color:#888">Aucune signature</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="enregistrerVersement()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormVersement()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>📜 Historique des versements</h3>
+      <div id="historiqueVersements"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Rapports Module II</h3>
+      <button class="btn-primary" onclick="rapportFinGlobal()">📊 Global</button>
+      <button class="btn-secondary" onclick="rapportFinDetaille()">📋 Détaillé</button>
+      <button class="btn-secondary" onclick="imprimerRapportFin()">🖨️ Imprimer</button>
+      <button class="btn-secondary" onclick="exporterWordFin()">📄 Word</button>
+      <button class="btn-secondary" onclick="exporterPDFFin()">📕 PDF</button>
+      <button class="btn-secondary" onclick="partagerRapportFin()">📤 Envoyer</button>
+      <div id="rapportFinBox"></div>
+    </div>
+  </div>
+
+  <!-- ONGLET DÉPOUILLEMENT -->
+  <div id="tab-depouillement" class="main-tab-content">
+    <div class="card">
+      <h3>📅 Informations de la séance</h3>
+      <div class="input-group"><label>Année</label><input type="number" id="dAnnee" value="2026"></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="dMois">
+          <option>Janvier</option><option>Février</option><option>Mars</option>
+          <option>Avril</option><option>Mai</option><option>Juin</option>
+          <option>Juillet</option><option>Août</option><option>Septembre</option>
+          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Phase</label>
+        <select id="dPhase">
+          <option value="1">1ère phase</option>
+          <option value="2">2ème phase</option>
+          <option value="3">3ème phase</option>
+          <option value="4">4ème phase</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Date de la séance</label><input type="date" id="dDate"></div>
+      <button class="btn-primary" onclick="demarrerSeance()">🚀 Démarrer la séance</button>
+      <button class="btn-secondary" onclick="reinitialiserSeance()">🔄 Réinitialiser la séance</button>
+      <div id="seanceStatus" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" id="cardEntiteActive" style="display:none">
+      <h3>🏛️ Enregistrement entité par entité</h3>
+      <div class="input-group"><label>Type d'entité</label>
+        <select id="dTypeEntite">
+          <option>Jorhei Center</option>
+          <option>Unité religieuse</option>
+          <option>Foyer de lumière</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="dNomEntite" placeholder="Ex : BIANCKYA"></div>
+      <div class="input-group"><label>Nom du responsable</label><input type="text" id="dResponsable"></div>
+      <div class="input-group"><label>Nombre d'enveloppes</label><input type="number" id="dEnveloppes" value="0"></div>
+
+      <h4>🏗️ Offrandes de construction</h4>
+      <div class="input-group"><label>FC</label><input type="number" id="dConstrFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dConstrUSD" value="0"></div>
+
+      <h4>⛪ Offrandes normales</h4>
+      <div class="input-group"><label>FC</label><input type="number" id="dNormFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dNormUSD" value="0"></div>
+
+      <h4>🌟 Initiation</h4>
+      <div id="listInit"></div>
+      <div class="row-flex">
+        <input type="text" id="dInitNom" placeholder="Nom">
+        <input type="number" id="dInitFC" placeholder="FC" value="0">
+        <input type="number" id="dInitUSD" placeholder="USD" value="0">
+        <button class="btn-mini" onclick="ajouterOffrande('init')">➕</button>
+      </div>
+      <p class="total-line">Total : <span id="totInit">0 FC / 0 $</span></p>
+
+      <h4>🕊️ Sorei Saichi</h4>
+      <div id="listSorei"></div>
+      <div class="row-flex">
+        <input type="text" id="dSoreiNom" placeholder="Nom">
+        <input type="number" id="dSoreiFC" placeholder="FC" value="0">
+        <input type="number" id="dSoreiUSD" placeholder="USD" value="0">
+        <button class="btn-mini" onclick="ajouterOffrande('sorei')">➕</button>
+      </div>
+      <p class="total-line">Total : <span id="totSorei">0 FC / 0 $</span></p>
+
+      <h4>🪷 Kannon</h4>
+      <div id="listKannon"></div>
+      <div class="row-flex">
+        <input type="text" id="dKannonNom" placeholder="Nom">
+        <input type="number" id="dKannonFC" placeholder="FC" value="0">
+        <input type="number" id="dKannonUSD" placeholder="USD" value="0">
+        <button class="btn-mini" onclick="ajouterOffrande('kannon')">➕</button>
+      </div>
+      <p class="total-line">Total : <span id="totKannon">0 FC / 0 $</span></p>
+
+      <h4>🖼️ Photo sacrée</h4>
+      <div id="listPhoto"></div>
+      <div class="row-flex">
+        <input type="text" id="dPhotoNom" placeholder="Nom">
+        <input type="number" id="dPhotoFC" placeholder="FC" value="0">
+        <input type="number" id="dPhotoUSD" placeholder="USD" value="0">
+        <button class="btn-mini" onclick="ajouterOffrande('photo')">➕</button>
+      </div>
+      <p class="total-line">Total : <span id="totPhoto">0 FC / 0 $</span></p>
+
+      <h4>🏠 Goshintai familiale</h4>
+      <div id="listGosh"></div>
+      <div class="row-flex">
+        <input type="text" id="dGoshNom" placeholder="Nom">
+        <input type="number" id="dGoshFC" placeholder="FC" value="0">
+        <input type="number" id="dGoshUSD" placeholder="USD" value="0">
+        <button class="btn-mini" onclick="ajouterOffrande('gosh')">➕</button>
+      </div>
+      <p class="total-line">Total : <span id="totGosh">0 FC / 0 $</span></p>
+
+      <h4>🕉️ Mitamaya</h4>
+      <div id="listMita"></div>
+      <div class="row-flex">
+        <input type="text" id="dMitaNom" placeholder="Nom">
+        <input type="number" id="dMitaFC" placeholder="FC" value="0">
+        <input type="number" id="dMitaUSD" placeholder="USD" value="0">
+        <button class="btn-mini" onclick="ajouterOffrande('mita')">➕</button>
+      </div>
+      <p class="total-line">Total : <span id="totMita">0 FC / 0 $</span></p>
+
+      <h4>🚌 Transport</h4>
+      <div class="input-group"><label>FC</label><input type="number" id="dTransFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dTransUSD" value="0"></div>
+
+      <button class="btn-primary" onclick="enregistrerEntiteSeance()" style="background:linear-gradient(135deg,#e65100,#ff6d00)">💾 Enregistrer cette entité</button>
+      <button class="btn-secondary" onclick="reinitialiserFormEntiteSeance()">🔄 Réinitialiser le formulaire</button>
+    </div>
+
+    <div class="card" id="cardEntitesSeance" style="display:none">
+      <h3>📋 Entités de la séance en cours</h3>
+      <div id="listeEntitesSeance"></div>
+      <button class="btn-secondary" onclick="passerAuxDepenses()">➡️ Passer aux dépenses</button>
+    </div>
+
+    <div class="card" id="cardDepensesSeance" style="display:none">
+      <h3>💸 Dépenses générales de la séance</h3>
+      <div class="input-group"><label>FC</label><input type="number" id="dgFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dgUSD" value="0"></div>
+      <div class="input-group"><label>Motif</label><textarea id="dgMotif" rows="2"></textarea></div>
+      <button class="btn-primary" onclick="ajouterDepenseSeance()">➕ Ajouter</button>
+      <button class="btn-secondary" onclick="reinitialiserFormDepenseSeance()">🔄 Réinitialiser</button>
+      <div id="listeDepensesSeance"></div>
+      <button class="btn-primary" onclick="calculerTotauxSeance()" style="background:linear-gradient(135deg,#1976d2,#1565c0)">🧮 Calculer les totaux</button>
+      <div id="depResultatSeance"></div>
+      <button class="btn-primary" onclick="enregistrerDepouillementSeance()" style="background:linear-gradient(135deg,#0a6e2c,#0d8a37);margin-top:10px">💾 Enregistrer le dépouillement</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche dépouillement</h3>
+      <div class="input-group"><label>Année</label><input type="text" id="searchDepAnnee" placeholder="Ex : 2026"></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="searchDepMois">
+          <option value="">-- Tous les mois --</option>
+          <option>Janvier</option><option>Février</option><option>Mars</option>
+          <option>Avril</option><option>Mai</option><option>Juin</option>
+          <option>Juillet</option><option>Août</option><option>Septembre</option>
+          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Phase</label>
+        <select id="searchDepPhase">
+          <option value="">-- Toutes --</option>
+          <option value="1">1ère phase</option>
+          <option value="2">2ème phase</option>
+          <option value="3">3ème phase</option>
+          <option value="4">4ème phase</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Nom entité</label><input type="text" id="searchDepEntite" placeholder="Ex : BIANCKYA"></div>
+      <button class="btn-secondary" onclick="rechercherDepouillement()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheDep()">🔄 Réinitialiser</button>
+      <div id="resultatRechercheDep"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Rapports Module III</h3>
+      <button class="btn-primary" onclick="rapportDepGlobal()">📊 Global</button>
+      <button class="btn-secondary" onclick="rapportDepDetaille()">📋 Détaillé</button>
+      <button class="btn-secondary" onclick="soldeTransferer()">🏦 Solde à transférer</button>
+      <button class="btn-secondary" onclick="imprimerRapportDep()">🖨️ Imprimer</button>
+      <button class="btn-secondary" onclick="exporterWordDep()">📄 Word</button>
+      <button class="btn-secondary" onclick="exporterPDFDep()">📕 PDF</button>
+      <button class="btn-secondary" onclick="partagerRapportDep()">📤 Envoyer</button>
+      <div id="rapportDepBox"></div>
+    </div>
+  </div>
+
+  <!-- ONGLET ADMIN -->
+  <div id="tab-admin" class="main-tab-content">
+    <div class="card">
+      <h3>👥 Gestion des utilisateurs</h3>
+      <div class="input-group"><label>Nom</label><input type="text" id="uNom"></div>
+      <div class="input-group"><label>Mot de passe</label><input type="text" id="uPass"></div>
+      <div class="input-group"><label>Rôle</label>
+        <select id="uRole"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select>
+      </div>
+      <button class="btn-primary" onclick="ajouterUtilisateur()">Ajouter</button>
+      <button class="btn-secondary" onclick="reinitialiserFormUtilisateur()">🔄 Réinitialiser</button>
+      <h4>Liste des utilisateurs</h4>
+      <div id="listeUtilisateurs"></div>
+    </div>
+
+    <div class="card">
+      <h3>📢 Publier une annonce</h3>
+      <textarea id="annonceText" rows="3"></textarea>
+      <button class="btn-primary" onclick="publierAnnonce()">Publier</button>
+      <button class="btn-secondary" onclick="reinitialiserFormAnnonce()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>💾 Sauvegarde / Restauration</h3>
+      <button class="btn-secondary" onclick="exporterDonnees()">📤 Exporter</button>
+      <div class="input-group"><label>Collez ici un JSON</label><textarea id="importText" rows="4"></textarea></div>
+      <button class="btn-primary" onclick="restaurerTexte()">🔄 Restaurer</button>
+      <div class="input-group" style="margin-top:10px"><label>Ou fichier .json</label><input type="file" id="importFile" accept=".json,.txt" onchange="importerDonnees(event)"></div>
+    </div>
+
+    <div class="card">
+      <h3>🗑️ Danger</h3>
+      <button class="btn-secondary" style="background:#ffebee;color:#c62828;border-color:#c62828" onclick="toutEffacer()">⚠️ Tout effacer</button>
+    </div>
+  </div>
+
+</div>
+
+<button id="installBtn" class="install-btn" style="display:none" onclick="installApp()">📲 Installer</button>
+
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(e) { console.log('SW:', e); });
+}
+</script>
+</body>
+</html>
