@@ -1,12 +1,12 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v4
+// EMM MONDIAL — LOGIQUE PRINCIPALE v5
 // ============================================
 
 var currentUser = null;
 var photoCandidatTemp = null;
 var signatureCanvas = null, signatureCtx = null, signatureVide = true;
 var seanceActive = null;
-var tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], gosh: [], mita: [] };
+var tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
 
 // ========== SPLASH ==========
 function showSplash() {
@@ -86,6 +86,17 @@ function echapper(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+
+// Libellés des catégories
+var CATEGORIES_OFFRANDES = {
+  init: '🌟 Initiation',
+  sorei: '🕊️ Sorei Saichi',
+  kannon: '🪷 Kannon',
+  photo: '🖼️ Photo sacrée',
+  shinrei: '✨ Shinrei Saichi',
+  gosh: '🏠 Goshintai familiale',
+  mita: '🕉️ Mitamaya'
+};
 
 // ========== ANNONCES ==========
 function afficherAnnonces() {
@@ -474,7 +485,7 @@ function previewPhotoCandidat(ev) {
   reader.readAsDataURL(file);
 }
 
-// ========== MODULE II — SIGNATURE (CORRIGÉE) ==========
+// ========== MODULE II — SIGNATURE ==========
 function initSignature() {
   var canvas = document.getElementById('vSignatureCanvas');
   if (!canvas) return;
@@ -1164,11 +1175,62 @@ function reinitialiserSeance() {
   document.getElementById('cardDepensesSeance').style.display = 'none';
   reinitialiserFormEntiteSeance();
   reinitialiserFormDepenseSeance();
-  ['listInit','listSorei','listKannon','listPhoto','listGosh','listMita'].forEach(function(id) { var el = document.getElementById(id); if (el) el.innerHTML = ''; });
-  tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], gosh: [], mita: [] };
-  ['init','sorei','kannon','photo','gosh','mita'].forEach(function(t) { afficherOffrandes(t); });
+  tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
+  afficherOffrandes();
   document.getElementById('depResultatSeance').innerHTML = '';
   alert('✅ Séance réinitialisée');
+}
+
+// ⬇️ NOUVELLE FONCTION : Ajouter une offrande unifiée ⬇️
+function ajouterOffrandeUnifiee() {
+  var cat = document.getElementById('dOffrandeCategorie').value;
+  var nom = document.getElementById('dOffrandeNom').value.trim();
+  var fc = parseFloat(document.getElementById('dOffrandeFC').value) || 0;
+  var usd = parseFloat(document.getElementById('dOffrandeUSD').value) || 0;
+  if (!nom) return alert('Entrez le nom de la personne');
+  if (fc === 0 && usd === 0) return alert('Entrez au moins un montant');
+  tempOffrandes[cat].push({ nom: nom, fc: fc, usd: usd });
+  document.getElementById('dOffrandeNom').value = '';
+  document.getElementById('dOffrandeFC').value = 0;
+  document.getElementById('dOffrandeUSD').value = 0;
+  afficherOffrandes();
+}
+
+// ⬇️ NOUVELLE FONCTION : Afficher toutes les offrandes ⬇️
+function afficherOffrandes() {
+  var box = document.getElementById('affichageOffrandes');
+  if (!box) return;
+  var html = '';
+  var totalGeneralFC = 0, totalGeneralUSD = 0;
+  Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
+    var arr = tempOffrandes[cat] || [];
+    if (!arr.length) return;
+    var totFC = arr.reduce(function(a, o) { return a + o.fc; }, 0);
+    var totUSD = arr.reduce(function(a, o) { return a + o.usd; }, 0);
+    totalGeneralFC += totFC;
+    totalGeneralUSD += totUSD;
+    html += '<div style="background:#f9f9f9;border-radius:8px;padding:8px;margin-bottom:8px;border-left:3px solid #0a6e2c">';
+    html += '<div style="font-weight:600;color:#0a6e2c;font-size:13px;margin-bottom:4px">' + CATEGORIES_OFFRANDES[cat] + '</div>';
+    html += '<table class="data-table" style="font-size:12px"><tbody>';
+    arr.forEach(function(o, i) {
+      html += '<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td>';
+      html += '<td><button class="btn-mini danger" onclick="retirerOffrande(\'' + cat + '\',' + i + ')">✖</button></td></tr>';
+    });
+    html += '</tbody><tfoot><tr><td>TOTAL ' + CATEGORIES_OFFRANDES[cat].split(' ').slice(1).join(' ') + '</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td><td></td></tr></tfoot></table>';
+    html += '</div>';
+  });
+  if (totalGeneralFC > 0 || totalGeneralUSD > 0) {
+    html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;border:2px solid #0a6e2c">';
+    html += '<div style="font-weight:700;color:#0a6e2c;font-size:13px">🧮 TOTAL GÉNÉRAL OFFRANDES SPÉCIALES</div>';
+    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:700;margin-top:4px">' + totalGeneralFC.toLocaleString() + ' FC / ' + totalGeneralUSD.toLocaleString() + ' $</div>';
+    html += '</div>';
+  }
+  box.innerHTML = html;
+}
+
+function retirerOffrande(cat, idx) {
+  tempOffrandes[cat].splice(idx, 1);
+  afficherOffrandes();
 }
 
 function enregistrerEntiteSeance() {
@@ -1188,24 +1250,27 @@ function enregistrerEntiteSeance() {
     sorei: JSON.parse(JSON.stringify(tempOffrandes.sorei)),
     kannon: JSON.parse(JSON.stringify(tempOffrandes.kannon)),
     photo: JSON.parse(JSON.stringify(tempOffrandes.photo)),
+    shinrei: JSON.parse(JSON.stringify(tempOffrandes.shinrei)),
     gosh: JSON.parse(JSON.stringify(tempOffrandes.gosh)),
     mita: JSON.parse(JSON.stringify(tempOffrandes.mita)),
     transFC: parseFloat(document.getElementById('dTransFC').value) || 0,
     transUSD: parseFloat(document.getElementById('dTransUSD').value) || 0
   };
   seanceActive.entites.push(entite);
-  tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], gosh: [], mita: [] };
-  ['init','sorei','kannon','photo','gosh','mita'].forEach(function(t) { afficherOffrandes(t); });
+  tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
+  afficherOffrandes();
   reinitialiserFormEntiteSeance();
   afficherEntitesSeance();
   alert('✅ Entité enregistrée : ' + nom);
 }
 
 function reinitialiserFormEntiteSeance() {
-  var ids = ['dNomEntite','dResponsable'];
+  var ids = ['dNomEntite','dResponsable','dOffrandeNom'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
-  var nums = ['dEnveloppes','dConstrFC','dConstrUSD','dNormFC','dNormUSD','dTransFC','dTransUSD'];
+  var nums = ['dEnveloppes','dConstrFC','dConstrUSD','dNormFC','dNormUSD','dTransFC','dTransUSD','dOffrandeFC','dOffrandeUSD'];
   nums.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = 0; });
+  var sel = document.getElementById('dOffrandeCategorie'); if (sel) sel.selectedIndex = 0;
+  afficherOffrandes();
 }
 
 function afficherEntitesSeance() {
@@ -1303,10 +1368,10 @@ function calculerTotauxSeance() {
 
 function sumEntiteDep(e) {
   var sum = function(arr) { return (arr || []).reduce(function(a, o) { return { fc: a.fc + o.fc, usd: a.usd + o.usd }; }, { fc: 0, usd: 0 }); };
-  var i = sum(e.init), s = sum(e.sorei), k = sum(e.kannon), p = sum(e.photo), g = sum(e.gosh), m = sum(e.mita);
-  var totFC = (e.constrFC || 0) + (e.normFC || 0) + i.fc + s.fc + k.fc + p.fc + g.fc + m.fc;
-  var totUSD = (e.constrUSD || 0) + (e.normUSD || 0) + i.usd + s.usd + k.usd + p.usd + g.usd + m.usd;
-  return { totFC: totFC, totUSD: totUSD, soldeFC: totFC - (e.transFC || 0), soldeUSD: totUSD - (e.transUSD || 0), i: i, s: s, k: k, p: p, g: g, m: m };
+  var i = sum(e.init), s = sum(e.sorei), k = sum(e.kannon), p = sum(e.photo), sr = sum(e.shinrei), g = sum(e.gosh), m = sum(e.mita);
+  var totFC = (e.constrFC || 0) + (e.normFC || 0) + i.fc + s.fc + k.fc + p.fc + sr.fc + g.fc + m.fc;
+  var totUSD = (e.constrUSD || 0) + (e.normUSD || 0) + i.usd + s.usd + k.usd + p.usd + sr.usd + g.usd + m.usd;
+  return { totFC: totFC, totUSD: totUSD, soldeFC: totFC - (e.transFC || 0), soldeUSD: totUSD - (e.transUSD || 0), i: i, s: s, k: k, p: p, sr: sr, g: g, m: m };
 }
 
 function enregistrerDepouillementSeance() {
@@ -1400,63 +1465,7 @@ function supprimerDepouillement(id) {
   alert('✅ Supprimé');
 }
 
-// ========== OFFRANDES ==========
-function ajouterOffrande(type) {
-  var map = {
-    init:   { nom: 'dInitNom',   fc: 'dInitFC',   usd: 'dInitUSD',   list: 'listInit',   tot: 'totInit' },
-    sorei:  { nom: 'dSoreiNom',  fc: 'dSoreiFC',  usd: 'dSoreiUSD',  list: 'listSorei',  tot: 'totSorei' },
-    kannon: { nom: 'dKannonNom', fc: 'dKannonFC', usd: 'dKannonUSD', list: 'listKannon', tot: 'totKannon' },
-    photo:  { nom: 'dPhotoNom',  fc: 'dPhotoFC',  usd: 'dPhotoUSD',  list: 'listPhoto',  tot: 'totPhoto' },
-    gosh:   { nom: 'dGoshNom',   fc: 'dGoshFC',   usd: 'dGoshUSD',   list: 'listGosh',   tot: 'totGosh' },
-    mita:   { nom: 'dMitaNom',   fc: 'dMitaFC',   usd: 'dMitaUSD',   list: 'listMita',   tot: 'totMita' }
-  };
-  var c = map[type];
-  var nom = document.getElementById(c.nom).value.trim();
-  var fc = parseFloat(document.getElementById(c.fc).value) || 0;
-  var usd = parseFloat(document.getElementById(c.usd).value) || 0;
-  if (!nom && fc === 0 && usd === 0) return alert('Remplissez au moins le nom ou un montant');
-  tempOffrandes[type].push({ nom: nom || '(sans nom)', fc: fc, usd: usd });
-  document.getElementById(c.nom).value = '';
-  document.getElementById(c.fc).value = 0;
-  document.getElementById(c.usd).value = 0;
-  afficherOffrandes(type);
-}
-
-function afficherOffrandes(type) {
-  var map = {
-    init:   { list: 'listInit',   tot: 'totInit' },
-    sorei:  { list: 'listSorei',  tot: 'totSorei' },
-    kannon: { list: 'listKannon', tot: 'totKannon' },
-    photo:  { list: 'listPhoto',  tot: 'totPhoto' },
-    gosh:   { list: 'listGosh',   tot: 'totGosh' },
-    mita:   { list: 'listMita',   tot: 'totMita' }
-  };
-  var c = map[type];
-  var arr = tempOffrandes[type];
-  var box = document.getElementById(c.list);
-  if (!box) return;
-  if (!arr.length) box.innerHTML = '';
-  else {
-    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Nom</th><th>FC</th><th>USD</th><th></th></tr></thead><tbody>';
-    arr.forEach(function(o, i) {
-      html += '<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + '</td><td class="num">' + o.usd.toLocaleString() + '</td>';
-      html += '<td><button class="btn-mini danger" onclick="retirerOffrande(\'' + type + '\',' + i + ')">✖</button></td></tr>';
-    });
-    html += '</tbody></table></div>';
-    box.innerHTML = html;
-  }
-  var totFC = arr.reduce(function(a, o) { return a + o.fc; }, 0);
-  var totUSD = arr.reduce(function(a, o) { return a + o.usd; }, 0);
-  var totEl = document.getElementById(c.tot);
-  if (totEl) totEl.textContent = totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $';
-}
-
-function retirerOffrande(type, idx) {
-  tempOffrandes[type].splice(idx, 1);
-  afficherOffrandes(type);
-}
-
-// ========== RAPPORTS MODULE III (CORRIGÉ) ==========
+// ========== RAPPORTS MODULE III ==========
 function rapportDepGlobal() {
   var deps = DB.get('depouillements', []);
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
@@ -1474,6 +1483,7 @@ function rapportDepGlobal() {
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
+// ⬇️ RAPPORT DÉTAILLÉ AVEC NOMS DES VERSANTS ⬇️
 function rapportDepDetaille() {
   var deps = DB.get('depouillements', []);
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement.</p>'; return; }
@@ -1489,19 +1499,41 @@ function rapportDepDetaille() {
       html += '<div class="entity-block">';
       html += '<h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px">👤 Responsable : ' + echapper(e.responsable) + ' | 📅 ' + d.mois + ' ' + d.annee + ' | 🗓️ ' + fmtDate(d.date) + '</div>';
+
+      // Tableau principal
       html += '<div class="table-wrapper"><table class="data-table"><tbody>';
       html += '<tr><td>Construction</td><td class="num">' + e.constrFC.toLocaleString() + ' FC</td><td class="num">' + e.constrUSD.toLocaleString() + ' $</td></tr>';
       html += '<tr><td>Normales</td><td class="num">' + e.normFC.toLocaleString() + ' FC</td><td class="num">' + e.normUSD.toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>Initiation</td><td class="num">' + s.i.fc.toLocaleString() + ' FC</td><td class="num">' + s.i.usd.toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>Sorei</td><td class="num">' + s.s.fc.toLocaleString() + ' FC</td><td class="num">' + s.s.usd.toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>Kannon</td><td class="num">' + s.k.fc.toLocaleString() + ' FC</td><td class="num">' + s.k.usd.toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>Photo</td><td class="num">' + s.p.fc.toLocaleString() + ' FC</td><td class="num">' + s.p.usd.toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>Goshintai</td><td class="num">' + s.g.fc.toLocaleString() + ' FC</td><td class="num">' + s.g.usd.toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>Mitamaya</td><td class="num">' + s.m.fc.toLocaleString() + ' FC</td><td class="num">' + s.m.usd.toLocaleString() + ' $</td></tr>';
-      html += '</tbody><tfoot>';
+      html += '</tbody></table></div>';
+
+      // ⬇️ NOUVEAU : Détail des offrandes avec noms ⬇️
+      var categoriesAvecDonnees = [];
+      Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
+        var arr = e[cat] || [];
+        if (arr.length) categoriesAvecDonnees.push({ cat: cat, arr: arr });
+      });
+
+      if (categoriesAvecDonnees.length) {
+        html += '<h5 style="color:#0a6e2c;font-size:13px;margin:10px 0 6px">🎁 Offrandes spéciales détaillées</h5>';
+        categoriesAvecDonnees.forEach(function(item) {
+          var totFC = item.arr.reduce(function(a, o) { return a + o.fc; }, 0);
+          var totUSD = item.arr.reduce(function(a, o) { return a + o.usd; }, 0);
+          html += '<div style="background:#f9f9f9;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #0a6e2c">';
+          html += '<div style="font-weight:600;color:#0a6e2c;font-size:12px;margin-bottom:4px">' + CATEGORIES_OFFRANDES[item.cat] + '</div>';
+          html += '<table class="data-table" style="font-size:11px"><tbody>';
+          item.arr.forEach(function(o) {
+            html += '<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td></tr>';
+          });
+          html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td></tr></tfoot></table>';
+          html += '</div>';
+        });
+      }
+
+      // Totaux
+      html += '<div class="table-wrapper"><table class="data-table"><tfoot>';
       html += '<tr><td>TOTAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>';
       html += '<tr><td>Transport</td><td class="num">- ' + e.transFC.toLocaleString() + ' FC</td><td class="num">- ' + e.transUSD.toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
+      html += '<tr style="background:#e8f5e9"><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
       html += '</tfoot></table></div></div>';
     });
 
@@ -1598,7 +1630,7 @@ function soldeTransferer() {
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
-// ========== TABLEAU DE BORD & RAPPORT GÉNÉRAL ==========
+// ========== TABLEAU DE BORD ==========
 function afficherDashboard() {
   var box = document.getElementById('dashboardBox');
   if (!box) return;
