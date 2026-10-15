@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v12
+// EMM MONDIAL — LOGIQUE PRINCIPALE v13
 // ============================================
 
 var currentUser = null;
@@ -401,10 +401,14 @@ function tableFicheMensuelle(f) {
   h += '<h4>📍 ' + echapper(getEntiteNom(f.entiteId)) + ' — ' + echapper(f.mois) + ' ' + echapper(f.annee);
   if (f.archived) h += ' <span class="badge badge-archive">📦 Archivée</span>';
   h += '</h4>';
-  h += '<div style="margin-bottom:8px;display:flex;gap:4px;flex-wrap:wrap">';
-  h += '<button class="btn-mini orange" onclick="modifierFiche(\'' + f.id + '\')">✏️ Modifier</button>';
-  h += '<button class="btn-mini ' + (f.archived ? 'blue' : 'gray') + '" onclick="archiverFiche(\'' + f.id + '\')">' + (f.archived ? '↩️ Désarchiver' : '📦 Archiver') + '</button>';
-  h += '<button class="btn-mini danger" onclick="supprimerFiche(\'' + f.id + '\')">🗑️ Supprimer</button>';
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
+  h += '<button class="btn-mini orange" onclick="modifierFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
+  if (f.archived) {
+    h += '<button class="btn-mini blue" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">↩️ Désarchiver</button>';
+  } else {
+    h += '<button class="btn-mini gray" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
+  }
+  h += '<button class="btn-mini danger" onclick="supprimerFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
   h += '</div>';
   h += '<div class="table-wrapper"><table class="data-table"><tbody>';
   h += '<tr><td>Responsable</td><td>' + echapper(f.responsable) + '</td></tr>';
@@ -506,6 +510,12 @@ function rapportFreqGlobal() {
   html += '<tr><td>Total Sympathisants</td><td class="num">' + ts + '</td></tr>';
   html += '<tr><td>Total Nouveaux</td><td class="num">' + tn + '</td></tr>';
   html += '</tbody></table></div>';
+
+  // Liste des fiches avec boutons
+  if (fiches.length) {
+    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Fiches actives</h4>';
+    fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
+  }
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
@@ -1125,6 +1135,22 @@ function rapportFinGlobal() {
   html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr>';
   html += '<tr><td>Versements</td><td class="num">' + vers.length + '</td></tr>';
   html += '</tbody></table></div>';
+
+  if (cands.length) {
+    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Candidats actifs avec actions</h4>';
+    cands.forEach(function(c) {
+      html += '<div class="entity-block">';
+      html += '<h4 style="display:flex;align-items:center;gap:8px">';
+      if (c.photo) html += '<img src="' + c.photo + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c">';
+      html += '👤 ' + echapper(c.nom) + '</h4>';
+      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | ' + echapper(c.motif) + '</div>';
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
+      html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
+      html += '<button class="btn-mini gray" onclick="archiverCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
+      html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+      html += '</div></div>';
+    });
+  }
   document.getElementById('rapportFinBox').innerHTML = html;
 }
 
@@ -1133,16 +1159,25 @@ function rapportFinDetaille() {
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3></div>';
   if (!cands.length) html += '<p>Aucun candidat.</p>';
   else {
-    html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Statut</th><th>Prévu</th><th>Versé</th><th>Solde</th></tr></thead><tbody>';
     cands.forEach(function(c) {
-      html += '<tr><td style="text-align:center">';
-      if (c.photo) html += '<img src="' + c.photo + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
-      else html += '<div style="width:34px;height:34px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:14px">👤</div>';
-      html += '</td><td>' + echapper(c.nom) + '</td><td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td><td>' + echapper(c.motif) + '</td>';
-      html += '<td>' + (c.statut === 'termine' ? '✅' : '⏳') + '</td>';
-      html += '<td class="num">' + c.montantPrevu + '$</td><td class="num">' + c.totalVerse.toFixed(2) + '$</td><td class="num">' + (c.montantPrevu - c.totalVerse).toFixed(2) + '$</td></tr>';
+      html += '<div class="entity-block">';
+      html += '<h4 style="display:flex;align-items:center;gap:8px">';
+      if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
+      html += '👤 ' + echapper(c.nom) + '</h4>';
+      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div>';
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
+      html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
+      html += '<button class="btn-mini gray" onclick="archiverCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
+      html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+      html += '<button class="btn-mini blue" onclick="afficherReleveVersement(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">📋 Relevé</button>';
+      html += '</div>';
+      html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr>';
+      html += '<tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr>';
+      html += '<tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr>';
+      html += '<tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr>';
+      html += '</tbody></table></div></div>';
     });
-    html += '</tbody></table></div>';
   }
   document.getElementById('rapportFinBox').innerHTML = html;
 }
@@ -1463,7 +1498,12 @@ function rechercherDepGeneral() {
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalFC += s.totFC; totalUSD += s.totUSD; });
     html += '<div class="entity-block"><h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</h4>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
-    html += '<div style="font-size:13px;margin-top:6px">Total : <strong>' + totalFC.toLocaleString() + ' FC</strong> / <strong>' + totalUSD.toLocaleString() + ' $</strong></div></div>';
+    html += '<div style="font-size:13px;margin-top:6px">Total : <strong>' + totalFC.toLocaleString() + ' FC</strong> / <strong>' + totalUSD.toLocaleString() + ' $</strong></div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
+    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
+    html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
+    html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+    html += '</div></div>';
   });
   box.innerHTML = html;
 }
@@ -1516,10 +1556,7 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   deps.forEach(function(d) {
     if (d.mois === mois && String(d.annee) === String(annee) && String(d.phase) === String(phase)) {
       d.entites.forEach(function(e) {
-        if (e.nomEntite === entiteNom) {
-          entiteTrouvee = e;
-          seanceTrouvee = d;
-        }
+        if (e.nomEntite === entiteNom) { entiteTrouvee = e; seanceTrouvee = d; }
       });
     }
   });
@@ -1600,7 +1637,6 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   setTimeout(function() { w.print(); }, 600);
 }
 
-// ========== RELEVÉ FICHE PAR FILTRE ==========
 function releveFicheEntite(entiteNom, mois, annee) {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var resultats = [];
@@ -1609,9 +1645,7 @@ function releveFicheEntite(entiteNom, mois, annee) {
       var matchNom = !entiteNom || e.nomEntite.toUpperCase().indexOf(entiteNom.toUpperCase()) !== -1;
       var matchMois = !mois || d.mois === mois;
       var matchAnnee = !annee || String(d.annee) === annee;
-      if (matchNom && matchMois && matchAnnee) {
-        resultats.push({ entite: e, seance: d });
-      }
+      if (matchNom && matchMois && matchAnnee) resultats.push({ entite: e, seance: d });
     });
   });
   if (!resultats.length) return alert('Aucune fiche trouvée');
@@ -1726,6 +1760,19 @@ function rapportDepGlobal() {
   html += '<tr><td>Solde entités</td><td class="num">' + soldeFC.toLocaleString() + '</td><td class="num">' + soldeUSD.toLocaleString() + '</td></tr>';
   html += '<tr><td>Dépenses générales</td><td class="num">- ' + genFC.toLocaleString() + '</td><td class="num">- ' + genUSD.toLocaleString() + '</td></tr>';
   html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
+
+  if (deps.length) {
+    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Séances actives avec actions</h4>';
+    deps.forEach(function(d) {
+      html += '<div class="entity-block">';
+      html += '<h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</h4>';
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
+      html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
+      html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
+      html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+      html += '</div></div>';
+    });
+  }
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
@@ -1738,6 +1785,13 @@ function rapportDepDetaille() {
     html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 Séance : ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
     html += '</div>';
+
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
+    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
+    html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
+    html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+    html += '</div>';
+
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
       html += '<div class="entity-block">';
