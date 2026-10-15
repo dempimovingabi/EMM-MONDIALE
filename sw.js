@@ -1,4 +1,4 @@
-const CACHE_NAME = 'emm-mondial-v12-' + Date.now();
+const CACHE_NAME = 'emm-mondial-v13-' + Date.now();
 const URLS = [
   './',
   './index.html',
