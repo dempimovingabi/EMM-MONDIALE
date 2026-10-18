@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v13
+// EMM MONDIAL — LOGIQUE PRINCIPALE v14
 // ============================================
 
 var currentUser = null;
@@ -44,6 +44,7 @@ function switchMainTab(name, btn) {
     setTimeout(initSignature, 400);
     setTimeout(initSignature, 800);
   }
+  if (name === 'patrimoine') refreshPatrimoineSites();
 }
 
 // ========== LOGIN / LOGOUT ==========
@@ -510,8 +511,6 @@ function rapportFreqGlobal() {
   html += '<tr><td>Total Sympathisants</td><td class="num">' + ts + '</td></tr>';
   html += '<tr><td>Total Nouveaux</td><td class="num">' + tn + '</td></tr>';
   html += '</tbody></table></div>';
-
-  // Liste des fiches avec boutons
   if (fiches.length) {
     html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Fiches actives</h4>';
     fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
@@ -1135,7 +1134,6 @@ function rapportFinGlobal() {
   html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr>';
   html += '<tr><td>Versements</td><td class="num">' + vers.length + '</td></tr>';
   html += '</tbody></table></div>';
-
   if (cands.length) {
     html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Candidats actifs avec actions</h4>';
     cands.forEach(function(c) {
@@ -1760,7 +1758,6 @@ function rapportDepGlobal() {
   html += '<tr><td>Solde entités</td><td class="num">' + soldeFC.toLocaleString() + '</td><td class="num">' + soldeUSD.toLocaleString() + '</td></tr>';
   html += '<tr><td>Dépenses générales</td><td class="num">- ' + genFC.toLocaleString() + '</td><td class="num">- ' + genUSD.toLocaleString() + '</td></tr>';
   html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
-
   if (deps.length) {
     html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Séances actives avec actions</h4>';
     deps.forEach(function(d) {
@@ -1785,13 +1782,11 @@ function rapportDepDetaille() {
     html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 Séance : ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
     html += '</div>';
-
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
     html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
     html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
     html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
     html += '</div>';
-
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
       html += '<div class="entity-block">';
@@ -1915,6 +1910,8 @@ function afficherDashboard() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var soldeDepFC = 0, soldeDepUSD = 0;
   deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
+  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
+  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
   var html = '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
   html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
@@ -1927,6 +1924,9 @@ function afficherDashboard() {
   html += '<tr><td>Séances actives</td><td class="num">' + deps.length + '</td></tr>';
   html += '<tr><td>Solde total FC</td><td class="num">' + soldeDepFC.toLocaleString() + ' FC</td></tr>';
   html += '<tr><td>Solde total USD</td><td class="num">' + soldeDepUSD.toLocaleString() + ' $</td></tr>';
+  html += '<tr><th colspan="2">🏛️ MODULE IV — PATRIMOINE</th></tr>';
+  html += '<tr><td>Sites enregistrés</td><td class="num">' + sitesP + '</td></tr>';
+  html += '<tr><td>Biens enregistrés</td><td class="num">' + biensP + '</td></tr>';
   html += '</tbody></table></div>';
   box.innerHTML = html;
 }
@@ -1970,6 +1970,13 @@ function rapportGeneralConsolide() {
   html += '<tr><td>Dépenses FC</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td></tr>';
   html += '<tr><td>Dépenses USD</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
   html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
+  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
+  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
+  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">🏛️ MODULE IV — PATRIMOINE</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Sites</td><td class="num">' + sitesP + '</td></tr>';
+  html += '<tr><td>Biens</td><td class="num">' + biensP + '</td></tr>';
+  html += '</tbody></table></div>';
   box.innerHTML = html;
 }
 
@@ -1978,6 +1985,7 @@ function imprimerRapportFreq() { imprimerBox('rapportFreqBox'); }
 function imprimerRapportFin() { imprimerBox('rapportFinBox'); }
 function imprimerRapportDep() { imprimerBox('rapportDepBox'); }
 function imprimerGeneral() { imprimerBox('rapportGeneralBox'); }
+function imprimerPatrimoine() { imprimerBox('pRapportBox'); }
 
 function imprimerBox(boxId) {
   var c = document.getElementById(boxId).innerHTML;
@@ -2094,7 +2102,7 @@ function supprimerUtilisateur(id) {
 // ========== EXPORT / IMPORT ==========
 function exporterDonnees() {
   var data = {};
-  ['users','entites','participations','fichesMensuelles','candidats','versements','depouillements','depensesGenerales','annonces'].forEach(function(k) { data[k] = DB.get(k, []); });
+  ['users','entites','participations','fichesMensuelles','candidats','versements','depouillements','depensesGenerales','annonces','patrimoineSites','patrimoineBiens','patrimoineMouvements','patrimoineReparations'].forEach(function(k) { data[k] = DB.get(k, []); });
   var json = JSON.stringify(data, null, 2);
   try {
     var blob = new Blob([json], { type: 'application/json' });
@@ -2176,7 +2184,272 @@ function refreshAll() {
   afficherCandidats();
   afficherVersements();
   afficherUtilisateurs();
+  refreshPatrimoineSites();
   if (typeof rechercherParEntite === 'function') rechercherParEntite();
+}
+
+// ========== MODULE IV — PATRIMOINE ==========
+var photoBienTemp = null;
+var CATEGORIES_PATRIMOINE = {
+  LIT: 'Liturgie',
+  SAL: 'Salle de culte',
+  BUR: 'Bureau administratif',
+  IMM: 'Immobilier',
+  AUT: 'Autres biens'
+};
+
+function ajouterSitePatrimoine() {
+  var type = document.getElementById('pTypeSite').value;
+  var nom = document.getElementById('pNomSite').value.trim();
+  var resp = document.getElementById('pRespSite').value.trim();
+  if (!nom) return alert('Entrez le nom du site');
+  var list = DB.get('patrimoineSites', []);
+  if (list.find(function(s) { return s.nom.toLowerCase() === nom.toLowerCase() && !s.archived; })) return alert('Ce site existe déjà');
+  list.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false, dateCreation: new Date().toISOString() });
+  DB.set('patrimoineSites', list);
+  reinitialiserFormSitePatrimoine();
+  refreshPatrimoineSites();
+  alert('✅ Site ajouté');
+}
+
+function reinitialiserFormSitePatrimoine() {
+  document.getElementById('pNomSite').value = '';
+  document.getElementById('pRespSite').value = '';
+  document.getElementById('pTypeSite').selectedIndex = 0;
+}
+
+function refreshPatrimoineSites() {
+  var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
+  var sel = document.getElementById('pBienSite');
+  if (sel) {
+    sel.innerHTML = sites.map(function(s) { return '<option value="' + s.id + '">' + s.type + ' - ' + s.nom + '</option>'; }).join('');
+  }
+  var selRep = document.getElementById('pRepBien');
+  if (selRep) {
+    var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
+    selRep.innerHTML = biens.map(function(b) { return '<option value="' + b.id + '">' + b.code + ' - ' + b.nom + '</option>'; }).join('');
+  }
+  afficherSitesPatrimoine();
+  afficherBiensPatrimoine();
+  afficherReparations();
+}
+
+function afficherSitesPatrimoine() {
+  var filtre = document.getElementById('pFiltreSites') ? document.getElementById('pFiltreSites').value : 'actif';
+  var sites = filtrerListe(DB.get('patrimoineSites', []), filtre);
+  var box = document.getElementById('pListeSites');
+  if (!box) return;
+  if (!sites.length) { box.innerHTML = '<p>Aucun site.</p>'; return; }
+  var html = '';
+  sites.forEach(function(s) {
+    html += '<div class="item-list" style="padding:12px' + (s.archived ? ';opacity:0.7;background:#f0f0f0' : '') + '">';
+    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600">🏛️ ' + echapper(s.type) + ' - ' + echapper(s.nom) + (s.archived ? ' <span class="badge badge-archive">📦</span>' : '') + '</div>';
+    html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(s.responsable || '-') + '</div>';
+    html += '<button class="btn-mini orange" onclick="modifierSitePatrimoine(\'' + s.id + '\')">✏️ Modifier</button> ';
+    html += '<button class="btn-mini ' + (s.archived ? 'blue' : 'gray') + '" onclick="archiverSitePatrimoine(\'' + s.id + '\')">' + (s.archived ? '↩️' : '📦') + '</button> ';
+    html += '<button class="btn-mini blue" onclick="relevePatrimoineSite(\'' + s.id + '\')">📄 Relevé</button> ';
+    html += '<button class="btn-mini danger" onclick="supprimerSitePatrimoine(\'' + s.id + '\')">🗑️ Supprimer</button>';
+    html += '</div>';
+  });
+  box.innerHTML = html;
+}
+
+function modifierSitePatrimoine(id) {
+  var list = DB.get('patrimoineSites', []);
+  var s = list.find(function(x) { return x.id === id; });
+  if (!s) return;
+  var type = prompt('Type :', s.type); if (type === null) return;
+  var nom = prompt('Nom :', s.nom); if (nom === null) return;
+  var resp = prompt('Responsable :', s.responsable); if (resp === null) return;
+  s.type = type; s.nom = nom.trim(); s.responsable = resp.trim();
+  DB.set('patrimoineSites', list);
+  refreshPatrimoineSites();
+  alert('✅ Modifié');
+}
+
+function archiverSitePatrimoine(id) {
+  var list = DB.get('patrimoineSites', []);
+  var s = list.find(function(x) { return x.id === id; });
+  if (!s) return;
+  s.archived = !s.archived;
+  DB.set('patrimoineSites', list);
+  refreshPatrimoineSites();
+  alert(s.archived ? '📦 Archivé' : '↩️ Restauré');
+}
+
+function supprimerSitePatrimoine(id) {
+  if (!confirm('⚠️ Supprimer ce site et tous ses biens associés ?')) return;
+  DB.set('patrimoineSites', DB.get('patrimoineSites', []).filter(function(s) { return s.id !== id; }));
+  DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; }));
+  refreshPatrimoineSites();
+}
+
+function previewPhotoBien(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = 300; canvas.height = 300;
+      var ctx = canvas.getContext('2d');
+      var min = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 300, 300);
+      photoBienTemp = canvas.toDataURL('image/jpeg', 0.8);
+      document.getElementById('pPhotoPreview').innerHTML = '<img src="' + photoBienTemp + '" style="width:120px;height:120px;border-radius:8px;object-fit:cover;border:2px solid #0a6e2c">';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function genererCodeBien(siteId, cat) {
+  var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === siteId; });
+  var prefixSite = site ? (site.type.substring(0,2).toUpperCase() + '-' + site.nom.substring(0,3).toUpperCase()) : 'GEN';
+  var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && b.categorie === cat; });
+  var num = (biens.length + 1).toString().padStart(3, '0');
+  return prefixSite + '-' + cat + '-' + num;
+}
+
+function ajouterBienPatrimoine() {
+  var siteId = document.getElementById('pBienSite').value;
+  var cat = document.getElementById('pBienCategorie').value;
+  var nom = document.getElementById('pBienNom').value.trim();
+  var qte = parseInt(document.getElementById('pBienQte').value) || 1;
+  var etat = document.getElementById('pBienEtat').value;
+  if (!siteId) return alert('Sélectionnez un site');
+  if (!nom) return alert('Entrez la désignation');
+  var list = DB.get('patrimoineBiens', []);
+  var code = genererCodeBien(siteId, cat);
+  list.push({ id: uid(), siteId: siteId, categorie: cat, code: code, nom: nom, qte: qte, etat: etat, photo: photoBienTemp || null, archived: false });
+  DB.set('patrimoineBiens', list);
+  reinitialiserFormBienPatrimoine();
+  refreshPatrimoineSites();
+  alert('✅ Bien ajouté avec code : ' + code);
+}
+
+function reinitialiserFormBienPatrimoine() {
+  document.getElementById('pBienNom').value = '';
+  document.getElementById('pBienQte').value = 1;
+  document.getElementById('pBienEtat').selectedIndex = 0;
+  document.getElementById('pPhotoPreview').innerHTML = '';
+  photoBienTemp = null;
+}
+
+function afficherBiensPatrimoine() {
+  var filtre = document.getElementById('pFiltreBiens') ? document.getElementById('pFiltreBiens').value : 'actif';
+  var search = (document.getElementById('pSearchBien') ? document.getElementById('pSearchBien').value : '').toLowerCase();
+  var biens = filtrerListe(DB.get('patrimoineBiens', []), filtre);
+  if (search) biens = biens.filter(function(b) { return b.nom.toLowerCase().indexOf(search) !== -1 || b.code.toLowerCase().indexOf(search) !== -1; });
+  var box = document.getElementById('pListeBiens');
+  if (!box) return;
+  if (!biens.length) { box.innerHTML = '<p>Aucun bien.</p>'; return; }
+  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Code</th><th>Désignation</th><th>Site</th><th>Qté</th><th>État</th><th>Actions</th></tr></thead><tbody>';
+  biens.forEach(function(b) {
+    var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === b.siteId; });
+    var siteNom = site ? site.nom : 'Inconnu';
+    html += '<tr' + (b.archived ? ' style="opacity:0.6"' : '') + '>';
+    html += '<td style="text-align:center">' + (b.photo ? '<img src="' + b.photo + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover">' : '📦') + '</td>';
+    html += '<td>' + echapper(b.code) + '</td>';
+    html += '<td>' + echapper(b.nom) + '</td>';
+    html += '<td>' + echapper(siteNom) + '</td>';
+    html += '<td class="num">' + b.qte + '</td>';
+    html += '<td>' + echapper(b.etat) + '</td>';
+    html += '<td>';
+    html += '<button class="btn-mini orange" onclick="modifierBienPatrimoine(\'' + b.id + '\')">✏️</button>';
+    html += '<button class="btn-mini ' + (b.archived ? 'blue' : 'gray') + '" onclick="archiverBienPatrimoine(\'' + b.id + '\')">' + (b.archived ? '↩️' : '📦') + '</button>';
+    html += '<button class="btn-mini danger" onclick="supprimerBienPatrimoine(\'' + b.id + '\')">🗑️</button>';
+    html += '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
+}
+
+function modifierBienPatrimoine(id) {
+  var list = DB.get('patrimoineBiens', []);
+  var b = list.find(function(x) { return x.id === id; });
+  if (!b) return;
+  var nom = prompt('Désignation :', b.nom); if (nom === null) return;
+  var qte = prompt('Quantité :', b.qte); if (qte === null) return;
+  b.nom = nom.trim();
+  b.qte = parseInt(qte) || b.qte;
+  DB.set('patrimoineBiens', list);
+  refreshPatrimoineSites();
+  alert('✅ Modifié');
+}
+
+function archiverBienPatrimoine(id) {
+  var list = DB.get('patrimoineBiens', []);
+  var b = list.find(function(x) { return x.id === id; });
+  if (!b) return;
+  b.archived = !b.archived;
+  DB.set('patrimoineBiens', list);
+  refreshPatrimoineSites();
+  alert(b.archived ? '📦 Archivé' : '↩️ Restauré');
+}
+
+function supprimerBienPatrimoine(id) {
+  if (!confirm('⚠️ Supprimer ce bien ?')) return;
+  DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.id !== id; }));
+  refreshPatrimoineSites();
+}
+
+function ajouterReparation() {
+  var bienId = document.getElementById('pRepBien').value;
+  var desc = document.getElementById('pRepDesc').value.trim();
+  var cout = parseFloat(document.getElementById('pRepCout').value) || 0;
+  var date = document.getElementById('pRepDate').value || new Date().toISOString().slice(0, 10);
+  if (!bienId || !desc) return alert('Remplissez le bien et la description');
+  var list = DB.get('patrimoineReparations', []);
+  list.push({ id: uid(), bienId: bienId, desc: desc, cout: cout, date: date });
+  DB.set('patrimoineReparations', list);
+  document.getElementById('pRepDesc').value = '';
+  document.getElementById('pRepCout').value = 0;
+  afficherReparations();
+  alert('✅ Réparation enregistrée');
+}
+
+function afficherReparations() {
+  var list = DB.get('patrimoineReparations', []);
+  var box = document.getElementById('pListeReparations');
+  if (!box) return;
+  if (!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888">Aucune réparation enregistrée.</p>'; return; }
+  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût (FC)</th></tr></thead><tbody>';
+  list.reverse().forEach(function(r) {
+    var bien = DB.get('patrimoineBiens', []).find(function(b) { return b.id === r.bienId; });
+    html += '<tr><td>' + fmtDate(r.date) + '</td><td>' + (bien ? bien.code : '-') + '</td><td>' + echapper(r.desc) + '</td><td class="num">' + r.cout.toLocaleString() + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
+}
+
+function rapportPatrimoineGlobal() {
+  var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
+  var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
+  var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3></div>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
+  html += '<tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr>';
+  html += '</tbody></table></div>';
+  document.getElementById('pRapportBox').innerHTML = html;
+}
+
+function relevePatrimoineSite(siteId) {
+  var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === siteId; });
+  var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && !b.archived; });
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé Patrimoine</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#0a6e2c;color:white;padding:8px}td{padding:6px;border-bottom:1px solid #ddd}h1{text-align:center;color:#0a6e2c}</style></head><body>');
+  w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1>');
+  w.document.write('<h2>Relevé Patrimoine : ' + echapper(site.nom) + '</h2>');
+  w.document.write('<table><thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>État</th></tr></thead><tbody>');
+  biens.forEach(function(b) {
+    w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>');
+  });
+  w.document.write('</tbody></table>');
+  w.document.write('</body></html>');
+  w.document.close();
+  setTimeout(function() { w.print(); }, 500);
 }
 
 // ========== INIT ==========
