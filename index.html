@@ -50,6 +50,7 @@
     <button class="main-tab" onclick="switchMainTab('frequence', this)">📈 Fréquence</button>
     <button class="main-tab" onclick="switchMainTab('finance', this)">💰 Finance</button>
     <button class="main-tab" onclick="switchMainTab('depouillement', this)">🧾 Dépouillement</button>
+    <button class="main-tab" onclick="switchMainTab('patrimoine', this)">🏛️ Patrimoine</button>
     <button class="main-tab" onclick="switchMainTab('admin', this)">⚙️ Admin</button>
   </div>
 
@@ -114,7 +115,6 @@
       <button class="btn-secondary" onclick="reinitialiserFormEntite()">🔄 Réinitialiser</button>
     </div>
 
-    <!-- FILTRE ENTITÉS -->
     <div class="card">
       <h3>🔍 Filtre des entités</h3>
       <div class="input-group">
@@ -143,7 +143,6 @@
       <button class="btn-secondary" onclick="reinitialiserFormParticipation()">🔄 Réinitialiser</button>
     </div>
 
-    <!-- FILTRE PARTICIPATIONS -->
     <div class="card">
       <h3>🔍 Filtre des participations</h3>
       <div class="input-group">
@@ -223,7 +222,6 @@
       <button class="btn-secondary" onclick="reinitialiserFormFiche()">🔄 Réinitialiser</button>
     </div>
 
-    <!-- FILTRE FICHES -->
     <div class="card">
       <h3>🔍 Recherche fiche mensuelle</h3>
       <div class="input-group"><label>Nom entité</label><input type="text" id="searchFreq" placeholder="Rechercher..."></div>
@@ -512,6 +510,7 @@
       </div>
       <button class="btn-secondary" onclick="rechercherDepouillement()">🔍 Rechercher</button>
       <button class="btn-secondary" onclick="reinitialiserRechercheDep()">🔄 Réinitialiser</button>
+      <button class="btn-primary" onclick="genererReleveEntiteFiltre()" style="background:linear-gradient(135deg,#1976d2,#1565c0)">📄 Relevé fiche par entité</button>
       <div id="resultatRechercheDep"></div>
     </div>
 
@@ -525,6 +524,102 @@
       <button class="btn-secondary" onclick="exporterPDFDep()">📕 PDF</button>
       <button class="btn-secondary" onclick="partagerRapportDep()">📤 Envoyer</button>
       <div id="rapportDepBox"></div>
+    </div>
+  </div>
+
+  <!-- ===== ONGLET PATRIMOINE (MODULE IV) ===== -->
+  <div id="tab-patrimoine" class="main-tab-content">
+    <div class="card">
+      <h3>🏛️ Gestion des Sites</h3>
+      <div class="input-group"><label>Type de site</label>
+        <select id="pTypeSite">
+          <option>Jorhei Center</option>
+          <option>Unité religieuse</option>
+          <option>Foyer de lumière</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Nom du site</label><input type="text" id="pNomSite" placeholder="Ex : Biancky"></div>
+      <div class="input-group"><label>Responsable</label><input type="text" id="pRespSite"></div>
+      <button class="btn-primary" onclick="ajouterSitePatrimoine()">Ajouter le site</button>
+      <button class="btn-secondary" onclick="reinitialiserFormSitePatrimoine()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Liste des sites</h3>
+      <div class="input-group">
+        <select id="pFiltreSites" onchange="afficherSitesPatrimoine()">
+          <option value="actif">Actifs uniquement</option>
+          <option value="archive">Archivés uniquement</option>
+          <option value="tous">Tous</option>
+        </select>
+      </div>
+      <div id="pListeSites"></div>
+    </div>
+
+    <div class="card">
+      <h3>➕ Enregistrer un bien</h3>
+      <div class="input-group"><label>Site associé</label><select id="pBienSite"></select></div>
+      <div class="input-group"><label>Catégorie</label>
+        <select id="pBienCategorie">
+          <option value="LIT">Liturgie</option>
+          <option value="SAL">Salle de culte</option>
+          <option value="BUR">Bureau administratif</option>
+          <option value="IMM">Immobilier</option>
+          <option value="AUT">Autres biens</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Désignation du bien</label><input type="text" id="pBienNom" placeholder="Ex : Chaise en bois"></div>
+      <div class="input-group"><label>Quantité</label><input type="number" id="pBienQte" value="1"></div>
+      <div class="input-group"><label>État</label>
+        <select id="pBienEtat">
+          <option>Neuf</option>
+          <option>Bon</option>
+          <option>Passable</option>
+          <option>Mauvais</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>📷 Photo du bien</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <button type="button" class="btn-mini blue" onclick="document.getElementById('pPhotoCamera').click()" style="flex:1;padding:10px">📸 Caméra</button>
+          <button type="button" class="btn-mini orange" onclick="document.getElementById('pPhotoGallery').click()" style="flex:1;padding:10px">🖼️ Galerie</button>
+        </div>
+        <input type="file" id="pPhotoCamera" accept="image/*" capture="user" onchange="previewPhotoBien(event)" style="display:none">
+        <input type="file" id="pPhotoGallery" accept="image/*" onchange="previewPhotoBien(event)" style="display:none">
+        <div id="pPhotoPreview" style="margin-top:10px;text-align:center"></div>
+      </div>
+      <button class="btn-primary" onclick="ajouterBienPatrimoine()">Enregistrer le bien</button>
+      <button class="btn-secondary" onclick="reinitialiserFormBienPatrimoine()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche de biens</h3>
+      <div class="input-group"><label>Nom du bien ou code</label><input type="text" id="pSearchBien" placeholder="Rechercher..." oninput="afficherBiensPatrimoine()"></div>
+      <div class="input-group">
+        <select id="pFiltreBiens" onchange="afficherBiensPatrimoine()">
+          <option value="actif">Actifs uniquement</option>
+          <option value="archive">Archivés uniquement</option>
+          <option value="tous">Tous</option>
+        </select>
+      </div>
+      <div id="pListeBiens"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔧 Réparations & Entretien</h3>
+      <div class="input-group"><label>Bien concerné</label><select id="pRepBien"></select></div>
+      <div class="input-group"><label>Description des travaux</label><textarea id="pRepDesc" rows="2"></textarea></div>
+      <div class="input-group"><label>Coût (FC)</label><input type="number" id="pRepCout" value="0"></div>
+      <div class="input-group"><label>Date</label><input type="date" id="pRepDate"></div>
+      <button class="btn-primary" onclick="ajouterReparation()">Enregistrer la réparation</button>
+      <div id="pListeReparations" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Rapports Patrimoine</h3>
+      <button class="btn-primary" onclick="rapportPatrimoineGlobal()">📊 Global</button>
+      <button class="btn-secondary" onclick="imprimerPatrimoine()">🖨️ Imprimer</button>
+      <div id="pRapportBox" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -576,4 +671,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-        </html>
+  </html>
