@@ -1,5 +1,5 @@
 // ============================================
-// BASE DE DONNÉES LOCALE — EMM MONDIAL v2
+// BASE DE DONNÉES LOCALE — EMM MONDIAL v3
 // ============================================
 
 const DB = {
@@ -42,8 +42,14 @@ function initDB() {
   // Commun
   if (!DB.get('annonces')) DB.set('annonces', []);
 
+  // ⬇️ NOUVEAU : MODULE IV - PATRIMOINE
+  if (!DB.get('patrimoineSites')) DB.set('patrimoineSites', []);
+  if (!DB.get('patrimoineBiens')) DB.set('patrimoineBiens', []);
+  if (!DB.get('patrimoineMouvements')) DB.set('patrimoineMouvements', []);
+  if (!DB.get('patrimoineReparations')) DB.set('patrimoineReparations', []);
+
   // Migration : ajouter le champ "archived" aux anciennes données
-  ['entites','participations','fichesMensuelles','candidats','versements','depouillements'].forEach(function(key) {
+  ['entites','participations','fichesMensuelles','candidats','versements','depouillements','patrimoineSites','patrimoineBiens'].forEach(function(key) {
     var list = DB.get(key, []);
     var modifie = false;
     list.forEach(function(item) {
