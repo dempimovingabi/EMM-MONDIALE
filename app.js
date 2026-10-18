@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v14
+// EMM MONDIAL — LOGIQUE PRINCIPALE v16
 // ============================================
 
 var currentUser = null;
@@ -2350,7 +2350,7 @@ function afficherBiensPatrimoine() {
     var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === b.siteId; });
     var siteNom = site ? site.nom : 'Inconnu';
     html += '<tr' + (b.archived ? ' style="opacity:0.6"' : '') + '>';
-    html += '<td style="text-align:center">' + (b.photo ? '<img src="' + b.photo + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover">' : '📦') + '</td>';
+    html += '<td style="text-align:center">' + (b.photo ? '<img src="' + b.photo + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer" onclick="voirPhotoBien(\'' + b.id + '\')">' : '<button class="btn-mini blue" onclick="changerPhotoBien(\'' + b.id + '\')">📷</button>') + '</td>';
     html += '<td>' + echapper(b.code) + '</td>';
     html += '<td>' + echapper(b.nom) + '</td>';
     html += '<td>' + echapper(siteNom) + '</td>';
@@ -2360,10 +2360,50 @@ function afficherBiensPatrimoine() {
     html += '<button class="btn-mini orange" onclick="modifierBienPatrimoine(\'' + b.id + '\')">✏️</button>';
     html += '<button class="btn-mini ' + (b.archived ? 'blue' : 'gray') + '" onclick="archiverBienPatrimoine(\'' + b.id + '\')">' + (b.archived ? '↩️' : '📦') + '</button>';
     html += '<button class="btn-mini danger" onclick="supprimerBienPatrimoine(\'' + b.id + '\')">🗑️</button>';
+    if (b.photo) html += '<button class="btn-mini blue" onclick="changerPhotoBien(\'' + b.id + '\')">📷</button>';
     html += '</td></tr>';
   });
   html += '</tbody></table></div>';
   box.innerHTML = html;
+}
+
+function voirPhotoBien(id) {
+  var b = DB.get('patrimoineBiens', []).find(function(x) { return x.id === id; });
+  if (!b || !b.photo) return;
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><meta charset="UTF-8"><title>Photo</title><style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column}img{max-width:90vw;max-height:80vh;border:4px solid white;border-radius:8px}p{color:white;font-family:Arial;margin-top:20px;font-size:18px}</style></head><body>');
+  w.document.write('<img src="' + b.photo + '"><p>' + echapper(b.code) + ' - ' + echapper(b.nom) + '</p>');
+  w.document.write('</body></html>');
+}
+
+function changerPhotoBien(id) {
+  var choix = confirm('📸 OK = Prendre une photo (caméra)\n❌ Annuler = Choisir dans la galerie');
+  var input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  if (choix) input.capture = 'user';
+  input.onchange = function(ev) {
+    var file = ev.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return alert('⚠️ Image trop lourde (max 5 Mo)');
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        canvas.width = 300; canvas.height = 300;
+        var ctx = canvas.getContext('2d');
+        var min = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 300, 300);
+        var data = canvas.toDataURL('image/jpeg', 0.8);
+        var list = DB.get('patrimoineBiens', []);
+        var b = list.find(function(x) { return x.id === id; });
+        if (b) { b.photo = data; DB.set('patrimoineBiens', list); refreshPatrimoineSites(); alert('✅ Photo mise à jour'); }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 }
 
 function modifierBienPatrimoine(id) {
@@ -2427,11 +2467,37 @@ function afficherReparations() {
 function rapportPatrimoineGlobal() {
   var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
+  var biensNeuf = biens.filter(function(b) { return b.etat === 'Neuf'; }).length;
+  var biensBon = biens.filter(function(b) { return b.etat === 'Bon'; }).length;
+  var biensPassable = biens.filter(function(b) { return b.etat === 'Passable'; }).length;
+  var biensMauvais = biens.filter(function(b) { return b.etat === 'Mauvais'; }).length;
+
   var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3></div>';
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
   html += '<tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr>';
   html += '</tbody></table></div>';
+  html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">🛠️ État des biens</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Neuf</td><td class="num">' + biensNeuf + '</td></tr>';
+  html += '<tr><td>Bon</td><td class="num">' + biensBon + '</td></tr>';
+  html += '<tr><td>Passable</td><td class="num">' + biensPassable + '</td></tr>';
+  html += '<tr><td>Mauvais / Cassés</td><td class="num">' + biensMauvais + '</td></tr>';
+  html += '</tbody></table></div>';
+
+  html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Détail par Site</h4>';
+  sites.forEach(function(s) {
+    var bSite = biens.filter(function(b) { return b.siteId === s.id; });
+    html += '<div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:8px;border-left:3px solid #0a6e2c">';
+    html += '<div style="font-weight:600;color:#0a6e2c;margin-bottom:4px">🏛️ ' + echapper(s.nom) + '</div>';
+    html += '<div style="font-size:12px;color:#666">' + bSite.length + ' bien(s) enregistré(s)</div>';
+    html += '<div class="table-wrapper" style="margin-top:6px"><table class="data-table"><thead><tr><th>Code</th><th>Nom</th><th>Qté</th><th>État</th></tr></thead><tbody>';
+    bSite.forEach(function(b) {
+      html += '<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>';
+    });
+    html += '</tbody></table></div></div>';
+  });
+
   document.getElementById('pRapportBox').innerHTML = html;
 }
 
