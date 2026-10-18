@@ -17,11 +17,12 @@ var CATEGORIES_OFFRANDES = {
 // ========== SPLASH ==========
 function showSplash() {
   showScreen('splashScreen');
+  // Réduire le temps d'attente à 800ms au lieu de 2500ms
   setTimeout(function() {
     var sess = DB.get('session');
     if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
     else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 2500);
+  }, 800);
 }
 
 // ========== NAVIGATION ==========
