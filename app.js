@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v16
+// EMM MONDIAL — LOGIQUE PRINCIPALE v18
 // ============================================
 
 var currentUser = null;
@@ -17,12 +17,11 @@ var CATEGORIES_OFFRANDES = {
 // ========== SPLASH ==========
 function showSplash() {
   showScreen('splashScreen');
-  // Réduire le temps d'attente à 800ms au lieu de 2500ms
   setTimeout(function() {
     var sess = DB.get('session');
     if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
     else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 800);
+  }, 800); // Accéléré
 }
 
 // ========== NAVIGATION ==========
@@ -2317,13 +2316,33 @@ function ajouterBienPatrimoine() {
   var siteId = document.getElementById('pBienSite').value;
   var cat = document.getElementById('pBienCategorie').value;
   var nom = document.getElementById('pBienNom').value.trim();
-  var qte = parseInt(document.getElementById('pBienQte').value) || 1;
-  var etat = document.getElementById('pBienEtat').value;
+  var qteBon = parseInt(document.getElementById('pBienBon').value) || 0;
+  var qteCasse = parseInt(document.getElementById('pBienCasse').value) || 0;
+  var qteDeclass = parseInt(document.getElementById('pBienDeclass').value) || 0;
+  
+  var qteTotal = qteBon + qteCasse + qteDeclass;
+  if (qteTotal <= 0) return alert('Entrez au moins une quantité supérieure à 0');
+  
   if (!siteId) return alert('Sélectionnez un site');
   if (!nom) return alert('Entrez la désignation');
+  
   var list = DB.get('patrimoineBiens', []);
   var code = genererCodeBien(siteId, cat);
-  list.push({ id: uid(), siteId: siteId, categorie: cat, code: code, nom: nom, qte: qte, etat: etat, photo: photoBienTemp || null, archived: false });
+  
+  list.push({ 
+    id: uid(), 
+    siteId: siteId, 
+    categorie: cat, 
+    code: code, 
+    nom: nom, 
+    qteBon: qteBon, 
+    qteCasse: qteCasse, 
+    qteDeclass: qteDeclass, 
+    qte: qteTotal, // On garde le total pour compatibilité
+    photo: photoBienTemp || null, 
+    archived: false 
+  });
+  
   DB.set('patrimoineBiens', list);
   reinitialiserFormBienPatrimoine();
   refreshPatrimoineSites();
@@ -2332,8 +2351,9 @@ function ajouterBienPatrimoine() {
 
 function reinitialiserFormBienPatrimoine() {
   document.getElementById('pBienNom').value = '';
-  document.getElementById('pBienQte').value = 1;
-  document.getElementById('pBienEtat').selectedIndex = 0;
+  document.getElementById('pBienBon').value = 0;
+  document.getElementById('pBienCasse').value = 0;
+  document.getElementById('pBienDeclass').value = 0;
   document.getElementById('pPhotoPreview').innerHTML = '';
   photoBienTemp = null;
 }
@@ -2346,17 +2366,20 @@ function afficherBiensPatrimoine() {
   var box = document.getElementById('pListeBiens');
   if (!box) return;
   if (!biens.length) { box.innerHTML = '<p>Aucun bien.</p>'; return; }
-  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Code</th><th>Désignation</th><th>Site</th><th>Qté</th><th>État</th><th>Actions</th></tr></thead><tbody>';
+  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Code</th><th>Désignation</th><th>Site</th><th>Total</th><th>Bon</th><th>Cassé</th><th>Déclassé</th><th>Actions</th></tr></thead><tbody>';
   biens.forEach(function(b) {
     var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === b.siteId; });
     var siteNom = site ? site.nom : 'Inconnu';
+    var qteTotale = (b.qteBon || 0) + (b.qteCasse || 0) + (b.qteDeclass || 0);
     html += '<tr' + (b.archived ? ' style="opacity:0.6"' : '') + '>';
     html += '<td style="text-align:center">' + (b.photo ? '<img src="' + b.photo + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer" onclick="voirPhotoBien(\'' + b.id + '\')">' : '<button class="btn-mini blue" onclick="changerPhotoBien(\'' + b.id + '\')">📷</button>') + '</td>';
     html += '<td>' + echapper(b.code) + '</td>';
     html += '<td>' + echapper(b.nom) + '</td>';
     html += '<td>' + echapper(siteNom) + '</td>';
-    html += '<td class="num">' + b.qte + '</td>';
-    html += '<td>' + echapper(b.etat) + '</td>';
+    html += '<td class="num"><strong>' + qteTotale + '</strong></td>';
+    html += '<td class="num">' + (b.qteBon || 0) + '</td>';
+    html += '<td class="num">' + (b.qteCasse || 0) + '</td>';
+    html += '<td class="num">' + (b.qteDeclass || 0) + '</td>';
     html += '<td>';
     html += '<button class="btn-mini orange" onclick="modifierBienPatrimoine(\'' + b.id + '\')">✏️</button>';
     html += '<button class="btn-mini ' + (b.archived ? 'blue' : 'gray') + '" onclick="archiverBienPatrimoine(\'' + b.id + '\')">' + (b.archived ? '↩️' : '📦') + '</button>';
@@ -2412,9 +2435,16 @@ function modifierBienPatrimoine(id) {
   var b = list.find(function(x) { return x.id === id; });
   if (!b) return;
   var nom = prompt('Désignation :', b.nom); if (nom === null) return;
-  var qte = prompt('Quantité :', b.qte); if (qte === null) return;
+  var qteBon = prompt('Quantité en bon état :', b.qteBon || 0); if (qteBon === null) return;
+  var qteCasse = prompt('Quantité cassée :', b.qteCasse || 0); if (qteCasse === null) return;
+  var qteDeclass = prompt('Quantité déclassée :', b.qteDeclass || 0); if (qteDeclass === null) return;
+  
   b.nom = nom.trim();
-  b.qte = parseInt(qte) || b.qte;
+  b.qteBon = parseInt(qteBon) || 0;
+  b.qteCasse = parseInt(qteCasse) || 0;
+  b.qteDeclass = parseInt(qteDeclass) || 0;
+  b.qte = b.qteBon + b.qteCasse + b.qteDeclass;
+  
   DB.set('patrimoineBiens', list);
   refreshPatrimoineSites();
   alert('✅ Modifié');
@@ -2468,22 +2498,23 @@ function afficherReparations() {
 function rapportPatrimoineGlobal() {
   var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
-  var biensNeuf = biens.filter(function(b) { return b.etat === 'Neuf'; }).length;
-  var biensBon = biens.filter(function(b) { return b.etat === 'Bon'; }).length;
-  var biensPassable = biens.filter(function(b) { return b.etat === 'Passable'; }).length;
-  var biensMauvais = biens.filter(function(b) { return b.etat === 'Mauvais'; }).length;
+  
+  var totBon = 0, totCasse = 0, totDeclass = 0;
+  biens.forEach(function(b) { 
+    totBon += (b.qteBon || 0); 
+    totCasse += (b.qteCasse || 0); 
+    totDeclass += (b.qteDeclass || 0); 
+  });
+  var totalGeneral = totBon + totCasse + totDeclass;
 
   var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3></div>';
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
-  html += '<tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr>';
-  html += '</tbody></table></div>';
-  html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">🛠️ État des biens</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Neuf</td><td class="num">' + biensNeuf + '</td></tr>';
-  html += '<tr><td>Bon</td><td class="num">' + biensBon + '</td></tr>';
-  html += '<tr><td>Passable</td><td class="num">' + biensPassable + '</td></tr>';
-  html += '<tr><td>Mauvais / Cassés</td><td class="num">' + biensMauvais + '</td></tr>';
+  html += '<tr><td>Total Références de biens</td><td class="num">' + biens.length + '</td></tr>';
+  html += '<tr><td>Quantité Globale (Bon état)</td><td class="num" style="color:#1b5e20">' + totBon + '</td></tr>';
+  html += '<tr><td>Quantité Globale (Cassés)</td><td class="num" style="color:#e65100">' + totCasse + '</td></tr>';
+  html += '<tr><td>Quantité Globale (Déclassés)</td><td class="num" style="color:#c62828">' + totDeclass + '</td></tr>';
+  html += '<tr style="background:#e8f5e9;"><td><strong>QUANTITÉ TOTALE</strong></td><td class="num"><strong>' + totalGeneral + '</strong></td></tr>';
   html += '</tbody></table></div>';
 
   html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Détail par Site</h4>';
@@ -2491,10 +2522,10 @@ function rapportPatrimoineGlobal() {
     var bSite = biens.filter(function(b) { return b.siteId === s.id; });
     html += '<div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:8px;border-left:3px solid #0a6e2c">';
     html += '<div style="font-weight:600;color:#0a6e2c;margin-bottom:4px">🏛️ ' + echapper(s.nom) + '</div>';
-    html += '<div style="font-size:12px;color:#666">' + bSite.length + ' bien(s) enregistré(s)</div>';
-    html += '<div class="table-wrapper" style="margin-top:6px"><table class="data-table"><thead><tr><th>Code</th><th>Nom</th><th>Qté</th><th>État</th></tr></thead><tbody>';
+    html += '<div class="table-wrapper" style="margin-top:6px"><table class="data-table"><thead><tr><th>Code</th><th>Désignation</th><th>Bon</th><th>Cassé</th><th>Déclassé</th><th>Total</th></tr></thead><tbody>';
     bSite.forEach(function(b) {
-      html += '<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>';
+      var totalB = (b.qteBon || 0) + (b.qteCasse || 0) + (b.qteDeclass || 0);
+      html += '<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + (b.qteBon || 0) + '</td><td>' + (b.qteCasse || 0) + '</td><td>' + (b.qteDeclass || 0) + '</td><td class="num"><strong>' + totalB + '</strong></td></tr>';
     });
     html += '</tbody></table></div></div>';
   });
@@ -2509,9 +2540,10 @@ function relevePatrimoineSite(siteId) {
   w.document.write('<html><head><meta charset="UTF-8"><title>Relevé Patrimoine</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#0a6e2c;color:white;padding:8px}td{padding:6px;border-bottom:1px solid #ddd}h1{text-align:center;color:#0a6e2c}</style></head><body>');
   w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1>');
   w.document.write('<h2>Relevé Patrimoine : ' + echapper(site.nom) + '</h2>');
-  w.document.write('<table><thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>État</th></tr></thead><tbody>');
+  w.document.write('<table><thead><tr><th>Code</th><th>Désignation</th><th>Bon</th><th>Cassé</th><th>Déclassé</th><th>Total</th></tr></thead><tbody>');
   biens.forEach(function(b) {
-    w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>');
+    var totalB = (b.qteBon || 0) + (b.qteCasse || 0) + (b.qteDeclass || 0);
+    w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + (b.qteBon || 0) + '</td><td>' + (b.qteCasse || 0) + '</td><td>' + (b.qteDeclass || 0) + '</td><td>' + totalB + '</td></tr>');
   });
   w.document.write('</tbody></table>');
   w.document.write('</body></html>');
