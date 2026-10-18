@@ -568,16 +568,13 @@
           <option value="AUT">Autres biens</option>
         </select>
       </div>
-      <div class="input-group"><label>Désignation du bien</label><input type="text" id="pBienNom" placeholder="Ex : Chaise en bois"></div>
-      <div class="input-group"><label>Quantité</label><input type="number" id="pBienQte" value="1"></div>
-      <div class="input-group"><label>État</label>
-        <select id="pBienEtat">
-          <option>Neuf</option>
-          <option>Bon</option>
-          <option>Passable</option>
-          <option>Mauvais</option>
-        </select>
-      </div>
+      <div class="input-group"><label>Désignation du bien</label><input type="text" id="pBienNom" placeholder="Ex : Chaises en plastique"></div>
+      
+      <h4>📊 Quantités par état</h4>
+      <div class="input-group"><label>En bon état (Neuf/Bon)</label><input type="number" id="pBienBon" value="0"></div>
+      <div class="input-group"><label>Cassés</label><input type="number" id="pBienCasse" value="0"></div>
+      <div class="input-group"><label>Déclassés (Mauvais)</label><input type="number" id="pBienDeclass" value="0"></div>
+      
       <div class="input-group">
         <label>📷 Photo du bien</label>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
@@ -671,4 +668,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-  </html>
+</html>
