@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v18
+// EMM MONDIAL — LOGIQUE PRINCIPALE v19
 // ============================================
 
 var currentUser = null;
@@ -2529,6 +2529,69 @@ function rapportPatrimoineGlobal() {
     });
     html += '</tbody></table></div></div>';
   });
+
+  document.getElementById('pRapportBox').innerHTML = html;
+}
+
+function rapportPatrimoineConsolide() {
+  var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
+  var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
+  
+  var totBon = 0, totCasse = 0, totDeclass = 0;
+  biens.forEach(function(b) { 
+    totBon += (b.qteBon || 0); 
+    totCasse += (b.qteCasse || 0); 
+    totDeclass += (b.qteDeclass || 0); 
+  });
+  var totalGeneral = totBon + totCasse + totDeclass;
+
+  // Regrouper les biens par nom (insensible à la casse)
+  var biensParNom = {};
+  biens.forEach(function(b) {
+    var key = b.nom.trim().toLowerCase();
+    if (!biensParNom[key]) {
+      biensParNom[key] = { nomOriginal: b.nom, qteBon: 0, qteCasse: 0, qteDeclass: 0, sites: [] };
+    }
+    biensParNom[key].qteBon += (b.qteBon || 0);
+    biensParNom[key].qteCasse += (b.qteCasse || 0);
+    biensParNom[key].qteDeclass += (b.qteDeclass || 0);
+    
+    var s = sites.find(function(x) { return x.id === b.siteId; });
+    if (s) {
+      var siteName = s.nom;
+      if (biensParNom[key].sites.indexOf(siteName) === -1) {
+        biensParNom[key].sites.push(siteName);
+      }
+    }
+  });
+
+  var html = '<div class="rapport-header"><h3>🌍 RAPPORT GLOBAL CONSOLIDÉ — COMMUNAUTÉ</h3></div>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
+  html += '<tr><td>Total Références de biens</td><td class="num">' + biens.length + '</td></tr>';
+  html += '<tr><td>Quantité Globale (Bon état)</td><td class="num" style="color:#1b5e20">' + totBon + '</td></tr>';
+  html += '<tr><td>Quantité Globale (Cassés)</td><td class="num" style="color:#e65100">' + totCasse + '</td></tr>';
+  html += '<tr><td>Quantité Globale (Déclassés)</td><td class="num" style="color:#c62828">' + totDeclass + '</td></tr>';
+  html += '<tr style="background:#e8f5e9;"><td><strong>QUANTITÉ TOTALE</strong></td><td class="num"><strong>' + totalGeneral + '</strong></td></tr>';
+  html += '</tbody></table></div>';
+
+  html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📦 Sommation par type de bien (Ensemble des sites)</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Désignation du bien</th><th>Présent dans</th><th>Bon</th><th>Cassé</th><th>Déclassé</th><th>Total</th></tr></thead><tbody>';
+  
+  Object.keys(biensParNom).sort().forEach(function(key) {
+    var b = biensParNom[key];
+    var totalB = b.qteBon + b.qteCasse + b.qteDeclass;
+    html += '<tr>';
+    html += '<td><strong>' + echapper(b.nomOriginal) + '</strong></td>';
+    html += '<td style="font-size:11px;color:#666">' + echapper(b.sites.join(', ')) + '</td>';
+    html += '<td class="num">' + b.qteBon + '</td>';
+    html += '<td class="num">' + b.qteCasse + '</td>';
+    html += '<td class="num">' + b.qteDeclass + '</td>';
+    html += '<td class="num"><strong>' + totalB + '</strong></td>';
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table></div>';
 
   document.getElementById('pRapportBox').innerHTML = html;
 }
