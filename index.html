@@ -39,13 +39,15 @@
 <!-- ACCUEIL -->
 <div id="mainScreen" class="screen">
   <header class="app-header">
+    <button class="btn-menu" onclick="toggleMenu()">☰</button>
     <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
     <div class="header-logo-fallback" style="display:none">EMM</div>
     <div><h1>EMM MONDIAL</h1><p id="userRoleLabel">Gestion des Membres</p></div>
     <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
   </header>
 
-  <div class="main-tabs">
+  <!-- MENU DÉROULANT -->
+  <div id="dropdownMenu" class="dropdown-menu">
     <button class="main-tab active" onclick="switchMainTab('general', this)">📊 Général</button>
     <button class="main-tab" onclick="switchMainTab('frequence', this)">📈 Fréquence</button>
     <button class="main-tab" onclick="switchMainTab('finance', this)">💰 Finance</button>
@@ -98,7 +100,7 @@
     </div>
   </div>
 
-  <!-- ONGLET FRÉQUENCE -->
+  <!-- ===== ONGLET FRÉQUENCE (INTÉGRATION EMM-FREQUENCE) ===== -->
   <div id="tab-frequence" class="main-tab-content">
     <div class="card">
       <h3>➕ Enregistrer une entité</h3>
@@ -247,9 +249,9 @@
     </div>
 
     <div class="card">
-      <h3>📊 Rapports Module I</h3>
-      <button class="btn-primary" onclick="rapportFreqGlobal()">📊 Global</button>
-      <button class="btn-secondary" onclick="rapportFreqDetaille()">📋 Détaillé</button>
+      <h3>📊 Rapports Fréquence</h3>
+      <button class="btn-primary" onclick="rapportFreqGlobal()">📊 Rapport Diffusion (Fusion globale)</button>
+      <button class="btn-secondary" onclick="rapportFreqDetaille()">📋 Rapport Numérique (Détaillé)</button>
       <button class="btn-secondary" onclick="imprimerRapportFreq()">🖨️ Imprimer</button>
       <button class="btn-secondary" onclick="exporterWordFreq()">📄 Word</button>
       <button class="btn-secondary" onclick="exporterPDFFreq()">📕 PDF</button>
@@ -527,7 +529,7 @@
     </div>
   </div>
 
-  <!-- ===== ONGLET PATRIMOINE (MODULE IV) ===== -->
+  <!-- ===== ONGLET PATRIMOINE ===== -->
   <div id="tab-patrimoine" class="main-tab-content">
     <div class="card">
       <h3>🏛️ Gestion des Sites</h3>
@@ -670,4 +672,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-      </html>
+        </html>
