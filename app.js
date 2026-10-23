@@ -25,7 +25,7 @@ function showSplash() {
     var sess = DB.get('session');
     if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
     else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 800);
+  }, 200); // Réduit de 800ms à 200ms
 }
 
 function showScreen(id) {
