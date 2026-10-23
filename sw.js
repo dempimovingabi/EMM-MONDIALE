@@ -1,18 +1,21 @@
-const CACHE_NAME = 'emm-mondial-v24-' + Date.now();
+const CACHE_NAME = 'emm-mondial-v16-' + Date.now();
 const URLS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './db.js',
-  './manifest.json',
-  './logo.png'
+  './manifest.json'
 ];
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(URLS);
+      return cache.addAll(URLS).catch(function(err) {
+        return Promise.all(URLS.map(function(url) {
+          return cache.add(url).catch(function(e) { console.log('Skip:', url); });
+        }));
+      });
     })
   );
   self.skipWaiting();
@@ -33,9 +36,7 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request).then(function(cached) {
-      if (cached) {
-        return cached;
-      }
+      if (cached) return cached;
       return fetch(event.request).then(function(response) {
         if (response && response.status === 200 && event.request.method === 'GET') {
           var responseClone = response.clone();
@@ -44,9 +45,9 @@ self.addEventListener('fetch', function(event) {
           });
         }
         return response;
+      }).catch(function() {
+        return caches.match('./index.html');
       });
-    }).catch(function() {
-      return caches.match('./index.html');
     })
   );
 });
