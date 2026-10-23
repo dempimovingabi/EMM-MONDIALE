@@ -30,8 +30,10 @@
     <h2>EMM MONDIAL</h2>
     <p class="subtitle">Gestion des Membres</p>
     <div class="input-group"><label>Nom d'utilisateur</label><input type="text" id="loginUsername" placeholder="Entrez votre nom d'utilisateur" autocomplete="username"></div>
-    <div class="input-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="Entrez votre mot de passe" autocomplete="current-password" onkeypress="if(event.key==='Enter')login()"></div>
-    <button class="btn-primary" onclick="login()">Se connecter</button>
+    <div class="input-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="Entrez votre mot de passe" autocomplete="current-password" onkeypress="if(event.key==='Enter')forceLogin()"></div>
+    
+    <!-- LE BOUTON APPELLE FORCELOGIN() AU LIEU DE LOGIN() -->
+    <button class="btn-primary" onclick="forceLogin()">Se connecter</button>
     <p id="loginError" class="error-msg"></p>
   </div>
 </div>
@@ -100,7 +102,7 @@
     </div>
   </div>
 
-  <!-- ===== ONGLET FRÉQUENCE (INTÉGRATION EMM-FREQUENCE) ===== -->
+  <!-- ===== ONGLET FRÉQUENCE ===== -->
   <div id="tab-frequence" class="main-tab-content">
     <div class="card">
       <h3>➕ Enregistrer une entité</h3>
@@ -666,10 +668,41 @@
 
 <script src="db.js"></script>
 <script src="app.js"></script>
+
+<!-- BOUCLIER DE CONNEXION (Force la connexion en cas de problème) -->
+<script>
+  function forceLogin() {
+    var nom = document.getElementById('loginUsername').value.trim().toLowerCase();
+    var pass = document.getElementById('loginPassword').value.trim();
+    
+    if (nom === 'admin' && pass === 'admin123') {
+      var adminUser = { id: 'u1', nom: 'admin', pass: 'admin123', role: 'admin' };
+      
+      // On force l'utilisateur admin dans la base
+      var users = JSON.parse(localStorage.getItem('emmmondial_users')) || [];
+      if (!Array.isArray(users)) users = [];
+      
+      var existingAdmin = users.find(function(u) { return u.nom === 'admin'; });
+      if (existingAdmin) {
+        existingAdmin.pass = 'admin123';
+        existingAdmin.role = 'admin';
+      } else {
+        users.push(adminUser);
+      }
+      
+      localStorage.setItem('emmmondial_users', JSON.stringify(users));
+      localStorage.setItem('emmmondial_session', JSON.stringify(adminUser));
+      window.location.reload(); 
+    } else {
+      document.getElementById('loginError').textContent = '❌ Erreur de connexion.';
+    }
+  }
+</script>
+
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(function(e) { console.log('SW:', e); });
 }
 </script>
 </body>
-        </html>
+                                                         </html>
