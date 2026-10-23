@@ -31,8 +31,6 @@
     <p class="subtitle">Gestion des Membres</p>
     <div class="input-group"><label>Nom d'utilisateur</label><input type="text" id="loginUsername" placeholder="Entrez votre nom d'utilisateur" autocomplete="username"></div>
     <div class="input-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="Entrez votre mot de passe" autocomplete="current-password" onkeypress="if(event.key==='Enter')forceLogin()"></div>
-    
-    <!-- LE BOUTON APPELLE FORCELOGIN() AU LIEU DE LOGIN() -->
     <button class="btn-primary" onclick="forceLogin()">Se connecter</button>
     <p id="loginError" class="error-msg"></p>
   </div>
@@ -71,22 +69,6 @@
     <div class="card">
       <h3>📊 Tableau de bord</h3>
       <div id="dashboardBox"></div>
-    </div>
-    <div class="card">
-      <h3>🔍 Recherche dépouillement (Général)</h3>
-      <div class="input-group"><label>Année</label><input type="text" id="gSearchAnnee" placeholder="Ex : 2026"></div>
-      <div class="input-group"><label>Mois</label>
-        <select id="gSearchMois">
-          <option value="">-- Tous les mois --</option>
-          <option>Janvier</option><option>Février</option><option>Mars</option>
-          <option>Avril</option><option>Mai</option><option>Juin</option>
-          <option>Juillet</option><option>Août</option><option>Septembre</option>
-          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-        </select>
-      </div>
-      <button class="btn-secondary" onclick="rechercherDepGeneral()">🔍 Rechercher</button>
-      <button class="btn-secondary" onclick="reinitialiserRechercheGeneral()">🔄 Réinitialiser</button>
-      <div id="resultatRechercheGeneral"></div>
     </div>
     <div class="card">
       <h3>🌍 Rapport Général Consolidé</h3>
@@ -163,6 +145,7 @@
       <div id="listeJournaliere"></div>
     </div>
 
+    <!-- FICHE MENSUELLE (Mise à jour avec tous les champs demandés) -->
     <div class="card">
       <h3>📆 Fiche mensuelle</h3>
       <div class="input-group"><label>Entité</label><select id="mEntite"></select></div>
@@ -176,52 +159,51 @@
       </div>
       <div class="input-group"><label>Année</label><input type="number" id="mAnnee" value="2026"></div>
       <div class="input-group"><label>Responsable</label><input type="text" id="mResponsable"></div>
-      <h4>Présentation</h4>
-      <div class="input-group"><label>Nombre d'Encadreurs</label><input type="number" id="mEncadreurs" value="0"></div>
-      <div class="input-group"><label>Jour réunion d'évaluation</label>
-        <select id="mJourReunion">
-          <option>Lundi</option><option>Mardi</option><option>Mercredi</option>
-          <option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option>
-        </select>
-      </div>
-      <div class="input-group"><label>Membres actifs</label><input type="number" id="mMembresActifs" value="0"></div>
-      <div class="input-group"><label>Sympathisants</label><input type="number" id="mSympathisants" value="0"></div>
-      <h4>Fréquentation culte mensuel</h4>
-      <div class="input-group"><label>Membres</label><input type="number" id="mFMembres" value="0"></div>
-      <div class="input-group"><label>Sympathisants</label><input type="number" id="mFSympathisants" value="0"></div>
-      <div class="input-group"><label>Nouveaux venus</label><input type="number" id="mFNouveaux" value="0"></div>
+
+      <h4>Membres Baptisés</h4>
+      <div class="input-group"><label>Membres actifs</label><input type="number" id="mBapActifs" value="0"></div>
+      <div class="input-group"><label>Membres inactifs</label><input type="number" id="mBapInactifs" value="0"></div>
+      <div class="input-group"><label>Initiés du mois</label><input type="number" id="mInitMois" value="0"></div>
+      <div class="input-group"><label>Membres entrés</label><input type="number" id="mEntres" value="0"></div>
+      <div class="input-group"><label>Membres sortis du pays</label><input type="number" id="mSortis" value="0"></div>
+      <div class="input-group"><label>Membres récupérés</label><input type="number" id="mRecuperes" value="0"></div>
+      <div class="input-group"><label>Membres décédés</label><input type="number" id="mDecedes" value="0"></div>
+
+      <h4>Fréquentation Mensuelle</h4>
+      <div class="input-group"><label>Membres</label><input type="number" id="mFreqMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mFreqSymp" value="0"></div>
+      <div class="input-group"><label>Nouveaux venus</label><input type="number" id="mFreqNouv" value="0"></div>
+      <div class="input-group"><label>Acheminées</label><input type="number" id="mAcheminees" value="0"></div>
+      <div class="input-group"><label>Acheminées restées</label><input type="number" id="mAchemineesRestees" value="0"></div>
+      <div class="input-group"><label>Nouveaux venus restés</label><input type="number" id="mNouvRestes" value="0"></div>
+
+      <h4>Culte Mensuel</h4>
+      <div class="input-group"><label>Membres</label><input type="number" id="mCulteMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mCulteSymp" value="0"></div>
+      <div class="input-group"><label>Nouveau venu</label><input type="number" id="mCulteNouv" value="0"></div>
+      
       <h4>Activités</h4>
-      <div class="input-group"><label>Foyers Lumière</label><input type="number" id="mFoyersLumiere" value="0"></div>
-      <div class="input-group"><label>Avec Goshintai</label><input type="number" id="mAvecGoshintai" value="0"></div>
-      <div class="input-group"><label>Sans Goshintai</label><input type="number" id="mSansGoshintai" value="0"></div>
-      <div class="input-group"><label>Foyers sympathisants</label><input type="number" id="mFoyersSymp" value="0"></div>
+      <div class="input-group"><label>Familles qui donnent le Johrei</label><input type="number" id="mFamJohrei" value="0"></div>
+      <div class="input-group"><label>Élèves Sanguetsu</label><input type="number" id="mElevesSanguetsu" value="0"></div>
       <div class="input-group"><label>Fleurs distribuées</label><input type="number" id="mFleurs" value="0"></div>
-      <div class="input-group"><label>Potagers</label><input type="number" id="mPotagers" value="0"></div>
-      <div class="input-group"><label>Total potagers</label><input type="number" id="mTotalPotagers" value="0"></div>
-      <div class="input-group"><label>Maisons ouvertes</label><input type="number" id="mMaisonsOuvertes" value="0"></div>
-      <div class="input-group"><label>Témoignages</label><input type="number" id="mTemoignages" value="0"></div>
-      <h4>Confirmation</h4>
-      <div class="input-group"><label>Candidats Goshintai</label><input type="number" id="mCandGoshintai" value="0"></div>
-      <div class="input-group"><label>Confirmés initiation</label><input type="number" id="mConfInit" value="0"></div>
-      <div class="input-group"><label>Confirmés ré-initiation</label><input type="number" id="mConfReinit" value="0"></div>
-      <div class="input-group"><label>Confirmés Shoku</label><input type="number" id="mConfShoku" value="0"></div>
-      <div class="input-group"><label>Confirmés Kannon</label><input type="number" id="mConfKannon" value="0"></div>
-      <div class="input-group"><label>Confirmés Mitamaya</label><input type="number" id="mConfMitamaya" value="0"></div>
-      <h4>Assistance religieuse</h4>
-      <div class="input-group"><label>Maisons membres</label><input type="number" id="mAssistMembres" value="0"></div>
-      <div class="input-group"><label>Maisons sympathisants</label><input type="number" id="mAssistSymp" value="0"></div>
-      <div class="input-group"><label>Concessions</label><input type="number" id="mConcessions" value="0"></div>
-      <div class="input-group"><label>Terrains</label><input type="number" id="mTerrains" value="0"></div>
-      <div class="input-group"><label>Campagnes</label><input type="number" id="mCampagnes" value="0"></div>
-      <h4>Formation</h4>
-      <div class="input-group"><label>Cours enseignements</label><input type="number" id="mCoursEns" value="0"></div>
-      <div class="input-group"><label>Thèmes</label><textarea id="mThemes" rows="3"></textarea></div>
-      <div class="input-group"><label>Cours fleurs</label><input type="number" id="mCoursFleurs" value="0"></div>
-      <h4>Grâces reçues</h4><textarea id="mGraces" rows="3"></textarea>
-      <h4>Points à améliorer</h4><textarea id="mPoints" rows="3"></textarea>
-      <h4>Solutions proposées</h4><textarea id="mSolutions" rows="3"></textarea>
-      <h4>Objectifs</h4><textarea id="mObjectifs" rows="3"></textarea>
-      <h4>Actions</h4><textarea id="mActions" rows="3"></textarea>
+      <div class="input-group"><label>Champs d'unité</label><input type="number" id="mChampsUnite" value="0"></div>
+      <div class="input-group"><label>Champs floral</label><input type="number" id="mChampsFloral" value="0"></div>
+      <div class="input-group"><label>Agriculteurs</label><input type="number" id="mAgriculteurs" value="0"></div>
+      <div class="input-group"><label>Anciens potagers</label><input type="number" id="mAnciensPotagers" value="0"></div>
+      <div class="input-group"><label>Nouveaux potagers</label><input type="number" id="mNouveauxPotagers" value="0"></div>
+      <div class="input-group"><label>Autels de familles</label><input type="number" id="mAutelsFam" value="0"></div>
+      <div class="input-group"><label>Mitamaya</label><input type="number" id="mMitamaya" value="0"></div>
+      <div class="input-group"><label>Sorei Saishi</label><input type="number" id="mSorei" value="0"></div>
+      <div class="input-group"><label>Shinrei Saichi</label><input type="number" id="mShinrei" value="0"></div>
+
+      <h4>Assistance Religieuse</h4>
+      <div class="input-group"><label>Membres</label><input type="number" id="mAssistMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mAssistSymp" value="0"></div>
+
+      <h4>Nettoyage des maisons</h4>
+      <div class="input-group"><label>Membres</label><input type="number" id="mNettoyageMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mNettoyageSymp" value="0"></div>
+
       <button class="btn-primary" onclick="enregistrerFicheMensuelle()">Enregistrer</button>
       <button class="btn-secondary" onclick="reinitialiserFormFiche()">🔄 Réinitialiser</button>
     </div>
@@ -678,7 +660,6 @@
     if (nom === 'admin' && pass === 'admin123') {
       var adminUser = { id: 'u1', nom: 'admin', pass: 'admin123', role: 'admin' };
       
-      // On force l'utilisateur admin dans la base
       var users = JSON.parse(localStorage.getItem('emmmondial_users')) || [];
       if (!Array.isArray(users)) users = [];
       
@@ -705,4 +686,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-                                                         </html>
+  </html>
