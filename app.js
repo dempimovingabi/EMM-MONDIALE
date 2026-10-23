@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v22
+// EMM MONDIAL — LOGIQUE PRINCIPALE v23 (Ultra Rapide)
 // ============================================
 
 var currentUser = null;
@@ -18,14 +18,21 @@ var CATEGORIES_PATRIMOINE = {
   LIT: 'Liturgie', SAL: 'Salle de culte', BUR: 'Bureau administratif', IMM: 'Immobilier', AUT: 'Autres biens'
 };
 
-// ========== SPLASH & NAVIGATION ==========
+// ========== SPLASH & NAVIGATION (OPTIMISÉ) ==========
 function showSplash() {
   showScreen('splashScreen');
   setTimeout(function() {
     var sess = DB.get('session');
-    if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
-    else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 300); // Accéléré
+    if (sess) { 
+      currentUser = sess; 
+      appliquerSession(); 
+      showScreen('mainScreen'); 
+    } else { 
+      showScreen('loginScreen'); 
+      var inp = document.getElementById('loginUsername'); 
+      if (inp) inp.focus(); 
+    }
+  }, 100); // 100ms au lieu de 800ms pour un démarrage éclair
 }
 
 function showScreen(id) {
@@ -41,20 +48,35 @@ function toggleMenu() {
   menu.classList.toggle('show');
 }
 
+// CHARGEMENT DIFFÉRÉ : On ne charge les données que quand on clique sur l'onglet
 function switchMainTab(name, btn) {
   document.querySelectorAll('.main-tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.main-tab-content').forEach(function(c) { c.classList.remove('active'); });
   if (btn) btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
-  document.getElementById('dropdownMenu').classList.remove('show'); // Ferme le menu
+  document.getElementById('dropdownMenu').classList.remove('show'); 
   
-  if (name === 'general') afficherDashboard();
-  if (name === 'finance') {
+  if (name === 'general') {
+    afficherDashboard();
+  } 
+  else if (name === 'frequence') {
+    rafraichirEntites(); 
+    afficherListeEntites(); 
+    afficherJournaliere();
+  } 
+  else if (name === 'finance') {
+    rafraichirCandidatsSelect(); 
+    afficherCandidats(); 
+    afficherVersements();
     setTimeout(initSignature, 100);
     setTimeout(initSignature, 400);
-    setTimeout(initSignature, 800);
+  } 
+  else if (name === 'patrimoine') {
+    refreshPatrimoineSites();
   }
-  if (name === 'patrimoine') refreshPatrimoineSites();
+  else if (name === 'admin') {
+    afficherUtilisateurs();
+  }
 }
 
 // ========== LOGIN / LOGOUT ==========
@@ -90,7 +112,8 @@ function appliquerSession() {
   var wb = document.getElementById('welcomeBox');
   if (wb) wb.innerHTML = '<p style="font-size:14px">Connecté : <strong>' + echapper(currentUser.nom) + '</strong></p>' +
     '<p style="font-size:12px;color:#666;margin-top:4px">Rôle : ' + (currentUser.role === 'admin' ? '👑 Administrateur' : '👤 Utilisateur') + '</p>';
-  refreshAll();
+  
+  // OPTIMISATION : On ne charge QUE le dashboard au démarrage
   afficherDashboard();
   afficherAnnonces();
 }
@@ -103,7 +126,6 @@ function echapper(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function isAdmin() { return currentUser && currentUser.role === 'admin'; }
-
 function filtrerListe(list, filtre) {
   if (filtre === 'archive') return list.filter(function(x) { return x.archived === true; });
   if (filtre === 'tous') return list;
@@ -174,7 +196,7 @@ function ajouterEntite() {
   var entites = DB.get('entites', []);
   if (entites.find(function(e) { return e.nom === nom && !e.archived; })) return alert('Cette entité existe déjà');
   entites.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false });
-  DB.set('entites', entites); reinitialiserFormEntite(); refreshAll(); alert('✅ Entité ajoutée : ' + nom);
+  DB.set('entites', entites); reinitialiserFormEntite(); switchMainTab('frequence', document.querySelectorAll('.main-tab')[1]); alert('✅ Entité ajoutée : ' + nom);
 }
 function reinitialiserFormEntite() {
   var a = document.getElementById('jNomEntite'); if (a) a.value = '';
@@ -230,14 +252,14 @@ function modifierEntite(id) {
   var doublon = list.find(function(x) { return x.id !== id && x.nom === nouveauNom && !x.archived; });
   if (doublon) return alert('⚠️ Nom déjà utilisé');
   e.type = type.trim() || e.type; e.nom = nouveauNom; e.responsable = resp.trim();
-  DB.set('entites', list); refreshAll(); alert('✅ Modifiée');
+  DB.set('entites', list); switchMainTab('frequence', document.querySelectorAll('.main-tab')[1]); alert('✅ Modifiée');
 }
 function archiverEntite(id) {
   var list = DB.get('entites', []);
   var e = list.find(function(x) { return x.id === id; });
   if (!e) return;
   if (!e.archived) { if (!confirm('📦 Archiver "' + e.nom + '" ?')) return; e.archived = true; } else { e.archived = false; }
-  DB.set('entites', list); refreshAll(); alert(e.archived ? '📦 Archivée' : '↩️ Restaurée');
+  DB.set('entites', list); switchMainTab('frequence', document.querySelectorAll('.main-tab')[1]); alert(e.archived ? '📦 Archivée' : '↩️ Restaurée');
 }
 function supprimerEntite(id) {
   var e = DB.get('entites', []).find(function(x) { return x.id === id; });
@@ -248,7 +270,7 @@ function supprimerEntite(id) {
   if (!confirm(msg)) return;
   DB.set('entites', DB.get('entites', []).filter(function(x) { return x.id !== id; }));
   DB.set('participations', DB.get('participations', []).filter(function(p) { return p.entiteId !== id; }));
-  refreshAll(); alert('✅ Supprimée');
+  switchMainTab('frequence', document.querySelectorAll('.main-tab')[1]); alert('✅ Supprimée');
 }
 
 function enregistrerParticipation() {
@@ -616,7 +638,7 @@ function ajouterCandidat() {
   list.push({ id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite, responsable: responsable, motif: motif, montantPrevu: montant, taux: taux, totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(), photo: photoCandidatTemp || null, archived: false });
   DB.set('candidats', list);
   reinitialiserFormCandidat();
-  refreshAll();
+  switchMainTab('finance', document.querySelectorAll('.main-tab')[2]);
   alert('✅ Candidat ajouté : ' + nom);
 }
 function reinitialiserFormCandidat() {
@@ -698,7 +720,7 @@ function changerPhoto(cid) {
         var data = canvas.toDataURL('image/jpeg', 0.8);
         var list = DB.get('candidats', []);
         var c = list.find(function(x) { return x.id === cid; });
-        if (c) { c.photo = data; DB.set('candidats', list); refreshAll(); alert('✅ Photo mise à jour'); }
+        if (c) { c.photo = data; DB.set('candidats', list); switchMainTab('finance', document.querySelectorAll('.main-tab')[2]); alert('✅ Photo mise à jour'); }
       };
       img.src = e.target.result;
     };
@@ -717,20 +739,20 @@ function modifierCandidat(cid) {
   var montant = prompt('Montant prévu :', c.montantPrevu); if (montant === null) return;
   c.nom = nom.trim(); c.typeEntite = type.trim(); c.nomEntite = entite.trim().toUpperCase(); c.responsable = resp.trim(); c.montantPrevu = parseFloat(montant) || c.montantPrevu;
   if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine'; else c.statut = 'en_cours';
-  DB.set('candidats', list); refreshAll(); alert('✅ Modifié');
+  DB.set('candidats', list); switchMainTab('finance', document.querySelectorAll('.main-tab')[2]); alert('✅ Modifié');
 }
 function archiverCandidat(cid) {
   var list = DB.get('candidats', []);
   var c = list.find(function(x) { return x.id === cid; });
   if (!c) return;
   if (!c.archived) { if (!confirm('📦 Archiver "' + c.nom + '" ?')) return; c.archived = true; } else { c.archived = false; }
-  DB.set('candidats', list); refreshAll(); alert(c.archived ? '📦 Archivé' : '↩️ Restauré');
+  DB.set('candidats', list); switchMainTab('finance', document.querySelectorAll('.main-tab')[2]); alert(c.archived ? '📦 Archivé' : '↩️ Restauré');
 }
 function supprimerCandidat(cid) {
   if (!confirm('⚠️ Supprimer ce candidat et TOUS ses versements ?')) return;
   DB.set('candidats', DB.get('candidats', []).filter(function(c) { return c.id !== cid; }));
   DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== cid; }));
-  refreshAll(); alert('✅ Supprimé');
+  switchMainTab('finance', document.querySelectorAll('.main-tab')[2]); alert('✅ Supprimé');
 }
 function reinitialiserRechercheCand() {
   var el = document.getElementById('searchCand'); if (el) el.value = '';
@@ -779,7 +801,7 @@ function enregistrerVersement() {
   if (c) { c.totalVerse = (c.totalVerse || 0) + montantUSD; if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine'; }
   DB.set('candidats', cands);
   reinitialiserFormVersement();
-  refreshAll();
+  switchMainTab('finance', document.querySelectorAll('.main-tab')[2]);
   alert('✅ Versement enregistré : ' + montantUSD.toFixed(2) + '$');
 }
 function reinitialiserFormVersement() {
@@ -860,7 +882,7 @@ function modifierVersement(vid) {
   }
   DB.set('candidats', cands);
   DB.set('versements', list);
-  refreshAll();
+  switchMainTab('finance', document.querySelectorAll('.main-tab')[2]);
   alert('✅ Modifié');
 }
 function archiverVersement(vid) {
@@ -882,7 +904,7 @@ function supprimerVersement(vid) {
   if (c) c.totalVerse = c.totalVerse - v.montantUSD;
   DB.set('candidats', cands);
   DB.set('versements', list.filter(function(x) { return x.id !== vid; }));
-  refreshAll();
+  switchMainTab('finance', document.querySelectorAll('.main-tab')[2]);
   alert('✅ Supprimé');
 }
 function imprimerRecu(vid) {
@@ -1808,7 +1830,7 @@ function ajouterSitePatrimoine() {
   list.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false, dateCreation: new Date().toISOString() });
   DB.set('patrimoineSites', list);
   reinitialiserFormSitePatrimoine();
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
   alert('✅ Site ajouté');
 }
 function reinitialiserFormSitePatrimoine() {
@@ -1859,7 +1881,7 @@ function modifierSitePatrimoine(id) {
   var resp = prompt('Responsable :', s.responsable); if (resp === null) return;
   s.type = type; s.nom = nom.trim(); s.responsable = resp.trim();
   DB.set('patrimoineSites', list);
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
   alert('✅ Modifié');
 }
 function archiverSitePatrimoine(id) {
@@ -1868,14 +1890,14 @@ function archiverSitePatrimoine(id) {
   if (!s) return;
   s.archived = !s.archived;
   DB.set('patrimoineSites', list);
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
   alert(s.archived ? '📦 Archivé' : '↩️ Restauré');
 }
 function supprimerSitePatrimoine(id) {
   if (!confirm('⚠️ Supprimer ce site et tous ses biens associés ?')) return;
   DB.set('patrimoineSites', DB.get('patrimoineSites', []).filter(function(s) { return s.id !== id; }));
   DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; }));
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
 }
 function previewPhotoBien(ev) {
   var file = ev.target.files[0];
@@ -1929,14 +1951,14 @@ function ajouterBienPatrimoine() {
     qteBon: qteBon, 
     qteCasse: qteCasse, 
     qteDeclass: qteDeclass, 
-    qte: qteTotal, // On garde le total pour compatibilité
+    qte: qteTotal,
     photo: photoBienTemp || null, 
     archived: false 
   });
   
   DB.set('patrimoineBiens', list);
   reinitialiserFormBienPatrimoine();
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
   alert('✅ Bien ajouté avec code : ' + code);
 }
 function reinitialiserFormBienPatrimoine() {
@@ -2008,7 +2030,7 @@ function changerPhotoBien(id) {
         var data = canvas.toDataURL('image/jpeg', 0.8);
         var list = DB.get('patrimoineBiens', []);
         var b = list.find(function(x) { return x.id === id; });
-        if (b) { b.photo = data; DB.set('patrimoineBiens', list); refreshPatrimoineSites(); alert('✅ Photo mise à jour'); }
+        if (b) { b.photo = data; DB.set('patrimoineBiens', list); switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]); alert('✅ Photo mise à jour'); }
       };
       img.src = e.target.result;
     };
@@ -2032,7 +2054,7 @@ function modifierBienPatrimoine(id) {
   b.qte = b.qteBon + b.qteCasse + b.qteDeclass;
   
   DB.set('patrimoineBiens', list);
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
   alert('✅ Modifié');
 }
 function archiverBienPatrimoine(id) {
@@ -2041,13 +2063,13 @@ function archiverBienPatrimoine(id) {
   if (!b) return;
   b.archived = !b.archived;
   DB.set('patrimoineBiens', list);
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
   alert(b.archived ? '📦 Archivé' : '↩️ Restauré');
 }
 function supprimerBienPatrimoine(id) {
   if (!confirm('⚠️ Supprimer ce bien ?')) return;
   DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.id !== id; }));
-  refreshPatrimoineSites();
+  switchMainTab('patrimoine', document.querySelectorAll('.main-tab')[4]);
 }
 function ajouterReparation() {
   var bienId = document.getElementById('pRepBien').value;
@@ -2249,7 +2271,7 @@ function restaurerTexte() {
   try {
     var data = JSON.parse(txt);
     Object.keys(data).forEach(function(k) { DB.set(k, data[k]); });
-    alert('✅ Données restaurées'); refreshAll(); afficherDashboard(); document.getElementById('importText').value = '';
+    alert('✅ Données restaurées'); switchMainTab('admin', document.querySelectorAll('.main-tab')[5]); document.getElementById('importText').value = '';
   } catch (e) { alert('❌ JSON invalide'); }
 }
 function importerDonnees(ev) {
@@ -2260,7 +2282,7 @@ function importerDonnees(ev) {
     try {
       var data = JSON.parse(e.target.result);
       Object.keys(data).forEach(function(k) { DB.set(k, data[k]); });
-      alert('✅ Données restaurées'); refreshAll(); afficherDashboard();
+      alert('✅ Données restaurées'); switchMainTab('admin', document.querySelectorAll('.main-tab')[5]);
     } catch (err) { alert('❌ Fichier invalide'); }
   };
   reader.readAsText(file);
@@ -2284,6 +2306,149 @@ function installApp() {
     deferredPrompt = null;
     var btn = document.getElementById('installBtn'); if (btn) btn.style.display = 'none';
   });
+}
+
+function afficherDashboard() {
+  var box = document.getElementById('dashboardBox');
+  if (!box) return;
+  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
+  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
+  var totPart = parts.reduce(function(a, p) { return a + p.m + p.s + p.n; }, 0);
+  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; }).length;
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
+  var totalVerse = cands.reduce(function(a, c) { return a + (c.totalVerse || 0); }, 0);
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var soldeDepFC = 0, soldeDepUSD = 0;
+  deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
+  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
+  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
+  var html = '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
+  html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
+  html += '<tr><td>Total présences</td><td class="num">' + totPart + '</td></tr>';
+  html += '<tr><td>Fiches mensuelles</td><td class="num">' + fiches + '</td></tr>';
+  html += '<tr><th colspan="2">💰 MODULE II — FINANCE</th></tr>';
+  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
+  html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + ' $</td></tr>';
+  html += '<tr><th colspan="2">🧾 MODULE III — DÉPOUILLEMENT</th></tr>';
+  html += '<tr><td>Séances actives</td><td class="num">' + deps.length + '</td></tr>';
+  html += '<tr><td>Solde total FC</td><td class="num">' + soldeDepFC.toLocaleString() + ' FC</td></tr>';
+  html += '<tr><td>Solde total USD</td><td class="num">' + soldeDepUSD.toLocaleString() + ' $</td></tr>';
+  html += '<tr><th colspan="2">🏛️ MODULE IV — PATRIMOINE</th></tr>';
+  html += '<tr><td>Sites enregistrés</td><td class="num">' + sitesP + '</td></tr>';
+  html += '<tr><td>Biens enregistrés</td><td class="num">' + biensP + '</td></tr>';
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
+}
+
+function rapportGeneralConsolide() {
+  var box = document.getElementById('rapportGeneralBox');
+  var html = '<div class="rapport-header"><h3>🌍 RAPPORT GÉNÉRAL CONSOLIDÉ</h3><p>EMM MONDIAL — Tous Modules</p></div>';
+  html += '<p style="text-align:center;font-size:12px;color:#666;margin-bottom:14px">Généré par <strong>' + echapper(currentUser ? currentUser.nom : '') + '</strong> le ' + new Date().toLocaleString('fr-FR') + '</p>';
+  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
+  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
+  var tm = 0, ts = 0, tn = 0;
+  parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
+  html += '<h4 style="color:#0a6e2c;margin:14px 0 8px">📈 MODULE I — FRÉQUENCES</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Entités</td><td class="num">' + entites + '</td></tr>';
+  html += '<tr><td>Membres</td><td class="num">' + tm + '</td></tr>';
+  html += '<tr><td>Sympathisants</td><td class="num">' + ts + '</td></tr>';
+  html += '<tr><td>Nouveaux venus</td><td class="num">' + tn + '</td></tr>';
+  html += '</tbody></table></div>';
+  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
+  var totalVerse = 0, totalPrevu = 0;
+  cands.forEach(function(c) { totalVerse += c.totalVerse || 0; totalPrevu += c.montantPrevu; });
+  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">💰 MODULE II — FINANCE</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
+  html += '<tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr>';
+  html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr>';
+  html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr>';
+  html += '</tbody></table></div>';
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
+  deps.forEach(function(d) {
+    d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
+    d.depensesGenerales.forEach(function(x) { genFC += x.fc; genUSD += x.usd; });
+  });
+  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">🧾 MODULE III — DÉPOUILLEMENT</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Séances</td><td class="num">' + deps.length + '</td></tr>';
+  html += '<tr><td>Solde FC</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td></tr>';
+  html += '<tr><td>Solde USD</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr>';
+  html += '<tr><td>Dépenses FC</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td></tr>';
+  html += '<tr><td>Dépenses USD</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
+  html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
+  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
+  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
+  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">🏛️ MODULE IV — PATRIMOINE</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Sites</td><td class="num">' + sitesP + '</td></tr>';
+  html += '<tr><td>Biens</td><td class="num">' + biensP + '</td></tr>';
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
+}
+
+// ========== IMPRESSIONS ==========
+function imprimerRapportFreq() { imprimerBox('rapportFreqBox'); }
+function imprimerRapportFin() { imprimerBox('rapportFinBox'); }
+function imprimerRapportDep() { imprimerBox('rapportDepBox'); }
+function imprimerGeneral() { imprimerBox('rapportGeneralBox'); }
+function imprimerPatrimoine() { imprimerBox('pRapportBox'); }
+
+function imprimerBox(boxId) {
+  var c = document.getElementById(boxId).innerHTML;
+  if (!c) return alert('Rapport vide');
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><meta charset="UTF-8"><title>Rapport</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0a6e2c;color:white;padding:8px}td{padding:7px;border-bottom:1px solid #ddd}td.num{text-align:right}</style></head><body><h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>'+c+'</body></html>');
+  w.document.close(); setTimeout(function() { w.print(); }, 600);
+}
+function exporterWordFreq() { exporterWordBox('rapportFreqBox','Frequence'); }
+function exporterWordFin() { exporterWordBox('rapportFinBox','Finance'); }
+function exporterWordDep() { exporterWordBox('rapportDepBox','Depouillement'); }
+function exporterWordGeneral() { exporterWordBox('rapportGeneralBox','General'); }
+function exporterWordBox(boxId, nom) {
+  var contenu = document.getElementById(boxId).innerHTML;
+  if (!contenu) return alert('Rapport vide');
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"></head><body>';
+  html += '<h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>' + contenu + '</body></html>';
+  var blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'Rapport_' + nom + '_' + Date.now() + '.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+}
+function exporterPDFFreq() { exporterPDFBox('rapportFreqBox'); }
+function exporterPDFFin() { exporterPDFBox('rapportFinBox'); }
+function exporterPDFDep() { exporterPDFBox('rapportDepBox'); }
+function exporterPDFGeneral() { exporterPDFBox('rapportGeneralBox'); }
+function exporterPDFBox(boxId) {
+  var contenu = document.getElementById(boxId).innerHTML;
+  if (!contenu) return alert('Rapport vide');
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><meta charset="UTF-8"><title>PDF</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0a6e2c;color:white;padding:8px}td{padding:7px;border-bottom:1px solid #ddd}td.num{text-align:right}</style></head><body><h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>'+contenu+'</body></html>');
+  w.document.close(); setTimeout(function() { w.print(); }, 800);
+}
+function partagerRapportFreq() { partagerBox('rapportFreqBox','Fréquences'); }
+function partagerRapportFin() { partagerBox('rapportFinBox','Finance'); }
+function partagerRapportDep() { partagerBox('rapportDepBox','Dépouillement'); }
+function partagerGeneral() { partagerBox('rapportGeneralBox','Général'); }
+function partagerBox(boxId, nom) {
+  var contenu = document.getElementById(boxId).innerHTML;
+  if (!contenu) return alert('Rapport vide');
+  var div = document.createElement('div'); div.innerHTML = contenu;
+  var texte = div.innerText.substring(0, 2000);
+  var msg = 'EMM MONDIAL — Rapport ' + nom + '\n\n' + texte;
+  if (navigator.share) { navigator.share({ title: 'Rapport EMM', text: msg }).catch(function(err) { if (err.name !== 'AbortError') partagerFallback(msg); }); }
+  else partagerFallback(msg);
+}
+function partagerFallback(msg) {
+  var email = prompt('📧 Email (vide = WhatsApp) :', '');
+  if (email === null) return;
+  if (email.trim()) window.location.href = 'mailto:' + email.trim() + '?subject=Rapport EMM&body=' + encodeURIComponent(msg);
+  else window.location.href = 'https://wa.me/?text=' + encodeURIComponent(msg);
 }
 
 function refreshAll() {
