@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v20
+// EMM MONDIAL — LOGIQUE PRINCIPALE v22
 // ============================================
 
 var currentUser = null;
@@ -25,7 +25,7 @@ function showSplash() {
     var sess = DB.get('session');
     if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
     else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 200); // Réduit de 800ms à 200ms
+  }, 300); // Accéléré
 }
 
 function showScreen(id) {
@@ -62,26 +62,10 @@ function login() {
   var nom = document.getElementById('loginUsername').value.trim().toLowerCase();
   var pass = document.getElementById('loginPassword').value.trim();
   var errBox = document.getElementById('loginError');
-  
   if (!nom || !pass) { errBox.textContent = '❌ Entrez le nom et le mot de passe'; return; }
-  
-  // 🔐 BYPASS DE SÉCURITÉ SUPRÊME (Force la connexion Admin)
-  if (nom === 'admin' && pass === 'admin123') {
-    currentUser = { id: 'u1', nom: 'admin', pass: 'admin123', role: 'admin' };
-    DB.set('session', currentUser);
-    errBox.textContent = '';
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
-    appliquerSession();
-    showScreen('mainScreen');
-    return;
-  }
-
-  // Connexion normale pour les autres utilisateurs
   var users = DB.get('users', []);
   var user = users.find(function(u) { return u.nom.toLowerCase() === nom && u.pass === pass; });
   if (!user) { errBox.textContent = '❌ Nom ou mot de passe incorrect'; return; }
-  
   currentUser = user;
   DB.set('session', user);
   errBox.textContent = '';
@@ -181,7 +165,7 @@ function supprimerAnnonce(id) {
   DB.set('annonces', DB.get('annonces', []).filter(function(a) { return a.id !== id; })); afficherAnnonces();
 }
 
-// ========== MODULE I : FRÉQUENCE (LOGIC EMM-FREQUENCE) ==========
+// ========== MODULE I : FRÉQUENCE ==========
 function ajouterEntite() {
   var type = document.getElementById('jTypeEntite').value;
   var nom = document.getElementById('jNomEntite').value.trim().toUpperCase();
@@ -528,7 +512,6 @@ function rapportFreqGlobal() {
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
-// ========== RAPPORT NUMÉRIQUE (DÉTAILLÉ) ==========
 function rapportFreqDetaille() {
   var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
   if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active.</p>'; return; }
@@ -617,7 +600,6 @@ function effacerSignature() {
   if (st) { st.textContent = 'Aucune signature'; st.style.color = '#888'; }
 }
 
-// ========== MODULE II — CANDIDATS ==========
 function ajouterCandidat() {
   var nom = document.getElementById('cNom').value.trim();
   var typeEntite = document.getElementById('cTypeEntite').value;
