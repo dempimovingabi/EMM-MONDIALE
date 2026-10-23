@@ -14,21 +14,21 @@ const DB = {
 };
 
 function initDB() {
-  // GESTION DES UTILISATEURS FORCÉE
+  // FORCE LA CRÉATION / MISE À JOUR DE L'ADMIN
   var users = DB.get('users', []);
-  if (!Array.isArray(users)) users = [];
-  
-  var adminExists = users.find(function(u) { return u.nom === 'admin'; });
-  if (!adminExists) {
-    users.push({ id: 'u1', nom: 'admin', pass: 'admin123', role: 'admin' });
+  if (!Array.isArray(users) || users.length === 0) {
+    users = [
+      { id: 'u1', nom: 'admin', pass: 'admin123', role: 'admin' },
+      { id: 'u2', nom: 'utilisateur', pass: 'user123', role: 'user' }
+    ];
   } else {
-    adminExists.pass = 'admin123'; // Force le mot de passe
-    adminExists.role = 'admin';
-  }
-
-  var userExists = users.find(function(u) { return u.nom === 'utilisateur'; });
-  if (!userExists) {
-    users.push({ id: 'u2', nom: 'utilisateur', pass: 'user123', role: 'user' });
+    var admin = users.find(function(u) { return u.nom === 'admin'; });
+    if (admin) {
+      admin.pass = 'admin123'; // Force le mot de passe
+      admin.role = 'admin';
+    } else {
+      users.push({ id: 'u1', nom: 'admin', pass: 'admin123', role: 'admin' });
+    }
   }
   DB.set('users', users);
 
