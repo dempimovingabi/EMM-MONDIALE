@@ -1,4 +1,4 @@
-const CACHE_NAME = 'emm-mondial-v23-' + Date.now();
+const CACHE_NAME = 'emm-mondial-v24-' + Date.now();
 const URLS = [
   './',
   './index.html',
@@ -30,15 +30,12 @@ self.addEventListener('activate', function(event) {
   self.clients.claim();
 });
 
-// STRATÉGIE CACHE-FIRST (ULTRA RAPIDE)
 self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request).then(function(cached) {
-      // Si c'est dans le cache, on l'affiche IMMÉDIATEMENT (sans internet)
       if (cached) {
         return cached;
       }
-      // Sinon, on va sur internet
       return fetch(event.request).then(function(response) {
         if (response && response.status === 200 && event.request.method === 'GET') {
           var responseClone = response.clone();
