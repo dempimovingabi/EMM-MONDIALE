@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v19
+// EMM MONDIAL — LOGIQUE PRINCIPALE v20
 // ============================================
 
 var currentUser = null;
@@ -7,24 +7,27 @@ var photoCandidatTemp = null;
 var signatureCanvas = null, signatureCtx = null, signatureVide = true;
 var seanceActive = null;
 var tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
+var photoBienTemp = null;
 
 var CATEGORIES_OFFRANDES = {
   init: 'Initiation', sorei: 'Sorei Saichi', kannon: 'Kannon',
   photo: 'Photo sacrée', shinrei: 'Shinrei Saichi',
   gosh: 'Goshintai familiale', mita: 'Mitamaya'
 };
+var CATEGORIES_PATRIMOINE = {
+  LIT: 'Liturgie', SAL: 'Salle de culte', BUR: 'Bureau administratif', IMM: 'Immobilier', AUT: 'Autres biens'
+};
 
-// ========== SPLASH ==========
+// ========== SPLASH & NAVIGATION ==========
 function showSplash() {
   showScreen('splashScreen');
   setTimeout(function() {
     var sess = DB.get('session');
     if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
     else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 800); // Accéléré
+  }, 800);
 }
 
-// ========== NAVIGATION ==========
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
   var el = document.getElementById(id);
@@ -33,11 +36,18 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
+function toggleMenu() {
+  var menu = document.getElementById('dropdownMenu');
+  menu.classList.toggle('show');
+}
+
 function switchMainTab(name, btn) {
   document.querySelectorAll('.main-tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.main-tab-content').forEach(function(c) { c.classList.remove('active'); });
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('dropdownMenu').classList.remove('show'); // Ferme le menu
+  
   if (name === 'general') afficherDashboard();
   if (name === 'finance') {
     setTimeout(initSignature, 100);
@@ -121,7 +131,6 @@ function afficherAnnonces() {
   });
   box.innerHTML = html;
 }
-
 function publierAnnonce() {
   if (!isAdmin()) return alert('Réservé admin');
   var texte = document.getElementById('annonceText').value.trim();
@@ -133,12 +142,7 @@ function publierAnnonce() {
   afficherAnnonces();
   alert('✅ Annonce publiée');
 }
-
-function reinitialiserFormAnnonce() {
-  var el = document.getElementById('annonceText');
-  if (el) el.value = '';
-}
-
+function reinitialiserFormAnnonce() { var el = document.getElementById('annonceText'); if (el) el.value = ''; }
 function modifierAnnonce(id) {
   if (!isAdmin()) return alert('Réservé admin');
   var list = DB.get('annonces', []);
@@ -146,31 +150,22 @@ function modifierAnnonce(id) {
   if (!a) return;
   var txt = prompt('Modifier l\'annonce :', a.texte);
   if (txt === null) return;
-  a.texte = txt.trim();
-  DB.set('annonces', list);
-  afficherAnnonces();
-  alert('✅ Modifiée');
+  a.texte = txt.trim(); DB.set('annonces', list); afficherAnnonces(); alert('✅ Modifiée');
 }
-
 function archiverAnnonce(id) {
   if (!isAdmin()) return alert('Réservé admin');
   var list = DB.get('annonces', []);
   var a = list.find(function(x) { return x.id === id; });
   if (!a) return;
-  a.archived = !a.archived;
-  DB.set('annonces', list);
-  afficherAnnonces();
-  alert(a.archived ? '📦 Archivée' : '↩️ Restaurée');
+  a.archived = !a.archived; DB.set('annonces', list); afficherAnnonces(); alert(a.archived ? '📦 Archivée' : '↩️ Restaurée');
 }
-
 function supprimerAnnonce(id) {
   if (!isAdmin()) return alert('Réservé admin');
   if (!confirm('⚠️ Supprimer cette annonce ?')) return;
-  DB.set('annonces', DB.get('annonces', []).filter(function(a) { return a.id !== id; }));
-  afficherAnnonces();
+  DB.set('annonces', DB.get('annonces', []).filter(function(a) { return a.id !== id; })); afficherAnnonces();
 }
 
-// ========== MODULE I — ENTITÉS ==========
+// ========== MODULE I : FRÉQUENCE (LOGIC EMM-FREQUENCE) ==========
 function ajouterEntite() {
   var type = document.getElementById('jTypeEntite').value;
   var nom = document.getElementById('jNomEntite').value.trim().toUpperCase();
@@ -179,18 +174,13 @@ function ajouterEntite() {
   var entites = DB.get('entites', []);
   if (entites.find(function(e) { return e.nom === nom && !e.archived; })) return alert('Cette entité existe déjà');
   entites.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false });
-  DB.set('entites', entites);
-  reinitialiserFormEntite();
-  refreshAll();
-  alert('✅ Entité ajoutée : ' + nom);
+  DB.set('entites', entites); reinitialiserFormEntite(); refreshAll(); alert('✅ Entité ajoutée : ' + nom);
 }
-
 function reinitialiserFormEntite() {
   var a = document.getElementById('jNomEntite'); if (a) a.value = '';
   var b = document.getElementById('jResponsable'); if (b) b.value = '';
   var c = document.getElementById('jTypeEntite'); if (c) c.selectedIndex = 0;
 }
-
 function rafraichirEntites() {
   var entites = DB.get('entites', []).filter(function(e) { return !e.archived; });
   ['jEntiteSelect', 'mEntite'].forEach(function(id) {
@@ -203,12 +193,10 @@ function rafraichirEntites() {
     if (val) sel.value = val;
   });
 }
-
 function getEntiteNom(id) {
   var e = DB.get('entites', []).find(function(x) { return x.id === id; });
   return e ? e.type + ' - ' + e.nom : 'Inconnu';
 }
-
 function afficherListeEntites() {
   var filtre = document.getElementById('filtreEntites') ? document.getElementById('filtreEntites').value : 'actif';
   var search = (document.getElementById('searchEntiteListe') ? document.getElementById('searchEntiteListe').value : '').toUpperCase();
@@ -230,7 +218,6 @@ function afficherListeEntites() {
   });
   box.innerHTML = html;
 }
-
 function modifierEntite(id) {
   var list = DB.get('entites', []);
   var e = list.find(function(x) { return x.id === id; });
@@ -242,29 +229,16 @@ function modifierEntite(id) {
   if (!nouveauNom) return alert('Nom vide');
   var doublon = list.find(function(x) { return x.id !== id && x.nom === nouveauNom && !x.archived; });
   if (doublon) return alert('⚠️ Nom déjà utilisé');
-  e.type = type.trim() || e.type;
-  e.nom = nouveauNom;
-  e.responsable = resp.trim();
-  DB.set('entites', list);
-  refreshAll();
-  alert('✅ Modifiée');
+  e.type = type.trim() || e.type; e.nom = nouveauNom; e.responsable = resp.trim();
+  DB.set('entites', list); refreshAll(); alert('✅ Modifiée');
 }
-
 function archiverEntite(id) {
   var list = DB.get('entites', []);
   var e = list.find(function(x) { return x.id === id; });
   if (!e) return;
-  if (!e.archived) {
-    if (!confirm('📦 Archiver "' + e.nom + '" ?')) return;
-    e.archived = true;
-  } else {
-    e.archived = false;
-  }
-  DB.set('entites', list);
-  refreshAll();
-  alert(e.archived ? '📦 Archivée' : '↩️ Restaurée');
+  if (!e.archived) { if (!confirm('📦 Archiver "' + e.nom + '" ?')) return; e.archived = true; } else { e.archived = false; }
+  DB.set('entites', list); refreshAll(); alert(e.archived ? '📦 Archivée' : '↩️ Restaurée');
 }
-
 function supprimerEntite(id) {
   var e = DB.get('entites', []).find(function(x) { return x.id === id; });
   if (!e) return;
@@ -274,11 +248,9 @@ function supprimerEntite(id) {
   if (!confirm(msg)) return;
   DB.set('entites', DB.get('entites', []).filter(function(x) { return x.id !== id; }));
   DB.set('participations', DB.get('participations', []).filter(function(p) { return p.entiteId !== id; }));
-  refreshAll();
-  alert('✅ Supprimée');
+  refreshAll(); alert('✅ Supprimée');
 }
 
-// ========== MODULE I — JOURNALIÈRE ==========
 function enregistrerParticipation() {
   var entiteId = document.getElementById('jEntiteSelect').value;
   var date = document.getElementById('jDate').value;
@@ -289,19 +261,14 @@ function enregistrerParticipation() {
   if (!date) return alert('Choisissez une date');
   var list = DB.get('participations', []);
   list.push({ id: uid(), entiteId: entiteId, date: date, m: m, s: s, n: n, createdAt: new Date().toISOString(), auteur: currentUser ? currentUser.nom : '', archived: false });
-  DB.set('participations', list);
-  reinitialiserFormParticipation();
-  afficherJournaliere();
-  alert('✅ Enregistrée');
+  DB.set('participations', list); reinitialiserFormParticipation(); afficherJournaliere(); alert('✅ Enregistrée');
 }
-
 function reinitialiserFormParticipation() {
   var a = document.getElementById('jDate'); if (a) a.value = '';
   var b = document.getElementById('jMembres'); if (b) b.value = 0;
   var c = document.getElementById('jSympathisants'); if (c) c.value = 0;
   var d = document.getElementById('jNouveaux'); if (d) d.value = 0;
 }
-
 function afficherJournaliere() {
   var filtre = document.getElementById('filtreParticipations') ? document.getElementById('filtreParticipations').value : 'actif';
   var allParts = DB.get('participations', []);
@@ -331,7 +298,6 @@ function afficherJournaliere() {
   });
   box.innerHTML = html;
 }
-
 function modifierParticipation(id) {
   var list = DB.get('participations', []);
   var p = list.find(function(x) { return x.id === id; });
@@ -340,63 +306,40 @@ function modifierParticipation(id) {
   var m = prompt('Membres :', p.m); if (m === null) return;
   var s = prompt('Sympathisants :', p.s); if (s === null) return;
   var n = prompt('Nouveaux venus :', p.n); if (n === null) return;
-  p.date = date.trim();
-  p.m = parseInt(m) || 0; p.s = parseInt(s) || 0; p.n = parseInt(n) || 0;
-  DB.set('participations', list);
-  afficherJournaliere();
-  alert('✅ Modifiée');
+  p.date = date.trim(); p.m = parseInt(m) || 0; p.s = parseInt(s) || 0; p.n = parseInt(n) || 0;
+  DB.set('participations', list); afficherJournaliere(); alert('✅ Modifiée');
 }
-
 function archiverParticipation(id) {
   var list = DB.get('participations', []);
   var p = list.find(function(x) { return x.id === id; });
   if (!p) return;
-  p.archived = !p.archived;
-  DB.set('participations', list);
-  afficherJournaliere();
-  alert(p.archived ? '📦 Archivée' : '↩️ Restaurée');
+  p.archived = !p.archived; DB.set('participations', list); afficherJournaliere(); alert(p.archived ? '📦 Archivée' : '↩️ Restaurée');
 }
-
 function supprimerParticipation(id) {
   if (!confirm('⚠️ Supprimer cette participation ?')) return;
-  DB.set('participations', DB.get('participations', []).filter(function(x) { return x.id !== id; }));
-  afficherJournaliere();
+  DB.set('participations', DB.get('participations', []).filter(function(x) { return x.id !== id; })); afficherJournaliere();
 }
 
-// ========== MODULE I — FICHE MENSUELLE ==========
 function enregistrerFicheMensuelle() {
   var numericIds = ['mEncadreurs','mMembresActifs','mSympathisants','mFMembres','mFSympathisants','mFNouveaux','mFoyersLumiere','mAvecGoshintai','mSansGoshintai','mFoyersSymp','mFleurs','mPotagers','mTotalPotagers','mMaisonsOuvertes','mTemoignages','mCandGoshintai','mConfInit','mConfReinit','mConfShoku','mConfKannon','mConfMitamaya','mAssistMembres','mAssistSymp','mConcessions','mTerrains','mCampagnes','mCoursEns','mCoursFleurs'];
   var f = {
-    id: uid(),
-    entiteId: document.getElementById('mEntite').value,
-    mois: document.getElementById('mMois').value,
-    annee: document.getElementById('mAnnee').value,
-    responsable: document.getElementById('mResponsable').value,
-    jourReunion: document.getElementById('mJourReunion').value,
-    themes: document.getElementById('mThemes').value,
-    graces: document.getElementById('mGraces').value,
-    points: document.getElementById('mPoints').value,
-    solutions: document.getElementById('mSolutions').value,
-    objectifs: document.getElementById('mObjectifs').value,
-    actions: document.getElementById('mActions').value,
-    archived: false,
-    dateCreation: new Date().toISOString()
+    id: uid(), entiteId: document.getElementById('mEntite').value, mois: document.getElementById('mMois').value, annee: document.getElementById('mAnnee').value,
+    responsable: document.getElementById('mResponsable').value, jourReunion: document.getElementById('mJourReunion').value,
+    themes: document.getElementById('mThemes').value, graces: document.getElementById('mGraces').value, points: document.getElementById('mPoints').value,
+    solutions: document.getElementById('mSolutions').value, objectifs: document.getElementById('mObjectifs').value, actions: document.getElementById('mActions').value,
+    archived: false, dateCreation: new Date().toISOString()
   };
   numericIds.forEach(function(id) { var el = document.getElementById(id); f[id] = el ? (parseInt(el.value) || 0) : 0; });
   if (!f.entiteId) return alert('⚠️ Enregistrez d\'abord une entité');
   var list = DB.get('fichesMensuelles', []);
-  list.push(f);
-  DB.set('fichesMensuelles', list);
-  alert('✅ Fiche enregistrée');
+  list.push(f); DB.set('fichesMensuelles', list); alert('✅ Fiche enregistrée');
 }
-
 function reinitialiserFormFiche() {
   var ids = ['mResponsable','mThemes','mGraces','mPoints','mSolutions','mObjectifs','mActions'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   var nums = ['mEncadreurs','mMembresActifs','mSympathisants','mFMembres','mFSympathisants','mFNouveaux','mFoyersLumiere','mAvecGoshintai','mSansGoshintai','mFoyersSymp','mFleurs','mPotagers','mTotalPotagers','mMaisonsOuvertes','mTemoignages','mCandGoshintai','mConfInit','mConfReinit','mConfShoku','mConfKannon','mConfMitamaya','mAssistMembres','mAssistSymp','mConcessions','mTerrains','mCampagnes','mCoursEns','mCoursFleurs'];
   nums.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = 0; });
 }
-
 function tableFicheMensuelle(f) {
   var h = '<div class="entity-block"' + (f.archived ? ' style="opacity:0.7;background:#f0f0f0"' : '') + '>';
   h += '<h4>📍 ' + echapper(getEntiteNom(f.entiteId)) + ' — ' + echapper(f.mois) + ' ' + echapper(f.annee);
@@ -404,11 +347,8 @@ function tableFicheMensuelle(f) {
   h += '</h4>';
   h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
   h += '<button class="btn-mini orange" onclick="modifierFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-  if (f.archived) {
-    h += '<button class="btn-mini blue" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">↩️ Désarchiver</button>';
-  } else {
-    h += '<button class="btn-mini gray" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-  }
+  if (f.archived) h += '<button class="btn-mini blue" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">↩️ Désarchiver</button>';
+  else h += '<button class="btn-mini gray" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
   h += '<button class="btn-mini danger" onclick="supprimerFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
   h += '</div>';
   h += '<div class="table-wrapper"><table class="data-table"><tbody>';
@@ -428,54 +368,35 @@ function tableFicheMensuelle(f) {
   h += '</tbody></table></div></div>';
   return h;
 }
-
 function modifierFiche(id) {
   var list = DB.get('fichesMensuelles', []);
   var f = list.find(function(x) { return x.id === id; });
   if (!f) return;
-  var resp = prompt('Responsable :', f.responsable); if (resp === null) return;
-  f.responsable = resp.trim();
-  var themes = prompt('Thèmes :', f.themes); if (themes === null) return;
-  f.themes = themes;
-  var graces = prompt('Grâces :', f.graces); if (graces === null) return;
-  f.graces = graces;
-  var points = prompt('Points :', f.points); if (points === null) return;
-  f.points = points;
-  var sol = prompt('Solutions :', f.solutions); if (sol === null) return;
-  f.solutions = sol;
-  var obj = prompt('Objectifs :', f.objectifs); if (obj === null) return;
-  f.objectifs = obj;
-  var act = prompt('Actions :', f.actions); if (act === null) return;
-  f.actions = act;
-  DB.set('fichesMensuelles', list);
-  alert('✅ Modifiée');
-  rechercherFreqAvance();
+  var resp = prompt('Responsable :', f.responsable); if (resp === null) return; f.responsable = resp.trim();
+  var themes = prompt('Thèmes :', f.themes); if (themes === null) return; f.themes = themes;
+  var graces = prompt('Grâces :', f.graces); if (graces === null) return; f.graces = graces;
+  var points = prompt('Points :', f.points); if (points === null) return; f.points = points;
+  var sol = prompt('Solutions :', f.solutions); if (sol === null) return; f.solutions = sol;
+  var obj = prompt('Objectifs :', f.objectifs); if (obj === null) return; f.objectifs = obj;
+  var act = prompt('Actions :', f.actions); if (act === null) return; f.actions = act;
+  DB.set('fichesMensuelles', list); alert('✅ Modifiée'); rechercherFreqAvance();
 }
-
 function archiverFiche(id) {
   var list = DB.get('fichesMensuelles', []);
   var f = list.find(function(x) { return x.id === id; });
   if (!f) return;
-  f.archived = !f.archived;
-  DB.set('fichesMensuelles', list);
-  alert(f.archived ? '📦 Archivée' : '↩️ Restaurée');
-  rechercherFreqAvance();
+  f.archived = !f.archived; DB.set('fichesMensuelles', list); alert(f.archived ? '📦 Archivée' : '↩️ Restaurée'); rechercherFreqAvance();
 }
-
 function supprimerFiche(id) {
   if (!confirm('⚠️ Supprimer cette fiche ?')) return;
-  DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(x) { return x.id !== id; }));
-  alert('✅ Supprimée');
-  rapportFreqDetaille();
+  DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(x) { return x.id !== id; })); alert('✅ Supprimée'); rapportFreqDetaille();
 }
-
 function rechercherFreqAvance() {
   var q = (document.getElementById('searchFreq').value || '').toUpperCase().trim();
   var annee = (document.getElementById('searchFreqAnnee').value || '').trim();
   var mois = document.getElementById('searchFreqMois').value;
   var statut = document.getElementById('searchFreqStatut').value;
-  var fiches = DB.get('fichesMensuelles', []);
-  fiches = filtrerListe(fiches, statut);
+  var fiches = DB.get('fichesMensuelles', []); fiches = filtrerListe(fiches, statut);
   fiches = fiches.filter(function(f) {
     var nom = getEntiteNom(f.entiteId).toUpperCase();
     var okQ = !q || nom.indexOf(q) !== -1;
@@ -488,7 +409,6 @@ function rechercherFreqAvance() {
   else fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
-
 function reinitialiserRechercheFreq() {
   var a = document.getElementById('searchFreq'); if (a) a.value = '';
   var b = document.getElementById('searchFreqAnnee'); if (b) b.value = '';
@@ -497,36 +417,111 @@ function reinitialiserRechercheFreq() {
   document.getElementById('rapportFreqBox').innerHTML = '';
 }
 
-// ========== RAPPORTS MODULE I ==========
+// ========== LE RAPPORT DIFFUSION (FUSIONNÉ) ==========
 function rapportFreqGlobal() {
   var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
-  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
-  var tm = 0, ts = 0, tn = 0;
-  parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
-  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FRÉQUENCES</h3></div>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Fiches mensuelles</td><td class="num">' + fiches.length + '</td></tr>';
-  html += '<tr><td>Participations</td><td class="num">' + parts.length + '</td></tr>';
-  html += '<tr><td>Total Membres</td><td class="num">' + tm + '</td></tr>';
-  html += '<tr><td>Total Sympathisants</td><td class="num">' + ts + '</td></tr>';
-  html += '<tr><td>Total Nouveaux</td><td class="num">' + tn + '</td></tr>';
-  html += '</tbody></table></div>';
-  if (fiches.length) {
-    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Fiches actives</h4>';
-    fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
+  if (!fiches.length) { 
+    document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active pour générer un rapport global.</p>'; 
+    return; 
   }
+
+  var totaux = {
+    mEncadreurs: 0, mMembresActifs: 0, mSympathisants: 0, mFMembres: 0, mFSympathisants: 0, mFNouveaux: 0,
+    mFoyersLumiere: 0, mAvecGoshintai: 0, mSansGoshintai: 0, mFoyersSymp: 0, mFleurs: 0, mPotagers: 0,
+    mTotalPotagers: 0, mMaisonsOuvertes: 0, mTemoignages: 0, mCandGoshintai: 0, mConfInit: 0,
+    mConfReinit: 0, mConfShoku: 0, mConfKannon: 0, mConfMitamaya: 0, mAssistMembres: 0,
+    mAssistSymp: 0, mConcessions: 0, mTerrains: 0, mCampagnes: 0, mCoursEns: 0, mCoursFleurs: 0
+  };
+  var textes = { themes: [], graces: [], points: [], solutions: [], objectifs: [], actions: [] };
+
+  fiches.forEach(function(f) {
+    Object.keys(totaux).forEach(function(key) {
+      totaux[key] += (parseInt(f[key]) || 0);
+    });
+    var nomEntite = getEntiteNom(f.entiteId);
+    if (f.themes && f.themes.trim()) textes.themes.push('<b>' + nomEntite + ' :</b> ' + echapper(f.themes));
+    if (f.graces && f.graces.trim()) textes.graces.push('<b>' + nomEntite + ' :</b> ' + echapper(f.graces));
+    if (f.points && f.points.trim()) textes.points.push('<b>' + nomEntite + ' :</b> ' + echapper(f.points));
+    if (f.solutions && f.solutions.trim()) textes.solutions.push('<b>' + nomEntite + ' :</b> ' + echapper(f.solutions));
+    if (f.objectifs && f.objectifs.trim()) textes.objectifs.push('<b>' + nomEntite + ' :</b> ' + echapper(f.objectifs));
+    if (f.actions && f.actions.trim()) textes.actions.push('<b>' + nomEntite + ' :</b> ' + echapper(f.actions));
+  });
+
+  var html = '<div class="rapport-header"><h3>📊 FICHE MENSUELLE EMM KASAÏ CENTRAL</h3><p>Fusion globale de toutes les entités actives</p></div>';
+  
+  html += '<div class="entity-block">';
+  html += '<h4>🌍 TOTAUX GLOBAUX (Toutes entités confondues)</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  
+  html += '<tr><th colspan="2" style="background:#4caf50;">Présentation</th></tr>';
+  html += '<tr><td>Nombre d\'Encadreurs</td><td class="num">' + totaux.mEncadreurs + '</td></tr>';
+  html += '<tr><td>Membres actifs</td><td class="num">' + totaux.mMembresActifs + '</td></tr>';
+  html += '<tr><td>Sympathisants</td><td class="num">' + totaux.mSympathisants + '</td></tr>';
+
+  html += '<tr><th colspan="2" style="background:#4caf50;">Fréquentation culte mensuel</th></tr>';
+  html += '<tr><td>Membres</td><td class="num">' + totaux.mFMembres + '</td></tr>';
+  html += '<tr><td>Sympathisants</td><td class="num">' + totaux.mFSympathisants + '</td></tr>';
+  html += '<tr><td>Nouveaux venus</td><td class="num">' + totaux.mFNouveaux + '</td></tr>';
+
+  html += '<tr><th colspan="2" style="background:#4caf50;">Activités</th></tr>';
+  html += '<tr><td>Foyers Lumière</td><td class="num">' + totaux.mFoyersLumiere + '</td></tr>';
+  html += '<tr><td>Avec Goshintai</td><td class="num">' + totaux.mAvecGoshintai + '</td></tr>';
+  html += '<tr><td>Sans Goshintai</td><td class="num">' + totaux.mSansGoshintai + '</td></tr>';
+  html += '<tr><td>Foyers sympathisants</td><td class="num">' + totaux.mFoyersSymp + '</td></tr>';
+  html += '<tr><td>Fleurs distribuées</td><td class="num">' + totaux.mFleurs + '</td></tr>';
+  html += '<tr><td>Potagers</td><td class="num">' + totaux.mPotagers + '</td></tr>';
+  html += '<tr><td>Total potagers</td><td class="num">' + totaux.mTotalPotagers + '</td></tr>';
+  html += '<tr><td>Maisons ouvertes</td><td class="num">' + totaux.mMaisonsOuvertes + '</td></tr>';
+  html += '<tr><td>Témoignages</td><td class="num">' + totaux.mTemoignages + '</td></tr>';
+
+  html += '<tr><th colspan="2" style="background:#4caf50;">Confirmation</th></tr>';
+  html += '<tr><td>Candidats Goshintai</td><td class="num">' + totaux.mCandGoshintai + '</td></tr>';
+  html += '<tr><td>Confirmés initiation</td><td class="num">' + totaux.mConfInit + '</td></tr>';
+  html += '<tr><td>Confirmés ré-initiation</td><td class="num">' + totaux.mConfReinit + '</td></tr>';
+  html += '<tr><td>Confirmés Shoku</td><td class="num">' + totaux.mConfShoku + '</td></tr>';
+  html += '<tr><td>Confirmés Kannon</td><td class="num">' + totaux.mConfKannon + '</td></tr>';
+  html += '<tr><td>Confirmés Mitamaya</td><td class="num">' + totaux.mConfMitamaya + '</td></tr>';
+
+  html += '<tr><th colspan="2" style="background:#4caf50;">Assistance religieuse</th></tr>';
+  html += '<tr><td>Maisons membres</td><td class="num">' + totaux.mAssistMembres + '</td></tr>';
+  html += '<tr><td>Maisons sympathisants</td><td class="num">' + totaux.mAssistSymp + '</td></tr>';
+  html += '<tr><td>Concessions</td><td class="num">' + totaux.mConcessions + '</td></tr>';
+  html += '<tr><td>Terrains</td><td class="num">' + totaux.mTerrains + '</td></tr>';
+  html += '<tr><td>Campagnes</td><td class="num">' + totaux.mCampagnes + '</td></tr>';
+
+  html += '<tr><th colspan="2" style="background:#4caf50;">Formation</th></tr>';
+  html += '<tr><td>Cours enseignements</td><td class="num">' + totaux.mCoursEns + '</td></tr>';
+  html += '<tr><td>Cours fleurs</td><td class="num">' + totaux.mCoursFleurs + '</td></tr>';
+
+  html += '</tbody></table></div>';
+  html += '</div>';
+
+  html += '<div class="entity-block" style="border-left-color:#1976d2;">';
+  html += '<h4 style="color:#1976d2;">📝 TEXTES RASSEMBLÉS (Toutes entités)</h4>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><th colspan="2" style="background:#1976d2;">Textes</th></tr>';
+  html += '<tr><td style="vertical-align:top; width:30%"><b>Thèmes exploités</b></td><td>' + (textes.themes.length ? textes.themes.join('<br><br>') : '-') + '</td></tr>';
+  html += '<tr><td style="vertical-align:top;"><b>Grâces reçues</b></td><td>' + (textes.graces.length ? textes.graces.join('<br><br>') : '-') + '</td></tr>';
+  html += '<tr><td style="vertical-align:top;"><b>Points à améliorer</b></td><td>' + (textes.points.length ? textes.points.join('<br><br>') : '-') + '</td></tr>';
+  html += '<tr><td style="vertical-align:top;"><b>Solutions proposées</b></td><td>' + (textes.solutions.length ? textes.solutions.join('<br><br>') : '-') + '</td></tr>';
+  html += '<tr><td style="vertical-align:top;"><b>Objectifs</b></td><td>' + (textes.objectifs.length ? textes.objectifs.join('<br><br>') : '-') + '</td></tr>';
+  html += '<tr><td style="vertical-align:top;"><b>Actions</b></td><td>' + (textes.actions.length ? textes.actions.join('<br><br>') : '-') + '</td></tr>';
+  html += '</tbody></table></div>';
+  html += '</div>';
+
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
+// ========== RAPPORT NUMÉRIQUE (DÉTAILLÉ) ==========
 function rapportFreqDetaille() {
   var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
   if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active.</p>'; return; }
-  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FRÉQUENCES</h3></div>';
+  var html = '<div class="rapport-header"><h3>📋 RAPPORT NUMÉRIQUE — FRÉQUENCES</h3></div>';
   fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
-// ========== MODULE II — PHOTO ==========
+// ========== MODULE II — PHOTO & SIGNATURE ==========
 function previewPhotoCandidat(ev) {
   var file = ev.target.files[0];
   if (!file) { photoCandidatTemp = null; var p = document.getElementById('cPhotoPreview'); if (p) p.innerHTML = ''; return; }
@@ -548,8 +543,6 @@ function previewPhotoCandidat(ev) {
   };
   reader.readAsDataURL(file);
 }
-
-// ========== MODULE II — SIGNATURE ==========
 function initSignature() {
   var canvas = document.getElementById('vSignatureCanvas');
   if (!canvas) return;
@@ -600,7 +593,6 @@ function initSignature() {
   canvas.addEventListener('touchend', stop);
   canvas.addEventListener('touchcancel', stop);
 }
-
 function effacerSignature() {
   if (!signatureCtx || !signatureCanvas) return;
   signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
@@ -623,18 +615,12 @@ function ajouterCandidat() {
   var list = DB.get('candidats', []);
   var existe = list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.statut === 'en_cours' && !c.archived; });
   if (existe) return alert('⚠️ Candidat déjà en cours pour ce motif');
-  list.push({
-    id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite,
-    responsable: responsable, motif: motif, montantPrevu: montant, taux: taux,
-    totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(),
-    photo: photoCandidatTemp || null, archived: false
-  });
+  list.push({ id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite, responsable: responsable, motif: motif, montantPrevu: montant, taux: taux, totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(), photo: photoCandidatTemp || null, archived: false });
   DB.set('candidats', list);
   reinitialiserFormCandidat();
   refreshAll();
   alert('✅ Candidat ajouté : ' + nom);
 }
-
 function reinitialiserFormCandidat() {
   var ids = ['cNom','cNomEntite','cResponsable'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
@@ -645,7 +631,6 @@ function reinitialiserFormCandidat() {
   var c2 = document.getElementById('cPhotoGallery'); if (c2) c2.value = '';
   photoCandidatTemp = null;
 }
-
 function afficherCandidats() {
   var search = (document.getElementById('searchCand') ? document.getElementById('searchCand').value : '').toLowerCase();
   var filtre = document.getElementById('filtreCandidats') ? document.getElementById('filtreCandidats').value : 'actif';
@@ -686,7 +671,6 @@ function afficherCandidats() {
     box.innerHTML = html;
   }
 }
-
 function voirPhoto(cid) {
   var c = DB.get('candidats', []).find(function(x) { return x.id === cid; });
   if (!c || !c.photo) return;
@@ -695,7 +679,6 @@ function voirPhoto(cid) {
   w.document.write('<img src="' + c.photo + '"><p>' + echapper(c.nom) + '</p>');
   w.document.write('</body></html>');
 }
-
 function changerPhoto(cid) {
   var choix = confirm('📸 OK = Prendre une photo (caméra)\n❌ Annuler = Choisir dans la galerie');
   var input = document.createElement('input');
@@ -725,7 +708,6 @@ function changerPhoto(cid) {
   };
   input.click();
 }
-
 function modifierCandidat(cid) {
   var list = DB.get('candidats', []);
   var c = list.find(function(x) { return x.id === cid; });
@@ -735,79 +717,51 @@ function modifierCandidat(cid) {
   var entite = prompt('Entité :', c.nomEntite); if (entite === null) return;
   var resp = prompt('Responsable :', c.responsable); if (resp === null) return;
   var montant = prompt('Montant prévu :', c.montantPrevu); if (montant === null) return;
-  c.nom = nom.trim();
-  c.typeEntite = type.trim();
-  c.nomEntite = entite.trim().toUpperCase();
-  c.responsable = resp.trim();
-  c.montantPrevu = parseFloat(montant) || c.montantPrevu;
-  if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine';
-  else c.statut = 'en_cours';
-  DB.set('candidats', list);
-  refreshAll();
-  alert('✅ Modifié');
+  c.nom = nom.trim(); c.typeEntite = type.trim(); c.nomEntite = entite.trim().toUpperCase(); c.responsable = resp.trim(); c.montantPrevu = parseFloat(montant) || c.montantPrevu;
+  if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine'; else c.statut = 'en_cours';
+  DB.set('candidats', list); refreshAll(); alert('✅ Modifié');
 }
-
 function archiverCandidat(cid) {
   var list = DB.get('candidats', []);
   var c = list.find(function(x) { return x.id === cid; });
   if (!c) return;
-  if (!c.archived) {
-    if (!confirm('📦 Archiver "' + c.nom + '" ?')) return;
-    c.archived = true;
-  } else {
-    c.archived = false;
-  }
-  DB.set('candidats', list);
-  refreshAll();
-  alert(c.archived ? '📦 Archivé' : '↩️ Restauré');
+  if (!c.archived) { if (!confirm('📦 Archiver "' + c.nom + '" ?')) return; c.archived = true; } else { c.archived = false; }
+  DB.set('candidats', list); refreshAll(); alert(c.archived ? '📦 Archivé' : '↩️ Restauré');
 }
-
 function supprimerCandidat(cid) {
   if (!confirm('⚠️ Supprimer ce candidat et TOUS ses versements ?')) return;
   DB.set('candidats', DB.get('candidats', []).filter(function(c) { return c.id !== cid; }));
   DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== cid; }));
-  refreshAll();
-  alert('✅ Supprimé');
+  refreshAll(); alert('✅ Supprimé');
 }
-
 function reinitialiserRechercheCand() {
   var el = document.getElementById('searchCand'); if (el) el.value = '';
   var f = document.getElementById('filtreCandidats'); if (f) f.selectedIndex = 0;
   afficherCandidats();
 }
-
 function reinitialiserRechercheEntite() {
   var a = document.getElementById('searchEntiteFinance'); if (a) a.value = '';
   var b = document.getElementById('searchEntiteType'); if (b) b.selectedIndex = 0;
-  var box = document.getElementById('resultatRechercheEntite');
-  if (box) box.innerHTML = '';
+  var box = document.getElementById('resultatRechercheEntite'); if (box) box.innerHTML = '';
 }
-
 function rafraichirCandidatsSelect() {
   var sel = document.getElementById('vCandidat');
   if (!sel) return;
   var list = DB.get('candidats', []).filter(function(c) { return c.statut === 'en_cours' && !c.archived; });
   list.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
-  var val = sel.value;
-  var opts = '';
+  var val = sel.value; var opts = '';
   list.forEach(function(c) { opts += '<option value="' + c.id + '">' + c.nom + ' - ' + c.motif + ' (' + c.nomEntite + ')</option>'; });
   if (!opts) opts = '<option value="">-- Aucun candidat en cours --</option>';
   sel.innerHTML = opts;
   if (val) sel.value = val;
 }
-
 function verserRapide(cid) {
   rafraichirCandidatsSelect();
   document.getElementById('vCandidat').value = cid;
   document.getElementById('vDate').value = new Date().toISOString().slice(0, 10);
   switchMainTab('finance', document.querySelectorAll('.main-tab')[2]);
-  setTimeout(function() {
-    initSignature();
-    var v = document.getElementById('vMontant');
-    if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 500);
+  setTimeout(function() { initSignature(); var v = document.getElementById('vMontant'); if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 500);
 }
-
 function enregistrerVersement() {
   var candId = document.getElementById('vCandidat').value;
   var monnaie = document.getElementById('vMonnaie').value;
@@ -824,22 +778,17 @@ function enregistrerVersement() {
   DB.set('versements', vers);
   var cands = DB.get('candidats', []);
   var c = cands.find(function(x) { return x.id === candId; });
-  if (c) {
-    c.totalVerse = (c.totalVerse || 0) + montantUSD;
-    if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine';
-  }
+  if (c) { c.totalVerse = (c.totalVerse || 0) + montantUSD; if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine'; }
   DB.set('candidats', cands);
   reinitialiserFormVersement();
   refreshAll();
   alert('✅ Versement enregistré : ' + montantUSD.toFixed(2) + '$');
 }
-
 function reinitialiserFormVersement() {
   var m = document.getElementById('vMontant'); if (m) m.value = 0;
   var d = document.getElementById('vDate'); if (d) d.value = new Date().toISOString().slice(0, 10);
   effacerSignature();
 }
-
 function afficherVersements() {
   var filtre = document.getElementById('filtreVersements') ? document.getElementById('filtreVersements').value : 'actif';
   var allVers = DB.get('versements', []);
@@ -886,7 +835,6 @@ function afficherVersements() {
   });
   box.innerHTML = html;
 }
-
 function voirSignature(vid) {
   var v = DB.get('versements', []).find(function(x) { return x.id === vid; });
   if (!v || !v.signature) return;
@@ -896,7 +844,6 @@ function voirSignature(vid) {
   w.document.write('<img src="' + v.signature + '"><p><strong>' + (c ? echapper(c.nom) : '') + '</strong><br>' + fmtDate(v.date) + ' — ' + v.montantUSD.toFixed(2) + ' $</p>');
   w.document.write('</body></html>');
 }
-
 function modifierVersement(vid) {
   var list = DB.get('versements', []);
   var v = list.find(function(x) { return x.id === vid; });
@@ -918,7 +865,6 @@ function modifierVersement(vid) {
   refreshAll();
   alert('✅ Modifié');
 }
-
 function archiverVersement(vid) {
   var list = DB.get('versements', []);
   var v = list.find(function(x) { return x.id === vid; });
@@ -928,7 +874,6 @@ function archiverVersement(vid) {
   afficherVersements();
   alert(v.archived ? '📦 Archivé' : '↩️ Restauré');
 }
-
 function supprimerVersement(vid) {
   if (!confirm('⚠️ Supprimer ce versement ?')) return;
   var list = DB.get('versements', []);
@@ -942,8 +887,6 @@ function supprimerVersement(vid) {
   refreshAll();
   alert('✅ Supprimé');
 }
-
-// ========== REÇU ==========
 function imprimerRecu(vid) {
   var v = DB.get('versements', []).find(function(x) { return x.id === vid; });
   if (!v) return;
@@ -983,8 +926,6 @@ function imprimerRecu(vid) {
   w.document.close();
   setTimeout(function() { w.print(); }, 500);
 }
-
-// ========== RECHERCHE PAR ENTITÉ ==========
 function rechercherParEntite() {
   var q = (document.getElementById('searchEntiteFinance').value || '').trim().toUpperCase();
   var type = document.getElementById('searchEntiteType').value;
@@ -1026,7 +967,6 @@ function rechercherParEntite() {
   });
   box.innerHTML = html;
 }
-
 function afficherReleveVersement(candId) {
   var c = DB.get('candidats', []).find(function(x) { return x.id === candId; });
   if (!c) return alert('Candidat introuvable');
@@ -1075,7 +1015,6 @@ function afficherReleveVersement(candId) {
   w.document.close();
   setTimeout(function() { w.print(); }, 500);
 }
-
 function relevéCompletEntite() {
   var q = (document.getElementById('searchEntiteFinance').value || '').trim().toUpperCase();
   var type = document.getElementById('searchEntiteType').value;
@@ -1118,8 +1057,6 @@ function relevéCompletEntite() {
   w.document.close();
   setTimeout(function() { w.print(); }, 600);
 }
-
-// ========== RAPPORTS MODULE II ==========
 function rapportFinGlobal() {
   var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
   var vers = DB.get('versements', []).filter(function(v) { return !v.archived; });
@@ -1151,7 +1088,6 @@ function rapportFinGlobal() {
   }
   document.getElementById('rapportFinBox').innerHTML = html;
 }
-
 function rapportFinDetaille() {
   var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3></div>';
@@ -1195,11 +1131,8 @@ function demarrerSeance() {
   afficherEntitesSeance();
   alert('✅ Séance démarrée');
 }
-
 function reinitialiserSeance() {
-  if (seanceActive) {
-    if (!confirm('⚠️ Réinitialiser la séance en cours ?')) return;
-  }
+  if (seanceActive) { if (!confirm('⚠️ Réinitialiser la séance en cours ?')) return; }
   seanceActive = null;
   document.getElementById('seanceStatus').innerHTML = '';
   document.getElementById('cardEntiteActive').style.display = 'none';
@@ -1212,7 +1145,6 @@ function reinitialiserSeance() {
   document.getElementById('depResultatSeance').innerHTML = '';
   alert('✅ Séance réinitialisée');
 }
-
 function ajouterOffrandeUnifiee() {
   var cat = document.getElementById('dOffrandeCategorie').value;
   var nom = document.getElementById('dOffrandeNom').value.trim();
@@ -1226,7 +1158,6 @@ function ajouterOffrandeUnifiee() {
   document.getElementById('dOffrandeUSD').value = 0;
   afficherOffrandes();
 }
-
 function afficherOffrandes() {
   var box = document.getElementById('affichageOffrandes');
   if (!box) return;
@@ -1257,12 +1188,10 @@ function afficherOffrandes() {
   }
   box.innerHTML = html;
 }
-
 function retirerOffrande(cat, idx) {
   tempOffrandes[cat].splice(idx, 1);
   afficherOffrandes();
 }
-
 function enregistrerEntiteSeance() {
   if (!seanceActive) return alert('⚠️ Démarrez d\'abord une séance');
   var nom = document.getElementById('dNomEntite').value.trim().toUpperCase();
@@ -1293,7 +1222,6 @@ function enregistrerEntiteSeance() {
   afficherEntitesSeance();
   alert('✅ Entité enregistrée : ' + nom);
 }
-
 function reinitialiserFormEntiteSeance() {
   var ids = ['dNomEntite','dResponsable','dOffrandeNom'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
@@ -1302,7 +1230,6 @@ function reinitialiserFormEntiteSeance() {
   var sel = document.getElementById('dOffrandeCategorie'); if (sel) sel.selectedIndex = 0;
   afficherOffrandes();
 }
-
 function afficherEntitesSeance() {
   var box = document.getElementById('listeEntitesSeance');
   if (!box || !seanceActive) return;
@@ -1315,19 +1242,16 @@ function afficherEntitesSeance() {
   html += '</tbody></table></div>';
   box.innerHTML = html;
 }
-
 function retirerEntiteSeance(i) {
   if (!confirm('⚠️ Retirer cette entité ?')) return;
   seanceActive.entites.splice(i, 1);
   afficherEntitesSeance();
 }
-
 function passerAuxDepenses() {
   if (!seanceActive || !seanceActive.entites.length) return alert('⚠️ Enregistrez au moins une entité');
   document.getElementById('cardDepensesSeance').style.display = 'block';
   document.getElementById('cardDepensesSeance').scrollIntoView({ behavior: 'smooth' });
 }
-
 function ajouterDepenseSeance() {
   if (!seanceActive) return alert('⚠️ Démarrez une séance');
   var fc = parseFloat(document.getElementById('dgFC').value) || 0;
@@ -1340,13 +1264,11 @@ function ajouterDepenseSeance() {
   afficherDepensesSeance();
   alert('✅ Dépense ajoutée');
 }
-
 function reinitialiserFormDepenseSeance() {
   var a = document.getElementById('dgFC'); if (a) a.value = 0;
   var b = document.getElementById('dgUSD'); if (b) b.value = 0;
   var c = document.getElementById('dgMotif'); if (c) c.value = '';
 }
-
 function afficherDepensesSeance() {
   var box = document.getElementById('listeDepensesSeance');
   if (!box || !seanceActive) return;
@@ -1359,13 +1281,11 @@ function afficherDepensesSeance() {
   html += '</tbody></table></div>';
   box.innerHTML = html;
 }
-
 function retirerDepenseSeance(i) {
   if (!confirm('⚠️ Retirer cette dépense ?')) return;
   seanceActive.depensesGenerales.splice(i, 1);
   afficherDepensesSeance();
 }
-
 function calculerTotauxSeance() {
   if (!seanceActive) return alert('⚠️ Séance non démarrée');
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, totEnv = 0;
@@ -1393,7 +1313,6 @@ function calculerTotauxSeance() {
   html += '</tfoot></table></div>';
   document.getElementById('depResultatSeance').innerHTML = html;
 }
-
 function sumEntiteDep(e) {
   var sum = function(arr) { return (arr || []).reduce(function(a, o) { return { fc: a.fc + o.fc, usd: a.usd + o.usd }; }, { fc: 0, usd: 0 }); };
   var i = sum(e.init), s = sum(e.sorei), k = sum(e.kannon), p = sum(e.photo), sr = sum(e.shinrei), g = sum(e.gosh), m = sum(e.mita);
@@ -1401,7 +1320,6 @@ function sumEntiteDep(e) {
   var totUSD = (e.constrUSD || 0) + (e.normUSD || 0) + i.usd + s.usd + k.usd + p.usd + sr.usd + g.usd + m.usd;
   return { totFC: totFC, totUSD: totUSD, soldeFC: totFC - (e.transFC || 0), soldeUSD: totUSD - (e.transUSD || 0), i: i, s: s, k: k, p: p, sr: sr, g: g, m: m };
 }
-
 function enregistrerDepouillementSeance() {
   if (!seanceActive) return alert('⚠️ Séance non démarrée');
   if (!seanceActive.entites.length) return alert('⚠️ Enregistrez au moins une entité');
@@ -1416,8 +1334,6 @@ function enregistrerDepouillementSeance() {
   document.getElementById('depResultatSeance').innerHTML = '';
   alert('✅ Dépouillement enregistré avec succès');
 }
-
-// ========== RECHERCHE DÉPOUILLEMENT ==========
 function rechercherDepouillement() {
   var annee = (document.getElementById('searchDepAnnee').value || '').trim();
   var mois = document.getElementById('searchDepMois').value;
@@ -1470,7 +1386,6 @@ function rechercherDepouillement() {
   });
   box.innerHTML = html;
 }
-
 function reinitialiserRechercheDep() {
   var a = document.getElementById('searchDepAnnee'); if (a) a.value = '';
   var b = document.getElementById('searchDepMois'); if (b) b.selectedIndex = 0;
@@ -1479,7 +1394,6 @@ function reinitialiserRechercheDep() {
   var e = document.getElementById('searchDepStatut'); if (e) e.selectedIndex = 0;
   document.getElementById('resultatRechercheDep').innerHTML = '';
 }
-
 function rechercherDepGeneral() {
   var annee = (document.getElementById('gSearchAnnee').value || '').trim();
   var mois = document.getElementById('gSearchMois').value;
@@ -1505,13 +1419,11 @@ function rechercherDepGeneral() {
   });
   box.innerHTML = html;
 }
-
 function reinitialiserRechercheGeneral() {
   var a = document.getElementById('gSearchAnnee'); if (a) a.value = '';
   var b = document.getElementById('gSearchMois'); if (b) b.selectedIndex = 0;
   document.getElementById('resultatRechercheGeneral').innerHTML = '';
 }
-
 function modifierDepouillement(id) {
   var list = DB.get('depouillements', []);
   var d = list.find(function(x) { return x.id === id; });
@@ -1528,7 +1440,6 @@ function modifierDepouillement(id) {
   rechercherDepouillement();
   alert('✅ Modifié');
 }
-
 function archiverDepouillement(id) {
   var list = DB.get('depouillements', []);
   var d = list.find(function(x) { return x.id === id; });
@@ -1538,15 +1449,12 @@ function archiverDepouillement(id) {
   rechercherDepouillement();
   alert(d.archived ? '📦 Archivé' : '↩️ Restauré');
 }
-
 function supprimerDepouillement(id) {
   if (!confirm('⚠️ Supprimer ce dépouillement ?')) return;
   DB.set('depouillements', DB.get('depouillements', []).filter(function(d) { return d.id !== id; }));
   rechercherDepouillement();
   alert('✅ Supprimé');
 }
-
-// ========== RELEVÉ INDIVIDUEL D'UNE ENTITÉ ==========
 function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   var deps = DB.get('depouillements', []);
   var entiteTrouvee = null;
@@ -1634,7 +1542,6 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   w.document.close();
   setTimeout(function() { w.print(); }, 600);
 }
-
 function releveFicheEntite(entiteNom, mois, annee) {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var resultats = [];
@@ -1733,7 +1640,6 @@ function releveFicheEntite(entiteNom, mois, annee) {
   w.document.close();
   setTimeout(function() { w.print(); }, 600);
 }
-
 function genererReleveEntiteFiltre() {
   var entite = (document.getElementById('searchDepEntite').value || '').trim();
   var annee = (document.getElementById('searchDepAnnee').value || '').trim();
@@ -1741,8 +1647,6 @@ function genererReleveEntiteFiltre() {
   if (!entite && !annee && !mois) return alert('Entrez au moins un critère');
   releveFicheEntite(entite, mois, annee);
 }
-
-// ========== RAPPORTS MODULE III ==========
 function rapportDepGlobal() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0, totEnv = 0;
@@ -1772,7 +1676,6 @@ function rapportDepGlobal() {
   }
   document.getElementById('rapportDepBox').innerHTML = html;
 }
-
 function rapportDepDetaille() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif.</p>'; return; }
@@ -1852,7 +1755,6 @@ function rapportDepDetaille() {
   });
   document.getElementById('rapportDepBox').innerHTML = html;
 }
-
 function soldeTransferer() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif.</p>'; return; }
@@ -1897,307 +1799,7 @@ function soldeTransferer() {
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
-// ========== DASHBOARD ==========
-function afficherDashboard() {
-  var box = document.getElementById('dashboardBox');
-  if (!box) return;
-  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
-  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
-  var totPart = parts.reduce(function(a, p) { return a + p.m + p.s + p.n; }, 0);
-  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; }).length;
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
-  var totalVerse = cands.reduce(function(a, c) { return a + (c.totalVerse || 0); }, 0);
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
-  var soldeDepFC = 0, soldeDepUSD = 0;
-  deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
-  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
-  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
-  var html = '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
-  html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
-  html += '<tr><td>Total présences</td><td class="num">' + totPart + '</td></tr>';
-  html += '<tr><td>Fiches mensuelles</td><td class="num">' + fiches + '</td></tr>';
-  html += '<tr><th colspan="2">💰 MODULE II — FINANCE</th></tr>';
-  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
-  html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + ' $</td></tr>';
-  html += '<tr><th colspan="2">🧾 MODULE III — DÉPOUILLEMENT</th></tr>';
-  html += '<tr><td>Séances actives</td><td class="num">' + deps.length + '</td></tr>';
-  html += '<tr><td>Solde total FC</td><td class="num">' + soldeDepFC.toLocaleString() + ' FC</td></tr>';
-  html += '<tr><td>Solde total USD</td><td class="num">' + soldeDepUSD.toLocaleString() + ' $</td></tr>';
-  html += '<tr><th colspan="2">🏛️ MODULE IV — PATRIMOINE</th></tr>';
-  html += '<tr><td>Sites enregistrés</td><td class="num">' + sitesP + '</td></tr>';
-  html += '<tr><td>Biens enregistrés</td><td class="num">' + biensP + '</td></tr>';
-  html += '</tbody></table></div>';
-  box.innerHTML = html;
-}
-
-function rapportGeneralConsolide() {
-  var box = document.getElementById('rapportGeneralBox');
-  var html = '<div class="rapport-header"><h3>🌍 RAPPORT GÉNÉRAL CONSOLIDÉ</h3><p>EMM MONDIAL — Tous Modules</p></div>';
-  html += '<p style="text-align:center;font-size:12px;color:#666;margin-bottom:14px">Généré par <strong>' + echapper(currentUser ? currentUser.nom : '') + '</strong> le ' + new Date().toLocaleString('fr-FR') + '</p>';
-  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
-  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
-  var tm = 0, ts = 0, tn = 0;
-  parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
-  html += '<h4 style="color:#0a6e2c;margin:14px 0 8px">📈 MODULE I — FRÉQUENCES</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Entités</td><td class="num">' + entites + '</td></tr>';
-  html += '<tr><td>Membres</td><td class="num">' + tm + '</td></tr>';
-  html += '<tr><td>Sympathisants</td><td class="num">' + ts + '</td></tr>';
-  html += '<tr><td>Nouveaux venus</td><td class="num">' + tn + '</td></tr>';
-  html += '</tbody></table></div>';
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
-  var totalVerse = 0, totalPrevu = 0;
-  cands.forEach(function(c) { totalVerse += c.totalVerse || 0; totalPrevu += c.montantPrevu; });
-  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">💰 MODULE II — FINANCE</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
-  html += '<tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr>';
-  html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr>';
-  html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr>';
-  html += '</tbody></table></div>';
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
-  var soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
-  deps.forEach(function(d) {
-    d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
-    d.depensesGenerales.forEach(function(x) { genFC += x.fc; genUSD += x.usd; });
-  });
-  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">🧾 MODULE III — DÉPOUILLEMENT</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Séances</td><td class="num">' + deps.length + '</td></tr>';
-  html += '<tr><td>Solde FC</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td></tr>';
-  html += '<tr><td>Solde USD</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr>';
-  html += '<tr><td>Dépenses FC</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td></tr>';
-  html += '<tr><td>Dépenses USD</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
-  html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
-  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
-  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
-  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">🏛️ MODULE IV — PATRIMOINE</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Sites</td><td class="num">' + sitesP + '</td></tr>';
-  html += '<tr><td>Biens</td><td class="num">' + biensP + '</td></tr>';
-  html += '</tbody></table></div>';
-  box.innerHTML = html;
-}
-
-// ========== IMPRESSIONS ==========
-function imprimerRapportFreq() { imprimerBox('rapportFreqBox'); }
-function imprimerRapportFin() { imprimerBox('rapportFinBox'); }
-function imprimerRapportDep() { imprimerBox('rapportDepBox'); }
-function imprimerGeneral() { imprimerBox('rapportGeneralBox'); }
-function imprimerPatrimoine() { imprimerBox('pRapportBox'); }
-
-function imprimerBox(boxId) {
-  var c = document.getElementById(boxId).innerHTML;
-  if (!c) return alert('Rapport vide');
-  var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Rapport</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0a6e2c;color:white;padding:8px}td{padding:7px;border-bottom:1px solid #ddd}td.num{text-align:right}</style></head><body><h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>'+c+'</body></html>');
-  w.document.close();
-  setTimeout(function() { w.print(); }, 600);
-}
-
-function exporterWordFreq() { exporterWordBox('rapportFreqBox','Frequence'); }
-function exporterWordFin() { exporterWordBox('rapportFinBox','Finance'); }
-function exporterWordDep() { exporterWordBox('rapportDepBox','Depouillement'); }
-function exporterWordGeneral() { exporterWordBox('rapportGeneralBox','General'); }
-
-function exporterWordBox(boxId, nom) {
-  var contenu = document.getElementById(boxId).innerHTML;
-  if (!contenu) return alert('Rapport vide');
-  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"></head><body>';
-  html += '<h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>' + contenu + '</body></html>';
-  var blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'Rapport_' + nom + '_' + Date.now() + '.doc';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-}
-
-function exporterPDFFreq() { exporterPDFBox('rapportFreqBox'); }
-function exporterPDFFin() { exporterPDFBox('rapportFinBox'); }
-function exporterPDFDep() { exporterPDFBox('rapportDepBox'); }
-function exporterPDFGeneral() { exporterPDFBox('rapportGeneralBox'); }
-
-function exporterPDFBox(boxId) {
-  var contenu = document.getElementById(boxId).innerHTML;
-  if (!contenu) return alert('Rapport vide');
-  var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>PDF</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0a6e2c;color:white;padding:8px}td{padding:7px;border-bottom:1px solid #ddd}td.num{text-align:right}</style></head><body><h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>'+contenu+'</body></html>');
-  w.document.close();
-  setTimeout(function() { w.print(); }, 800);
-}
-
-function partagerRapportFreq() { partagerBox('rapportFreqBox','Fréquences'); }
-function partagerRapportFin() { partagerBox('rapportFinBox','Finance'); }
-function partagerRapportDep() { partagerBox('rapportDepBox','Dépouillement'); }
-function partagerGeneral() { partagerBox('rapportGeneralBox','Général'); }
-
-function partagerBox(boxId, nom) {
-  var contenu = document.getElementById(boxId).innerHTML;
-  if (!contenu) return alert('Rapport vide');
-  var div = document.createElement('div');
-  div.innerHTML = contenu;
-  var texte = div.innerText.substring(0, 2000);
-  var msg = 'EMM MONDIAL — Rapport ' + nom + '\n\n' + texte;
-  if (navigator.share) {
-    navigator.share({ title: 'Rapport EMM', text: msg }).catch(function(err) { if (err.name !== 'AbortError') partagerFallback(msg); });
-  } else partagerFallback(msg);
-}
-
-function partagerFallback(msg) {
-  var email = prompt('📧 Email (vide = WhatsApp) :', '');
-  if (email === null) return;
-  if (email.trim()) window.location.href = 'mailto:' + email.trim() + '?subject=Rapport EMM&body=' + encodeURIComponent(msg);
-  else window.location.href = 'https://wa.me/?text=' + encodeURIComponent(msg);
-}
-
-// ========== UTILISATEURS ==========
-function ajouterUtilisateur() {
-  if (!isAdmin()) return alert('Réservé admin');
-  var nom = document.getElementById('uNom').value.trim().toLowerCase();
-  var pass = document.getElementById('uPass').value.trim();
-  var role = document.getElementById('uRole').value;
-  if (!nom || !pass) return alert('Remplissez tous les champs');
-  var users = DB.get('users', []);
-  if (users.find(function(u) { return u.nom === nom; })) return alert('Ce nom existe déjà');
-  users.push({ id: uid(), nom: nom, pass: pass, role: role });
-  DB.set('users', users);
-  reinitialiserFormUtilisateur();
-  afficherUtilisateurs();
-  alert('✅ Utilisateur ajouté');
-}
-
-function reinitialiserFormUtilisateur() {
-  var a = document.getElementById('uNom'); if (a) a.value = '';
-  var b = document.getElementById('uPass'); if (b) b.value = '';
-  var c = document.getElementById('uRole'); if (c) c.selectedIndex = 0;
-}
-
-function afficherUtilisateurs() {
-  var users = DB.get('users', []);
-  var box = document.getElementById('listeUtilisateurs');
-  if (!box) return;
-  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Nom</th><th>Rôle</th><th>Actions</th></tr></thead><tbody>';
-  users.forEach(function(u) {
-    html += '<tr><td>' + echapper(u.nom) + '</td><td>' + (u.role === 'admin' ? '👑 Admin' : '👤 Utilisateur') + '</td>';
-    html += '<td>';
-    if (u.nom !== 'admin') {
-      html += '<button class="btn-mini danger" onclick="supprimerUtilisateur(\'' + u.id + '\')">🗑️</button>';
-    }
-    html += '</td></tr>';
-  });
-  html += '</tbody></table></div>';
-  box.innerHTML = html;
-}
-
-function supprimerUtilisateur(id) {
-  if (!isAdmin()) return alert('Réservé admin');
-  if (!confirm('⚠️ Supprimer cet utilisateur ?')) return;
-  DB.set('users', DB.get('users', []).filter(function(u) { return u.id !== id; }));
-  afficherUtilisateurs();
-}
-
-// ========== EXPORT / IMPORT ==========
-function exporterDonnees() {
-  var data = {};
-  ['users','entites','participations','fichesMensuelles','candidats','versements','depouillements','depensesGenerales','annonces','patrimoineSites','patrimoineBiens','patrimoineMouvements','patrimoineReparations'].forEach(function(k) { data[k] = DB.get(k, []); });
-  var json = JSON.stringify(data, null, 2);
-  try {
-    var blob = new Blob([json], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'emm_mondial_' + Date.now() + '.json';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-    alert('✅ Fichier téléchargé');
-  } catch (e) { alert('Erreur export'); }
-}
-
-function restaurerTexte() {
-  var txt = document.getElementById('importText').value.trim();
-  if (!txt) return alert('Collez d\'abord un JSON');
-  try {
-    var data = JSON.parse(txt);
-    Object.keys(data).forEach(function(k) { DB.set(k, data[k]); });
-    alert('✅ Données restaurées');
-    refreshAll();
-    afficherDashboard();
-    document.getElementById('importText').value = '';
-  } catch (e) { alert('❌ JSON invalide'); }
-}
-
-function importerDonnees(ev) {
-  var file = ev.target.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      var data = JSON.parse(e.target.result);
-      Object.keys(data).forEach(function(k) { DB.set(k, data[k]); });
-      alert('✅ Données restaurées');
-      refreshAll();
-      afficherDashboard();
-    } catch (err) { alert('❌ Fichier invalide'); }
-  };
-  reader.readAsText(file);
-}
-
-function toutEffacer() {
-  if (!isAdmin()) return alert('Réservé admin');
-  if (!confirm('⚠️ Effacer TOUTES les données (sauf utilisateurs) ?')) return;
-  var users = DB.get('users', []);
-  localStorage.clear();
-  DB.set('users', users);
-  initDB();
-  alert('✅ Effacé');
-  location.reload();
-}
-
-// ========== PWA ==========
-var deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredPrompt = e;
-  var btn = document.getElementById('installBtn');
-  if (btn) btn.style.display = 'block';
-});
-
-function installApp() {
-  if (!deferredPrompt) return alert('Menu navigateur → "Ajouter à l\'écran d\'accueil"');
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(function() {
-    deferredPrompt = null;
-    var btn = document.getElementById('installBtn');
-    if (btn) btn.style.display = 'none';
-  });
-}
-
-// ========== REFRESH ==========
-function refreshAll() {
-  rafraichirEntites();
-  afficherListeEntites();
-  afficherJournaliere();
-  rafraichirCandidatsSelect();
-  afficherCandidats();
-  afficherVersements();
-  afficherUtilisateurs();
-  refreshPatrimoineSites();
-  if (typeof rechercherParEntite === 'function') rechercherParEntite();
-}
-
-// ========== MODULE IV — PATRIMOINE ==========
-var photoBienTemp = null;
-var CATEGORIES_PATRIMOINE = {
-  LIT: 'Liturgie',
-  SAL: 'Salle de culte',
-  BUR: 'Bureau administratif',
-  IMM: 'Immobilier',
-  AUT: 'Autres biens'
-};
-
+// ========== MODULE IV : PATRIMOINE ==========
 function ajouterSitePatrimoine() {
   var type = document.getElementById('pTypeSite').value;
   var nom = document.getElementById('pNomSite').value.trim();
@@ -2211,13 +1813,11 @@ function ajouterSitePatrimoine() {
   refreshPatrimoineSites();
   alert('✅ Site ajouté');
 }
-
 function reinitialiserFormSitePatrimoine() {
   document.getElementById('pNomSite').value = '';
   document.getElementById('pRespSite').value = '';
   document.getElementById('pTypeSite').selectedIndex = 0;
 }
-
 function refreshPatrimoineSites() {
   var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
   var sel = document.getElementById('pBienSite');
@@ -2233,7 +1833,6 @@ function refreshPatrimoineSites() {
   afficherBiensPatrimoine();
   afficherReparations();
 }
-
 function afficherSitesPatrimoine() {
   var filtre = document.getElementById('pFiltreSites') ? document.getElementById('pFiltreSites').value : 'actif';
   var sites = filtrerListe(DB.get('patrimoineSites', []), filtre);
@@ -2253,7 +1852,6 @@ function afficherSitesPatrimoine() {
   });
   box.innerHTML = html;
 }
-
 function modifierSitePatrimoine(id) {
   var list = DB.get('patrimoineSites', []);
   var s = list.find(function(x) { return x.id === id; });
@@ -2266,7 +1864,6 @@ function modifierSitePatrimoine(id) {
   refreshPatrimoineSites();
   alert('✅ Modifié');
 }
-
 function archiverSitePatrimoine(id) {
   var list = DB.get('patrimoineSites', []);
   var s = list.find(function(x) { return x.id === id; });
@@ -2276,14 +1873,12 @@ function archiverSitePatrimoine(id) {
   refreshPatrimoineSites();
   alert(s.archived ? '📦 Archivé' : '↩️ Restauré');
 }
-
 function supprimerSitePatrimoine(id) {
   if (!confirm('⚠️ Supprimer ce site et tous ses biens associés ?')) return;
   DB.set('patrimoineSites', DB.get('patrimoineSites', []).filter(function(s) { return s.id !== id; }));
   DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; }));
   refreshPatrimoineSites();
 }
-
 function previewPhotoBien(ev) {
   var file = ev.target.files[0];
   if (!file) return;
@@ -2303,7 +1898,6 @@ function previewPhotoBien(ev) {
   };
   reader.readAsDataURL(file);
 }
-
 function genererCodeBien(siteId, cat) {
   var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === siteId; });
   var prefixSite = site ? (site.type.substring(0,2).toUpperCase() + '-' + site.nom.substring(0,3).toUpperCase()) : 'GEN';
@@ -2311,7 +1905,6 @@ function genererCodeBien(siteId, cat) {
   var num = (biens.length + 1).toString().padStart(3, '0');
   return prefixSite + '-' + cat + '-' + num;
 }
-
 function ajouterBienPatrimoine() {
   var siteId = document.getElementById('pBienSite').value;
   var cat = document.getElementById('pBienCategorie').value;
@@ -2348,7 +1941,6 @@ function ajouterBienPatrimoine() {
   refreshPatrimoineSites();
   alert('✅ Bien ajouté avec code : ' + code);
 }
-
 function reinitialiserFormBienPatrimoine() {
   document.getElementById('pBienNom').value = '';
   document.getElementById('pBienBon').value = 0;
@@ -2357,7 +1949,6 @@ function reinitialiserFormBienPatrimoine() {
   document.getElementById('pPhotoPreview').innerHTML = '';
   photoBienTemp = null;
 }
-
 function afficherBiensPatrimoine() {
   var filtre = document.getElementById('pFiltreBiens') ? document.getElementById('pFiltreBiens').value : 'actif';
   var search = (document.getElementById('pSearchBien') ? document.getElementById('pSearchBien').value : '').toLowerCase();
@@ -2390,7 +1981,6 @@ function afficherBiensPatrimoine() {
   html += '</tbody></table></div>';
   box.innerHTML = html;
 }
-
 function voirPhotoBien(id) {
   var b = DB.get('patrimoineBiens', []).find(function(x) { return x.id === id; });
   if (!b || !b.photo) return;
@@ -2399,7 +1989,6 @@ function voirPhotoBien(id) {
   w.document.write('<img src="' + b.photo + '"><p>' + echapper(b.code) + ' - ' + echapper(b.nom) + '</p>');
   w.document.write('</body></html>');
 }
-
 function changerPhotoBien(id) {
   var choix = confirm('📸 OK = Prendre une photo (caméra)\n❌ Annuler = Choisir dans la galerie');
   var input = document.createElement('input');
@@ -2429,7 +2018,6 @@ function changerPhotoBien(id) {
   };
   input.click();
 }
-
 function modifierBienPatrimoine(id) {
   var list = DB.get('patrimoineBiens', []);
   var b = list.find(function(x) { return x.id === id; });
@@ -2449,7 +2037,6 @@ function modifierBienPatrimoine(id) {
   refreshPatrimoineSites();
   alert('✅ Modifié');
 }
-
 function archiverBienPatrimoine(id) {
   var list = DB.get('patrimoineBiens', []);
   var b = list.find(function(x) { return x.id === id; });
@@ -2459,13 +2046,11 @@ function archiverBienPatrimoine(id) {
   refreshPatrimoineSites();
   alert(b.archived ? '📦 Archivé' : '↩️ Restauré');
 }
-
 function supprimerBienPatrimoine(id) {
   if (!confirm('⚠️ Supprimer ce bien ?')) return;
   DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.id !== id; }));
   refreshPatrimoineSites();
 }
-
 function ajouterReparation() {
   var bienId = document.getElementById('pRepBien').value;
   var desc = document.getElementById('pRepDesc').value.trim();
@@ -2480,7 +2065,6 @@ function ajouterReparation() {
   afficherReparations();
   alert('✅ Réparation enregistrée');
 }
-
 function afficherReparations() {
   var list = DB.get('patrimoineReparations', []);
   var box = document.getElementById('pListeReparations');
@@ -2494,7 +2078,6 @@ function afficherReparations() {
   html += '</tbody></table></div>';
   box.innerHTML = html;
 }
-
 function rapportPatrimoineGlobal() {
   var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
@@ -2532,7 +2115,6 @@ function rapportPatrimoineGlobal() {
 
   document.getElementById('pRapportBox').innerHTML = html;
 }
-
 function rapportPatrimoineConsolide() {
   var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
@@ -2545,7 +2127,6 @@ function rapportPatrimoineConsolide() {
   });
   var totalGeneral = totBon + totCasse + totDeclass;
 
-  // Regrouper les biens par nom (insensible à la casse)
   var biensParNom = {};
   biens.forEach(function(b) {
     var key = b.nom.trim().toLowerCase();
@@ -2595,7 +2176,6 @@ function rapportPatrimoineConsolide() {
 
   document.getElementById('pRapportBox').innerHTML = html;
 }
-
 function relevePatrimoineSite(siteId) {
   var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === siteId; });
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && !b.archived; });
@@ -2614,9 +2194,106 @@ function relevePatrimoineSite(siteId) {
   setTimeout(function() { w.print(); }, 500);
 }
 
-// ========== INIT ==========
+// ========== UTILISATEURS ET ADMIN ==========
+function ajouterUtilisateur() {
+  if (!isAdmin()) return alert('Réservé admin');
+  var nom = document.getElementById('uNom').value.trim().toLowerCase();
+  var pass = document.getElementById('uPass').value.trim();
+  var role = document.getElementById('uRole').value;
+  if (!nom || !pass) return alert('Remplissez tous les champs');
+  var users = DB.get('users', []);
+  if (users.find(function(u) { return u.nom === nom; })) return alert('Ce nom existe déjà');
+  users.push({ id: uid(), nom: nom, pass: pass, role: role });
+  DB.set('users', users); reinitialiserFormUtilisateur(); afficherUtilisateurs(); alert('✅ Utilisateur ajouté');
+}
+function reinitialiserFormUtilisateur() {
+  var a = document.getElementById('uNom'); if (a) a.value = '';
+  var b = document.getElementById('uPass'); if (b) b.value = '';
+  var c = document.getElementById('uRole'); if (c) c.selectedIndex = 0;
+}
+function afficherUtilisateurs() {
+  var users = DB.get('users', []);
+  var box = document.getElementById('listeUtilisateurs');
+  if (!box) return;
+  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Nom</th><th>Rôle</th><th>Actions</th></tr></thead><tbody>';
+  users.forEach(function(u) {
+    html += '<tr><td>' + echapper(u.nom) + '</td><td>' + (u.role === 'admin' ? '👑 Admin' : '👤 Utilisateur') + '</td>';
+    html += '<td>';
+    if (u.nom !== 'admin') html += '<button class="btn-mini danger" onclick="supprimerUtilisateur(\'' + u.id + '\')">🗑️</button>';
+    html += '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
+}
+function supprimerUtilisateur(id) {
+  if (!isAdmin()) return alert('Réservé admin');
+  if (!confirm('⚠️ Supprimer cet utilisateur ?')) return;
+  DB.set('users', DB.get('users', []).filter(function(u) { return u.id !== id; })); afficherUtilisateurs();
+}
+
+function exporterDonnees() {
+  var data = {};
+  ['users','entites','participations','fichesMensuelles','candidats','versements','depouillements','depensesGenerales','annonces','patrimoineSites','patrimoineBiens','patrimoineMouvements','patrimoineReparations'].forEach(function(k) { data[k] = DB.get(k, []); });
+  var json = JSON.stringify(data, null, 2);
+  try {
+    var blob = new Blob([json], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'emm_mondial_' + Date.now() + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    alert('✅ Fichier téléchargé');
+  } catch (e) { alert('Erreur export'); }
+}
+function restaurerTexte() {
+  var txt = document.getElementById('importText').value.trim();
+  if (!txt) return alert('Collez d\'abord un JSON');
+  try {
+    var data = JSON.parse(txt);
+    Object.keys(data).forEach(function(k) { DB.set(k, data[k]); });
+    alert('✅ Données restaurées'); refreshAll(); afficherDashboard(); document.getElementById('importText').value = '';
+  } catch (e) { alert('❌ JSON invalide'); }
+}
+function importerDonnees(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      Object.keys(data).forEach(function(k) { DB.set(k, data[k]); });
+      alert('✅ Données restaurées'); refreshAll(); afficherDashboard();
+    } catch (err) { alert('❌ Fichier invalide'); }
+  };
+  reader.readAsText(file);
+}
+function toutEffacer() {
+  if (!isAdmin()) return alert('Réservé admin');
+  if (!confirm('⚠️ Effacer TOUTES les données (sauf utilisateurs) ?')) return;
+  var users = DB.get('users', []);
+  localStorage.clear(); DB.set('users', users); initDB(); alert('✅ Effacé'); location.reload();
+}
+
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault(); deferredPrompt = e;
+  var btn = document.getElementById('installBtn'); if (btn) btn.style.display = 'block';
+});
+function installApp() {
+  if (!deferredPrompt) return alert('Menu navigateur → "Ajouter à l\'écran d\'accueil"');
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function() {
+    deferredPrompt = null;
+    var btn = document.getElementById('installBtn'); if (btn) btn.style.display = 'none';
+  });
+}
+
+function refreshAll() {
+  rafraichirEntites(); afficherListeEntites(); afficherJournaliere(); afficherUtilisateurs();
+  refreshPatrimoineSites();
+}
+
 window.addEventListener('load', function() {
   showSplash();
   setTimeout(initSignature, 500);
-  setTimeout(initSignature, 1500);
 });
