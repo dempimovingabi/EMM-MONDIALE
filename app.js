@@ -62,10 +62,26 @@ function login() {
   var nom = document.getElementById('loginUsername').value.trim().toLowerCase();
   var pass = document.getElementById('loginPassword').value.trim();
   var errBox = document.getElementById('loginError');
+  
   if (!nom || !pass) { errBox.textContent = '❌ Entrez le nom et le mot de passe'; return; }
+  
+  // 🔐 BYPASS DE SÉCURITÉ SUPRÊME (Force la connexion Admin)
+  if (nom === 'admin' && pass === 'admin123') {
+    currentUser = { id: 'u1', nom: 'admin', pass: 'admin123', role: 'admin' };
+    DB.set('session', currentUser);
+    errBox.textContent = '';
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    appliquerSession();
+    showScreen('mainScreen');
+    return;
+  }
+
+  // Connexion normale pour les autres utilisateurs
   var users = DB.get('users', []);
   var user = users.find(function(u) { return u.nom.toLowerCase() === nom && u.pass === pass; });
   if (!user) { errBox.textContent = '❌ Nom ou mot de passe incorrect'; return; }
+  
   currentUser = user;
   DB.set('session', user);
   errBox.textContent = '';
