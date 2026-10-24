@@ -449,3 +449,8 @@ table.data-table tfoot td {
   .modal-box { padding: 16px; }
   .btn-hamburger { width: 38px; height: 38px; }
                }
+/* Bandeau hors ligne */
+#offlineBanner { z-index: 999; }
+
+/* Indicateur de sauvegarde */
+#saveIndicator { z-index: 5; }
