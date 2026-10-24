@@ -39,7 +39,6 @@
 <!-- ACCUEIL -->
 <div id="mainScreen" class="screen">
 
-  <!-- ⬇️ HEADER AVEC MENU HAMBURGER -->
   <header class="app-header">
     <button class="btn-hamburger" onclick="toggleMainMenu()" title="Menu">
       <span></span><span></span><span></span>
@@ -47,10 +46,22 @@
     <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
     <div class="header-logo-fallback" style="display:none">EMM</div>
     <div><h1>EMM MONDIAL</h1><p id="userRoleLabel">Gestion des Membres</p></div>
+
+    <div id="saveIndicator" style="
+      background:rgba(255,255,255,0.2);
+      color:white;
+      padding:5px 10px;
+      border-radius:12px;
+      font-size:11px;
+      opacity:0.35;
+      transition:opacity 0.3s;
+      white-space:nowrap;
+      flex-shrink:0;
+    " title="Sauvegarde locale">💾</div>
+
     <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
   </header>
 
-  <!-- ⬇️ MENU HAMBURGER (caché par défaut) -->
   <div id="mainMenu" class="main-menu">
     <button class="main-tab active" onclick="switchMainTab('general', this)">📊 Général</button>
     <button class="main-tab" onclick="switchMainTab('frequence', this)">📈 Fréquence</button>
@@ -344,11 +355,11 @@
   <div id="tab-finance" class="main-tab-content">
     <div class="card">
       <h3>➕ Ajouter un candidat</h3>
-      <div class="input-group"><label>Nom complet</label><input type="text" id="cNom"></div>
+      <div class="input-group"><label>Nom complet</label><input type="text" id="cNom" placeholder="Ex : TSHIBOLA Hortense"></div>
       <div class="input-group"><label>Type d'entité</label>
         <select id="cTypeEntite"><option>Jorhei Center</option><option>Unité religieuse</option><option>Foyer de lumière</option></select>
       </div>
-      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="cNomEntite"></div>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="cNomEntite" placeholder="Ex : BIANCKYA"></div>
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="cResponsable"></div>
       <div class="input-group"><label>Motif</label>
         <select id="cMotif">
@@ -374,7 +385,7 @@
 
     <div class="card">
       <h3>🔍 Recherche par entité</h3>
-      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="searchEntiteFinance" oninput="rechercherParEntite()"></div>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="searchEntiteFinance" placeholder="Ex : BIANCKYA" oninput="rechercherParEntite()"></div>
       <div class="input-group"><label>Type (optionnel)</label>
         <select id="searchEntiteType" onchange="rechercherParEntite()">
           <option value="">-- Tous --</option><option>Jorhei Center</option><option>Unité religieuse</option><option>Foyer de lumière</option>
@@ -389,11 +400,12 @@
       <h3>🔍 Recherche candidat</h3>
       <input type="text" id="searchCand" placeholder="Rechercher un candidat..." oninput="afficherCandidats()">
       <div class="input-group" style="margin-top:8px">
+        <label>Statut</label>
         <select id="filtreCandidats" onchange="afficherCandidats()">
-          <option value="actif">Actifs</option>
-          <option value="en_cours">En cours</option>
-          <option value="termine">Terminés</option>
-          <option value="archive">Archivés</option>
+          <option value="actif">Actifs (en cours + terminés)</option>
+          <option value="en_cours">En cours uniquement</option>
+          <option value="termine">Terminés uniquement</option>
+          <option value="archive">Archivés uniquement</option>
           <option value="tous">Tous</option>
         </select>
       </div>
@@ -405,7 +417,9 @@
     <div class="card">
       <h3>💵 Nouveau versement</h3>
       <div class="input-group"><label>Candidat</label><select id="vCandidat"></select></div>
-      <div class="input-group"><label>Monnaie</label><select id="vMonnaie"><option value="USD">USD ($)</option><option value="FC">FC</option></select></div>
+      <div class="input-group"><label>Monnaie</label>
+        <select id="vMonnaie"><option value="USD">USD ($)</option><option value="FC">FC</option></select>
+      </div>
       <div class="input-group"><label>Montant</label><input type="number" id="vMontant" value="0"></div>
       <div class="input-group"><label>Taux</label><input type="number" id="vTaux" value="2300"></div>
       <div class="input-group"><label>Date</label><input type="date" id="vDate"></div>
@@ -681,6 +695,12 @@
     </div>
 
     <div class="card">
+      <h3>🔍 Diagnostic stockage</h3>
+      <button class="btn-secondary" onclick="afficherDiagnosticStockage()">Afficher l'état du stockage</button>
+      <div id="diagnosticStockage" style="margin-top:10px;font-size:13px"></div>
+    </div>
+
+    <div class="card">
       <h3>🗑️ Danger</h3>
       <button class="btn-secondary" style="background:#ffebee;color:#c62828;border-color:#c62828" onclick="toutEffacer()">⚠️ Tout effacer</button>
     </div>
@@ -729,14 +749,44 @@
   </div>
 </div>
 
+<!-- Bandeau hors ligne -->
+<div id="offlineBanner" style="
+  display:none;
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:linear-gradient(135deg,#e65100,#ff6d00);
+  color:white;
+  text-align:center;
+  padding:8px;
+  font-size:12px;
+  font-weight:600;
+  z-index:999;
+  box-shadow:0 -2px 8px rgba(0,0,0,0.2);
+">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
+
 <button id="installBtn" class="install-btn" style="display:none" onclick="installApp()">📲 Installer</button>
 
 <script src="db.js"></script>
 <script src="app.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function(e) { console.log('SW:', e); });
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      console.log('✅ Service Worker actif — mode hors ligne prêt');
+      reg.addEventListener('updatefound', function() {
+        var newWorker = reg.installing;
+        newWorker.addEventListener('statechange', function() {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (confirm('🔄 Nouvelle version disponible. Recharger maintenant ?')) {
+              newWorker.postMessage('SKIP_WAITING');
+              window.location.reload();
+            }
+          }
+        });
+      });
+    }).catch(function(e) { console.log('SW erreur:', e); });
+  });
 }
 </script>
 </body>
-                                                       </html>
+            </html>
