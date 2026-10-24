@@ -46,19 +46,7 @@
     <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
     <div class="header-logo-fallback" style="display:none">EMM</div>
     <div><h1>EMM MONDIAL</h1><p id="userRoleLabel">Gestion des Membres</p></div>
-
-    <div id="saveIndicator" style="
-      background:rgba(255,255,255,0.2);
-      color:white;
-      padding:5px 10px;
-      border-radius:12px;
-      font-size:11px;
-      opacity:0.35;
-      transition:opacity 0.3s;
-      white-space:nowrap;
-      flex-shrink:0;
-    " title="Sauvegarde locale">💾</div>
-
+    <div id="saveIndicator" style="background:rgba(255,255,255,0.2);color:white;padding:5px 10px;border-radius:12px;font-size:11px;opacity:0.35;transition:opacity 0.3s;white-space:nowrap;flex-shrink:0;" title="Sauvegarde locale">💾</div>
     <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
   </header>
 
@@ -68,6 +56,7 @@
     <button class="main-tab" onclick="switchMainTab('finance', this)">💰 Finance</button>
     <button class="main-tab" onclick="switchMainTab('depouillement', this)">🧾 Dépouillement</button>
     <button class="main-tab" onclick="switchMainTab('patrimoine', this)">🏛️ Patrimoine</button>
+    <button class="main-tab" onclick="switchMainTab('archives', this)">📦 Archives</button>
     <button class="main-tab" onclick="switchMainTab('admin', this)">⚙️ Admin</button>
   </div>
 
@@ -664,6 +653,36 @@
     </div>
   </div>
 
+  <!-- ⬇️ ONGLET ARCHIVES -->
+  <div id="tab-archives" class="main-tab-content">
+    <div class="card">
+      <h3>🔍 Filtrer les archives</h3>
+      <p style="font-size:12px;color:#666;margin-bottom:10px">
+        Les éléments archivés n'apparaissent <strong>pas</strong> dans les rapports PDF. Restaure-les ici pour les réintégrer.
+      </p>
+      <div class="input-group">
+        <label>Recherche</label>
+        <input type="text" id="archiveSearch" placeholder="Nom, entité, motif..." oninput="afficherArchives()">
+      </div>
+      <div class="input-group">
+        <label>Catégorie</label>
+        <select id="archiveCategorie" onchange="afficherArchives()">
+          <option value="">Toutes les catégories</option>
+          <option value="entites">🏛️ Entités</option>
+          <option value="participations">📝 Participations journalières</option>
+          <option value="fichesMensuelles">📆 Fiches mensuelles</option>
+          <option value="candidats">👤 Candidats</option>
+          <option value="versements">💵 Versements</option>
+          <option value="depouillements">🧾 Dépouillements</option>
+          <option value="annonces">📢 Annonces</option>
+          <option value="patrimoineSites">🏛️ Sites patrimoine</option>
+          <option value="patrimoineBiens">📦 Biens patrimoine</option>
+        </select>
+      </div>
+    </div>
+    <div id="archivesBox"></div>
+  </div>
+
   <!-- ONGLET ADMIN -->
   <div id="tab-admin" class="main-tab-content">
     <div class="card">
@@ -750,19 +769,7 @@
 </div>
 
 <!-- Bandeau hors ligne -->
-<div id="offlineBanner" style="
-  display:none;
-  position:fixed;
-  bottom:0; left:0; right:0;
-  background:linear-gradient(135deg,#e65100,#ff6d00);
-  color:white;
-  text-align:center;
-  padding:8px;
-  font-size:12px;
-  font-weight:600;
-  z-index:999;
-  box-shadow:0 -2px 8px rgba(0,0,0,0.2);
-">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
+<div id="offlineBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#e65100,#ff6d00);color:white;text-align:center;padding:8px;font-size:12px;font-weight:600;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.2);">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
 
 <button id="installBtn" class="install-btn" style="display:none" onclick="installApp()">📲 Installer</button>
 
@@ -772,7 +779,7 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
-      console.log('✅ Service Worker actif — mode hors ligne prêt');
+      console.log('✅ Service Worker actif');
       reg.addEventListener('updatefound', function() {
         var newWorker = reg.installing;
         newWorker.addEventListener('statechange', function() {
@@ -789,4 +796,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-            </html>
+  </html>
