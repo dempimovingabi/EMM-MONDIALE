@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v17
+// EMM MONDIAL — LOGIQUE PRINCIPALE v18
 // ============================================
 
 var currentUser = null;
@@ -7,8 +7,6 @@ var photoCandidatTemp = null;
 var signatureCanvas = null, signatureCtx = null, signatureVide = true;
 var seanceActive = null;
 var tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
-var _dernierRapportNumGlobal = null;
-var _dernierRapportNumDetaille = null;
 
 var CATEGORIES_OFFRANDES = {
   init: 'Initiation', sorei: 'Sorei Saichi', kannon: 'Kannon',
@@ -23,19 +21,19 @@ function showSplash() {
     var sess = DB.get('session');
     if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
     else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 2500);
+  }, 2000);
 }
 
 // ========== NAVIGATION ==========
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
   var el = document.getElementById(id);
+  if (!el) return;
   el.classList.add('active');
   el.style.display = (id === 'splashScreen' || id === 'loginScreen') ? 'flex' : 'block';
   window.scrollTo(0, 0);
 }
 
-// ⬇️ MENU HAMBURGER — ouvert / fermé
 function toggleMainMenu() {
   var menu = document.getElementById('mainMenu');
   if (menu) menu.classList.toggle('open');
@@ -47,10 +45,10 @@ function fermerMainMenu() {
 }
 
 function switchMainTab(name, btn) {
-  fermerMainMenu(); // ⬅️ ferme le menu hamburger
+  fermerMainMenu();
   document.querySelectorAll('.main-tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.main-tab-content').forEach(function(c) { c.classList.remove('active'); });
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'general') afficherDashboard();
   if (name === 'finance') {
@@ -180,7 +178,6 @@ function confirmerImpressionPdf() {
   var options = lireOptionsPdf();
   var ctx = pdfContexteEnAttente;
   var contenu = '', titre = 'Rapport';
-
   if (ctx.type === 'box') {
     var box = document.getElementById(ctx.boxId);
     if (!box || !box.innerHTML.trim()) { fermerModalPdf(); return alert('Rapport vide'); }
@@ -190,9 +187,7 @@ function confirmerImpressionPdf() {
     contenu = ctx.html;
     titre = ctx.titre || 'Rapport EMM';
   }
-
   if (!contenu) { fermerModalPdf(); return alert('Rapport vide'); }
-
   var w = window.open('', '_blank');
   var css = cssImpression(options);
   w.document.write('<html><head><meta charset="UTF-8"><title>' + titre + '</title><style>' + css + '</style></head><body>');
@@ -272,37 +267,26 @@ function construireHtmlRapportNumerique(d) {
   var h = '';
   h += '<h2 style="text-align:center;border:none;font-size:16pt;margin-bottom:6px">RAPPORT NUMÉRIQUE DU MOIS DE ' + d.mois.toUpperCase() + ' ' + d.annee + '</h2>';
   h += '<p style="text-align:center;font-size:12pt;color:#555;margin-bottom:14px">' + echapper(entiteNom) + '</p>';
-
-  h += '<div class="rn-section">';
-  h += '<div class="rn-section-title">MEMBRES : ' + d.membresBaptises + '</div>';
+  h += '<div class="rn-section"><div class="rn-section-title">MEMBRES : ' + d.membresBaptises + '</div>';
   h += '<div class="rn-row"><span>- Membres baptisés</span><strong>' + d.membresBaptises + '</strong></div>';
   h += '<div class="rn-row"><span>- Initiés du mois</span><strong>' + d.inities + '</strong></div>';
   h += '<div class="rn-row"><span>- Membres entrés</span><strong>' + d.entres + '</strong></div>';
   h += '<div class="rn-row"><span>- Membres sortis du pays</span><strong>' + d.sortis + '</strong></div>';
   h += '<div class="rn-row"><span>- Membres récupérés</span><strong>' + d.recuperes + '</strong></div>';
-  h += '<div class="rn-row"><span>- Membres décédés</span><strong>' + d.decedes + '</strong></div>';
-  h += '</div>';
-
-  h += '<div class="rn-section">';
-  h += '<div class="rn-section-title">FRÉQUENTATION MENSUELLE</div>';
+  h += '<div class="rn-row"><span>- Membres décédés</span><strong>' + d.decedes + '</strong></div></div>';
+  h += '<div class="rn-section"><div class="rn-section-title">FRÉQUENTATION MENSUELLE</div>';
   h += '<div class="rn-row"><span>- Membres</span><strong>' + d.freqMembres + '</strong></div>';
   h += '<div class="rn-row"><span>- Sympathisants</span><strong>' + d.freqSymp + '</strong></div>';
   h += '<div class="rn-row"><span>- Nouveaux venus</span><strong>' + d.freqNV + '</strong></div>';
   h += '<div class="rn-row"><span>- Acheminées</span><strong>' + d.acheminees + '</strong></div>';
   h += '<div class="rn-row"><span>- Acheminées restées</span><strong>' + d.achemineesRestees + '</strong></div>';
-  h += '<div class="rn-row"><span>- Nouveaux venus restés</span><strong>' + d.nvRestes + '</strong></div>';
-  h += '</div>';
-
-  h += '<div class="rn-section">';
-  h += '<div class="rn-section-title">CULTE MENSUEL</div>';
+  h += '<div class="rn-row"><span>- Nouveaux venus restés</span><strong>' + d.nvRestes + '</strong></div></div>';
+  h += '<div class="rn-section"><div class="rn-section-title">CULTE MENSUEL</div>';
   h += '<div class="rn-row"><span>- Membres</span><strong>' + d.culteMembres + '</strong></div>';
   h += '<div class="rn-row"><span>- Sympathisants</span><strong>' + d.culteSymp + '</strong></div>';
   h += '<div class="rn-row"><span>- Nouveaux venus</span><strong>' + d.culteNV + '</strong></div>';
-  h += '<div class="rn-total">TOTAL : ' + d.culteTotal + '</div>';
-  h += '</div>';
-
-  h += '<div class="rn-section">';
-  h += '<div class="rn-section-title">ACTIVITÉS & DÉVOUEMENTS</div>';
+  h += '<div class="rn-total">TOTAL : ' + d.culteTotal + '</div></div>';
+  h += '<div class="rn-section"><div class="rn-section-title">ACTIVITÉS & DÉVOUEMENTS</div>';
   h += '<div class="rn-row"><span>- Familles qui donnent le johrei</span><strong>' + d.johrei + '</strong></div>';
   h += '<div class="rn-row"><span>- Élèves sanguetsu</span><strong>' + d.sanguetsu + '</strong></div>';
   h += '<div class="rn-row"><span>- Fleurs distribuées</span><strong>' + d.fleurs + '</strong></div>';
@@ -314,26 +298,16 @@ function construireHtmlRapportNumerique(d) {
   h += '<div class="rn-row"><span>- Autels de familles</span><strong>' + d.autels + '</strong></div>';
   h += '<div class="rn-row"><span>- Mitamaya</span><strong>' + d.mitamaya + '</strong></div>';
   h += '<div class="rn-row"><span>- Sorei saishi</span><strong>' + d.soreiSaishi + '</strong></div>';
-  h += '<div class="rn-row"><span>- Shinrei saichi</span><strong>' + d.shinreiSaichi + '</strong></div>';
-  h += '</div>';
-
-  h += '<div class="rn-section">';
-  h += '<div class="rn-section-title">ASSISTANCE RELIGIEUSE</div>';
+  h += '<div class="rn-row"><span>- Shinrei saichi</span><strong>' + d.shinreiSaichi + '</strong></div></div>';
+  h += '<div class="rn-section"><div class="rn-section-title">ASSISTANCE RELIGIEUSE</div>';
   h += '<div class="rn-row"><span>- Membres</span><strong>' + d.assistMembres + '</strong></div>';
-  h += '<div class="rn-row"><span>- Sympathisants</span><strong>' + d.assistSymp + '</strong></div>';
-  h += '</div>';
-
-  h += '<div class="rn-section">';
-  h += '<div class="rn-section-title">NETTOYAGE DES MAISONS</div>';
+  h += '<div class="rn-row"><span>- Sympathisants</span><strong>' + d.assistSymp + '</strong></div></div>';
+  h += '<div class="rn-section"><div class="rn-section-title">NETTOYAGE DES MAISONS</div>';
   h += '<div class="rn-row"><span>- Membres</span><strong>' + d.netMembres + '</strong></div>';
-  h += '<div class="rn-row"><span>- Sympathisants</span><strong>' + d.netSymp + '</strong></div>';
-  h += '</div>';
-
+  h += '<div class="rn-row"><span>- Sympathisants</span><strong>' + d.netSymp + '</strong></div></div>';
   if (d.observation) {
-    h += '<div class="rn-section">';
-    h += '<div class="rn-section-title">NB. (OBSERVATION)</div>';
-    h += '<div class="rn-observation">' + echapper(d.observation) + '</div>';
-    h += '</div>';
+    h += '<div class="rn-section"><div class="rn-section-title">NB. (OBSERVATION)</div>';
+    h += '<div class="rn-observation">' + echapper(d.observation) + '</div></div>';
   }
   return h;
 }
@@ -341,24 +315,20 @@ function construireHtmlRapportNumerique(d) {
 function genererRapportNumerique() {
   var d = collecterRapportNumerique();
   if (!d.entiteId) return alert('⚠️ Sélectionnez d\'abord une entité');
-  var html = construireHtmlRapportNumerique(d);
-  ouvrirModalPdf({ type: 'html', html: html, titre: 'Rapport Numérique ' + d.mois + ' ' + d.annee });
+  ouvrirModalPdf({ type: 'html', html: construireHtmlRapportNumerique(d), titre: 'Rapport Numérique ' + d.mois + ' ' + d.annee });
 }
 
 function enregistrerRapportNumerique() {
   var d = collecterRapportNumerique();
   if (!d.entiteId) return alert('⚠️ Sélectionnez une entité');
-
   var list = DB.get('rapportsNumeriques', []);
   var existant = list.find(function(r) {
     return r.entiteId === d.entiteId && r.mois === d.mois && String(r.annee) === String(d.annee);
   });
-
   if (existant) {
-    if (!confirm('⚠️ Un rapport existe déjà pour cette entité (' + d.mois + ' ' + d.annee + ').\n\nVoulez-vous le remplacer ?')) return;
+    if (!confirm('⚠️ Un rapport existe déjà pour cette entité (' + d.mois + ' ' + d.annee + ').\n\nLe remplacer ?')) return;
     d.id = existant.id;
-    var idx = list.indexOf(existant);
-    list[idx] = d;
+    list[list.indexOf(existant)] = d;
   } else {
     list.push(d);
   }
@@ -367,7 +337,7 @@ function enregistrerRapportNumerique() {
 }
 
 function reinitialiserRapportNumerique() {
-  if (!confirm('🔄 Réinitialiser tout le formulaire du rapport numérique ?')) return;
+  if (!confirm('🔄 Réinitialiser tout le formulaire ?')) return;
   var fields = ['rnBaptises','rnInities','rnEntres','rnSortis','rnRecuperes','rnDecedes',
     'rnFreqMembres','rnFreqSymp','rnFreqNV','rnAcheminees','rnAchemineesRestees','rnNVRestes',
     'rnCulteMembres','rnCulteSymp','rnCulteNV',
@@ -384,11 +354,8 @@ function reinitialiserRapportNumerique() {
 function filtrerRapportsNum() {
   var fm = document.getElementById('rnFiltreMois') ? document.getElementById('rnFiltreMois').value : '';
   var fa = document.getElementById('rnFiltreAnnee') ? document.getElementById('rnFiltreAnnee').value.trim() : '';
-  var list = DB.get('rapportsNumeriques', []);
-  return list.filter(function(r) {
-    var okM = !fm || r.mois === fm;
-    var okA = !fa || String(r.annee) === fa;
-    return okM && okA;
+  return DB.get('rapportsNumeriques', []).filter(function(r) {
+    return (!fm || r.mois === fm) && (!fa || String(r.annee) === fa);
   });
 }
 
@@ -410,19 +377,11 @@ function afficherRapportNumeriqueGlobal() {
   var box = document.getElementById('rapportNumResultatBox');
   if (!box) return;
   scrollToSection('rapportNumResultatSection');
-
-  if (!list.length) {
-    box.innerHTML = '<p style="color:#888;font-size:13px">Aucun rapport enregistré pour ces filtres.</p>';
-    return;
-  }
-
+  if (!list.length) { box.innerHTML = '<p style="color:#888;font-size:13px">Aucun rapport enregistré.</p>'; return; }
   var t = sommerRapportsNum(list);
   var entitesSet = {};
   list.forEach(function(r) { entitesSet[r.entiteId] = true; });
-  var nbEntites = Object.keys(entitesSet).length;
-
-  var h = '<div class="rapport-header"><h3>📈 RAPPORT NUMÉRIQUE GLOBAL</h3><p>' + list.length + ' rapport(s) — ' + nbEntites + ' entité(s)</p></div>';
-
+  var h = '<div class="rapport-header"><h3>📈 RAPPORT NUMÉRIQUE GLOBAL</h3><p>' + list.length + ' rapport(s) — ' + Object.keys(entitesSet).length + ' entité(s)</p></div>';
   h += '<div class="table-wrapper"><table class="data-table"><tbody>';
   h += '<tr><th colspan="2">MEMBRES</th></tr>';
   h += '<tr><td>Membres baptisés</td><td class="num">' + t.membresBaptises + '</td></tr>';
@@ -431,23 +390,20 @@ function afficherRapportNumeriqueGlobal() {
   h += '<tr><td>Membres sortis du pays</td><td class="num">' + t.sortis + '</td></tr>';
   h += '<tr><td>Membres récupérés</td><td class="num">' + t.recuperes + '</td></tr>';
   h += '<tr><td>Membres décédés</td><td class="num">' + t.decedes + '</td></tr>';
-
-  h += '<tr><th colspan="2">FRÉQUENTATION MENSUELLE</th></tr>';
+  h += '<tr><th colspan="2">FRÉQUENTATION</th></tr>';
   h += '<tr><td>Membres</td><td class="num">' + t.freqMembres + '</td></tr>';
   h += '<tr><td>Sympathisants</td><td class="num">' + t.freqSymp + '</td></tr>';
   h += '<tr><td>Nouveaux venus</td><td class="num">' + t.freqNV + '</td></tr>';
   h += '<tr><td>Acheminées</td><td class="num">' + t.acheminees + '</td></tr>';
   h += '<tr><td>Acheminées restées</td><td class="num">' + t.achemineesRestees + '</td></tr>';
   h += '<tr><td>Nouveaux venus restés</td><td class="num">' + t.nvRestes + '</td></tr>';
-
   h += '<tr><th colspan="2">CULTE MENSUEL</th></tr>';
   h += '<tr><td>Membres</td><td class="num">' + t.culteMembres + '</td></tr>';
   h += '<tr><td>Sympathisants</td><td class="num">' + t.culteSymp + '</td></tr>';
   h += '<tr><td>Nouveaux venus</td><td class="num">' + t.culteNV + '</td></tr>';
   h += '<tr style="background:#e8f5e9"><td><strong>TOTAL CULTE</strong></td><td class="num"><strong>' + t.culteTotal + '</strong></td></tr>';
-
   h += '<tr><th colspan="2">ACTIVITÉS</th></tr>';
-  h += '<tr><td>Familles qui donnent le johrei</td><td class="num">' + t.johrei + '</td></tr>';
+  h += '<tr><td>Familles johrei</td><td class="num">' + t.johrei + '</td></tr>';
   h += '<tr><td>Élèves sanguetsu</td><td class="num">' + t.sanguetsu + '</td></tr>';
   h += '<tr><td>Fleurs distribuées</td><td class="num">' + t.fleurs + '</td></tr>';
   h += '<tr><td>Champs d\'unité</td><td class="num">' + t.champsUnite + '</td></tr>';
@@ -459,64 +415,32 @@ function afficherRapportNumeriqueGlobal() {
   h += '<tr><td>Mitamaya</td><td class="num">' + t.mitamaya + '</td></tr>';
   h += '<tr><td>Sorei saishi</td><td class="num">' + t.soreiSaishi + '</td></tr>';
   h += '<tr><td>Shinrei saichi</td><td class="num">' + t.shinreiSaichi + '</td></tr>';
-
-  h += '<tr><th colspan="2">ASSISTANCE RELIGIEUSE</th></tr>';
-  h += '<tr><td>Membres</td><td class="num">' + t.assistMembres + '</td></tr>';
-  h += '<tr><td>Sympathisants</td><td class="num">' + t.assistSymp + '</td></tr>';
-
-  h += '<tr><th colspan="2">NETTOYAGE DES MAISONS</th></tr>';
-  h += '<tr><td>Membres</td><td class="num">' + t.netMembres + '</td></tr>';
-  h += '<tr><td>Sympathisants</td><td class="num">' + t.netSymp + '</td></tr>';
+  h += '<tr><th colspan="2">ASSISTANCE & NETTOYAGE</th></tr>';
+  h += '<tr><td>Assistance membres</td><td class="num">' + t.assistMembres + '</td></tr>';
+  h += '<tr><td>Assistance sympathisants</td><td class="num">' + t.assistSymp + '</td></tr>';
+  h += '<tr><td>Nettoyage membres</td><td class="num">' + t.netMembres + '</td></tr>';
+  h += '<tr><td>Nettoyage sympathisants</td><td class="num">' + t.netSymp + '</td></tr>';
   h += '</tbody></table></div>';
-
-  h += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Détail par entité</h4>';
-  var parEntite = {};
-  list.forEach(function(r) {
-    if (!parEntite[r.entiteId]) parEntite[r.entiteId] = [];
-    parEntite[r.entiteId].push(r);
-  });
-  Object.keys(parEntite).forEach(function(eid) {
-    var tot = sommerRapportsNum(parEntite[eid]);
-    h += '<div class="entity-block">';
-    h += '<h4>🏛️ ' + echapper(getEntiteNom(eid)) + '</h4>';
-    h += '<div style="font-size:12px;color:#666;margin-bottom:8px">' + parEntite[eid].length + ' rapport(s) — Membres : <strong>' + tot.membresBaptises + '</strong> | Culte total : <strong>' + tot.culteTotal + '</strong></div>';
-    h += '</div>';
-  });
-
   h += '<button class="btn-secondary" style="margin-top:10px" onclick="ouvrirModalPdf({type:\'box\', boxId:\'rapportNumResultatBox\', titre:\'Rapport Numérique Global\'})">🖨️ Imprimer / PDF</button>';
-
   box.innerHTML = h;
 }
 
-// ========== RAPPORT NUMÉRIQUE — DÉTAILLÉ (relevé de chaque entité) ==========
 function afficherRapportNumeriqueDetaille() {
   var list = filtrerRapportsNum();
   var box = document.getElementById('rapportNumResultatBox');
   if (!box) return;
   scrollToSection('rapportNumResultatSection');
-
-  if (!list.length) {
-    box.innerHTML = '<p style="color:#888;font-size:13px">Aucun rapport enregistré pour ces filtres.</p>';
-    return;
-  }
-
+  if (!list.length) { box.innerHTML = '<p style="color:#888;font-size:13px">Aucun rapport enregistré.</p>'; return; }
   var h = '<div class="rapport-header"><h3>📋 RAPPORT NUMÉRIQUE DÉTAILLÉ</h3><p>Relevé de chaque entité</p></div>';
-
   var parEntite = {};
-  list.forEach(function(r) {
-    if (!parEntite[r.entiteId]) parEntite[r.entiteId] = [];
-    parEntite[r.entiteId].push(r);
-  });
-
+  list.forEach(function(r) { if (!parEntite[r.entiteId]) parEntite[r.entiteId] = []; parEntite[r.entiteId].push(r); });
   Object.keys(parEntite).forEach(function(eid) {
     parEntite[eid].sort(function(a, b) {
       if (a.annee !== b.annee) return a.annee - b.annee;
       return a.mois.localeCompare(b.mois);
     });
-
     h += '<div class="entity-block" style="margin-bottom:18px">';
     h += '<h4>🏛️ ' + echapper(getEntiteNom(eid)) + '</h4>';
-
     parEntite[eid].forEach(function(r) {
       h += '<div style="background:#fff;padding:12px;border-radius:8px;margin-bottom:10px;border:1px solid #e0e0e0">';
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">';
@@ -525,29 +449,23 @@ function afficherRapportNumeriqueDetaille() {
       h += '<button class="btn-mini blue" onclick="imprimerRapportNumIndividuel(\'' + r.id + '\')">🖨️ PDF</button>';
       h += '<button class="btn-mini orange" onclick="modifierRapportNum(\'' + r.id + '\')">✏️</button>';
       h += '<button class="btn-mini danger" onclick="supprimerRapportNum(\'' + r.id + '\')">🗑️</button>';
-      h += '</div>';
-      h += '</div>';
+      h += '</div></div>';
       h += '<div style="font-size:12px;line-height:1.6">';
-      h += '<div><strong>Membres :</strong> ' + r.membresBaptises + ' (baptisés) · ' + r.inities + ' initiés · ' + r.entres + ' entrés · ' + r.sortis + ' sortis · ' + r.recuperes + ' récupérés · ' + r.decedes + ' décédés</div>';
-      h += '<div><strong>Fréquentation :</strong> ' + r.freqMembres + ' membres · ' + r.freqSymp + ' symp · ' + r.freqNV + ' NV · ' + r.acheminees + ' acheminées</div>';
+      h += '<div><strong>Membres :</strong> ' + r.membresBaptises + ' baptisés · ' + r.inities + ' initiés · ' + r.entres + ' entrés · ' + r.sortis + ' sortis · ' + r.recuperes + ' récupérés · ' + r.decedes + ' décédés</div>';
+      h += '<div><strong>Fréquentation :</strong> ' + r.freqMembres + ' membres · ' + r.freqSymp + ' symp · ' + r.freqNV + ' NV</div>';
       h += '<div><strong>Culte :</strong> ' + r.culteMembres + ' M · ' + r.culteSymp + ' S · ' + r.culteNV + ' NV — <strong style="color:#0a6e2c">TOTAL ' + r.culteTotal + '</strong></div>';
-      h += '<div><strong>Activités :</strong> ' + r.johrei + ' johrei · ' + r.sanguetsu + ' sanguetsu · ' + r.fleurs + ' fleurs · ' + r.autels + ' autels · ' + r.mitamaya + ' mitamaya</div>';
-      h += '<div><strong>Assistance :</strong> ' + r.assistMembres + ' membres · ' + r.assistSymp + ' symp · <strong>Nettoyage :</strong> ' + r.netMembres + ' M · ' + r.netSymp + ' S</div>';
-      if (r.observation) h += '<div style="margin-top:6px;padding:6px;background:#fffde7;border-left:3px solid #f9a825;font-size:11px"><strong>Observation :</strong> ' + echapper(r.observation) + '</div>';
-      h += '</div>';
-      h += '</div>';
+      h += '<div><strong>Activités :</strong> ' + r.johrei + ' johrei · ' + r.sanguetsu + ' sanguetsu · ' + r.fleurs + ' fleurs · ' + r.autels + ' autels</div>';
+      if (r.observation) h += '<div style="margin-top:6px;padding:6px;background:#fffde7;border-left:3px solid #f9a825;font-size:11px"><strong>Obs :</strong> ' + echapper(r.observation) + '</div>';
+      h += '</div></div>';
     });
-
-    h += '<button class="btn-secondary" style="margin-top:6px" onclick="imprimerReleveEntite(\'' + eid + '\')">🖨️ Relevé complet de cette entité</button>';
+    h += '<button class="btn-secondary" style="margin-top:6px" onclick="imprimerReleveEntite(\'' + eid + '\')">🖨️ Relevé complet</button>';
     h += '</div>';
   });
-
   box.innerHTML = h;
 }
 
-// ========== SUPPRESSION / MODIFICATION / IMPRESSION D'UN RAPPORT NUM ==========
 function supprimerRapportNum(id) {
-  if (!confirm('⚠️ Supprimer ce rapport numérique ?')) return;
+  if (!confirm('⚠️ Supprimer ce rapport ?')) return;
   DB.set('rapportsNumeriques', DB.get('rapportsNumeriques', []).filter(function(r) { return r.id !== id; }));
   afficherRapportNumeriqueDetaille();
   alert('✅ Supprimé');
@@ -558,42 +476,21 @@ function modifierRapportNum(id) {
   var r = list.find(function(x) { return x.id === id; });
   if (!r) return;
   var champs = [
-    ['membresBaptises', 'Membres baptisés'],
-    ['inities', 'Initiés du mois'],
-    ['entres', 'Membres entrés'],
-    ['sortis', 'Membres sortis du pays'],
-    ['recuperes', 'Membres récupérés'],
-    ['decedes', 'Membres décédés'],
-    ['freqMembres', 'Fréquentation — membres'],
-    ['freqSymp', 'Fréquentation — sympathisants'],
-    ['freqNV', 'Fréquentation — nouveaux venus'],
-    ['acheminees', 'Acheminées'],
-    ['achemineesRestees', 'Acheminées restées'],
-    ['nvRestes', 'Nouveaux venus restés'],
-    ['culteMembres', 'Culte — membres'],
-    ['culteSymp', 'Culte — sympathisants'],
-    ['culteNV', 'Culte — nouveaux venus'],
-    ['johrei', 'Familles johrei'],
-    ['sanguetsu', 'Élèves sanguetsu'],
-    ['fleurs', 'Fleurs distribuées'],
-    ['champsUnite', 'Champs d\'unité'],
-    ['champsFloral', 'Champs floral'],
-    ['agriculteurs', 'Agriculteurs'],
-    ['anciensPotagers', 'Anciens potagers'],
-    ['nouveauxPotagers', 'Nouveaux potagers'],
-    ['autels', 'Autels de familles'],
-    ['mitamaya', 'Mitamaya'],
-    ['soreiSaishi', 'Sorei saishi'],
-    ['shinreiSaichi', 'Shinrei saichi'],
-    ['assistMembres', 'Assistance — membres'],
-    ['assistSymp', 'Assistance — sympathisants'],
-    ['netMembres', 'Nettoyage — membres'],
-    ['netSymp', 'Nettoyage — sympathisants']
+    ['membresBaptises','Membres baptisés'],['inities','Initiés'],['entres','Entrés'],['sortis','Sortis'],
+    ['recuperes','Récupérés'],['decedes','Décédés'],
+    ['freqMembres','Fréq membres'],['freqSymp','Fréq symp'],['freqNV','Fréq NV'],
+    ['acheminees','Acheminées'],['achemineesRestees','Acheminées restées'],['nvRestes','NV restés'],
+    ['culteMembres','Culte M'],['culteSymp','Culte S'],['culteNV','Culte NV'],
+    ['johrei','Johrei'],['sanguetsu','Sanguetsu'],['fleurs','Fleurs'],
+    ['champsUnite','Champs unité'],['champsFloral','Champs floral'],['agriculteurs','Agriculteurs'],
+    ['anciensPotagers','Anc. potagers'],['nouveauxPotagers','Nouv. potagers'],
+    ['autels','Autels'],['mitamaya','Mitamaya'],['soreiSaishi','Sorei'],['shinreiSaichi','Shinrei'],
+    ['assistMembres','Assist M'],['assistSymp','Assist S'],
+    ['netMembres','Nettoyage M'],['netSymp','Nettoyage S']
   ];
   champs.forEach(function(c) {
     var v = prompt(c[1] + ' :', r[c[0]] || 0);
-    if (v === null) return;
-    r[c[0]] = parseInt(v) || 0;
+    if (v !== null) r[c[0]] = parseInt(v) || 0;
   });
   r.culteTotal = (r.culteMembres || 0) + (r.culteSymp || 0) + (r.culteNV || 0);
   var obs = prompt('Observation :', r.observation || '');
@@ -606,8 +503,7 @@ function modifierRapportNum(id) {
 function imprimerRapportNumIndividuel(id) {
   var r = DB.get('rapportsNumeriques', []).find(function(x) { return x.id === id; });
   if (!r) return;
-  var html = construireHtmlRapportNumerique(r);
-  ouvrirModalPdf({ type: 'html', html: html, titre: 'Rapport Numérique ' + getEntiteNom(r.entiteId) + ' ' + r.mois + ' ' + r.annee });
+  ouvrirModalPdf({ type: 'html', html: construireHtmlRapportNumerique(r), titre: 'Rapport Numérique ' + getEntiteNom(r.entiteId) });
 }
 
 function imprimerReleveEntite(eid) {
@@ -662,17 +558,14 @@ function publierAnnonce() {
   alert('✅ Annonce publiée');
 }
 
-function reinitialiserFormAnnonce() {
-  var el = document.getElementById('annonceText');
-  if (el) el.value = '';
-}
+function reinitialiserFormAnnonce() { var el = document.getElementById('annonceText'); if (el) el.value = ''; }
 
 function modifierAnnonce(id) {
   if (!isAdmin()) return alert('Réservé admin');
   var list = DB.get('annonces', []);
   var a = list.find(function(x) { return x.id === id; });
   if (!a) return;
-  var txt = prompt('Modifier l\'annonce :', a.texte);
+  var txt = prompt('Modifier :', a.texte);
   if (txt === null) return;
   a.texte = txt.trim();
   DB.set('annonces', list);
@@ -721,7 +614,7 @@ function reinitialiserFormEntite() {
 
 function rafraichirEntites() {
   var entites = DB.get('entites', []).filter(function(e) { return !e.archived; });
-  ['jEntiteSelect', 'mEntite'].forEach(function(id) {
+  ['jEntiteSelect','mEntite'].forEach(function(id) {
     var sel = document.getElementById(id);
     if (!sel) return;
     var val = sel.value;
@@ -735,8 +628,7 @@ function rafraichirEntites() {
 function afficherListeEntites() {
   var filtre = document.getElementById('filtreEntites') ? document.getElementById('filtreEntites').value : 'actif';
   var search = (document.getElementById('searchEntiteListe') ? document.getElementById('searchEntiteListe').value : '').toUpperCase();
-  var entites = DB.get('entites', []);
-  entites = filtrerListe(entites, filtre);
+  var entites = filtrerListe(DB.get('entites', []), filtre);
   if (search) entites = entites.filter(function(e) { return e.nom.indexOf(search) !== -1; });
   var box = document.getElementById('listeEntites');
   if (!box) return;
@@ -744,7 +636,7 @@ function afficherListeEntites() {
   var html = '';
   entites.forEach(function(e) {
     html += '<div class="item-list" style="padding:12px' + (e.archived ? ';opacity:0.7;background:#f0f0f0' : '') + '">';
-    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600;margin-bottom:4px">🏛️ ' + echapper(e.type) + ' - ' + echapper(e.nom) + (e.archived ? ' <span class="badge badge-archive">📦 Archivée</span>' : '') + '</div>';
+    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600;margin-bottom:4px">🏛️ ' + echapper(e.type) + ' - ' + echapper(e.nom) + (e.archived ? ' <span class="badge badge-archive">📦</span>' : '') + '</div>';
     html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(e.responsable) + '</div>';
     html += '<button class="btn-mini orange" onclick="modifierEntite(\'' + e.id + '\')">✏️ Modifier</button> ';
     html += '<button class="btn-mini ' + (e.archived ? 'blue' : 'gray') + '" onclick="archiverEntite(\'' + e.id + '\')">' + (e.archived ? '↩️ Désarchiver' : '📦 Archiver') + '</button> ';
@@ -761,12 +653,11 @@ function modifierEntite(id) {
   var type = prompt('Type :', e.type); if (type === null) return;
   var nom = prompt('Nom :', e.nom); if (nom === null) return;
   var resp = prompt('Responsable :', e.responsable); if (resp === null) return;
-  var nouveauNom = nom.trim().toUpperCase();
-  if (!nouveauNom) return alert('Nom vide');
-  var doublon = list.find(function(x) { return x.id !== id && x.nom === nouveauNom && !x.archived; });
-  if (doublon) return alert('⚠️ Nom déjà utilisé');
+  var nn = nom.trim().toUpperCase();
+  if (!nn) return alert('Nom vide');
+  if (list.find(function(x) { return x.id !== id && x.nom === nn && !x.archived; })) return alert('⚠️ Nom déjà utilisé');
   e.type = type.trim() || e.type;
-  e.nom = nouveauNom;
+  e.nom = nn;
   e.responsable = resp.trim();
   DB.set('entites', list);
   refreshAll();
@@ -827,8 +718,7 @@ function reinitialiserFormParticipation() {
 
 function afficherJournaliere() {
   var filtre = document.getElementById('filtreParticipations') ? document.getElementById('filtreParticipations').value : 'actif';
-  var allParts = DB.get('participations', []);
-  var parts = filtrerListe(allParts, filtre);
+  var parts = filtrerListe(DB.get('participations', []), filtre);
   var box = document.getElementById('listeJournaliere');
   if (!box) return;
   if (!parts.length) { box.innerHTML = '<p>Aucune donnée.</p>'; return; }
@@ -839,8 +729,7 @@ function afficherJournaliere() {
     var lignes = parEntite[eid].slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
     var tm = 0, ts = 0, tn = 0;
     lignes.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
-    html += '<div class="entity-block">';
-    html += '<h4>📍 ' + echapper(getEntiteNom(eid)) + '</h4>';
+    html += '<div class="entity-block"><h4>📍 ' + echapper(getEntiteNom(eid)) + '</h4>';
     html += '<div class="table-wrapper"><table class="data-table">';
     html += '<thead><tr><th>Date</th><th>M</th><th>S</th><th>NV</th><th>Actions</th></tr></thead><tbody>';
     lignes.forEach(function(p) {
@@ -849,8 +738,7 @@ function afficherJournaliere() {
       html += '<button class="btn-mini ' + (p.archived ? 'blue' : 'gray') + '" onclick="archiverParticipation(\'' + p.id + '\')">' + (p.archived ? '↩️' : '📦') + '</button>';
       html += '<button class="btn-mini danger" onclick="supprimerParticipation(\'' + p.id + '\')">🗑️</button></td></tr>';
     });
-    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + tm + '</td><td class="num">' + ts + '</td><td class="num">' + tn + '</td><td></td></tr></tfoot>';
-    html += '</table></div></div>';
+    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + tm + '</td><td class="num">' + ts + '</td><td class="num">' + tn + '</td><td></td></tr></tfoot></table></div></div>';
   });
   box.innerHTML = html;
 }
@@ -881,7 +769,7 @@ function archiverParticipation(id) {
 }
 
 function supprimerParticipation(id) {
-  if (!confirm('⚠️ Supprimer cette participation ?')) return;
+  if (!confirm('⚠️ Supprimer ?')) return;
   DB.set('participations', DB.get('participations', []).filter(function(x) { return x.id !== id; }));
   afficherJournaliere();
 }
@@ -923,31 +811,20 @@ function reinitialiserFormFiche() {
 function tableFicheMensuelle(f) {
   var h = '<div class="entity-block"' + (f.archived ? ' style="opacity:0.7;background:#f0f0f0"' : '') + '>';
   h += '<h4>📍 ' + echapper(getEntiteNom(f.entiteId)) + ' — ' + echapper(f.mois) + ' ' + echapper(f.annee);
-  if (f.archived) h += ' <span class="badge badge-archive">📦 Archivée</span>';
+  if (f.archived) h += ' <span class="badge badge-archive">📦</span>';
   h += '</h4>';
   h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-  h += '<button class="btn-mini orange" onclick="modifierFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-  if (f.archived) {
-    h += '<button class="btn-mini blue" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">↩️ Désarchiver</button>';
-  } else {
-    h += '<button class="btn-mini gray" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-  }
-  h += '<button class="btn-mini danger" onclick="supprimerFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+  h += '<button class="btn-mini orange" onclick="modifierFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">✏️</button>';
+  h += '<button class="btn-mini ' + (f.archived ? 'blue' : 'gray') + '" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">' + (f.archived ? '↩️' : '📦') + '</button>';
+  h += '<button class="btn-mini danger" onclick="supprimerFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">🗑️</button>';
   h += '</div>';
   h += '<div class="table-wrapper"><table class="data-table"><tbody>';
   h += '<tr><td>Responsable</td><td>' + echapper(f.responsable) + '</td></tr>';
   h += '<tr><td>Encadreurs</td><td class="num">' + (f.mEncadreurs || 0) + '</td></tr>';
   h += '<tr><td>Membres actifs</td><td class="num">' + (f.mMembresActifs || 0) + '</td></tr>';
   h += '<tr><td>Sympathisants</td><td class="num">' + (f.mSympathisants || 0) + '</td></tr>';
-  h += '<tr><td>Membres (culte)</td><td class="num">' + (f.mFMembres || 0) + '</td></tr>';
-  h += '<tr><td>Symp. (culte)</td><td class="num">' + (f.mFSympathisants || 0) + '</td></tr>';
-  h += '<tr><td>Nouv. venus</td><td class="num">' + (f.mFNouveaux || 0) + '</td></tr>';
   h += '<tr><td>Thèmes</td><td>' + echapper(f.themes) + '</td></tr>';
   h += '<tr><td>Grâces</td><td>' + echapper(f.graces) + '</td></tr>';
-  h += '<tr><td>Points à améliorer</td><td>' + echapper(f.points) + '</td></tr>';
-  h += '<tr><td>Solutions</td><td>' + echapper(f.solutions) + '</td></tr>';
-  h += '<tr><td>Objectifs</td><td>' + echapper(f.objectifs) + '</td></tr>';
-  h += '<tr><td>Actions</td><td>' + echapper(f.actions) + '</td></tr>';
   h += '</tbody></table></div></div>';
   return h;
 }
@@ -962,14 +839,6 @@ function modifierFiche(id) {
   f.themes = themes;
   var graces = prompt('Grâces :', f.graces); if (graces === null) return;
   f.graces = graces;
-  var points = prompt('Points :', f.points); if (points === null) return;
-  f.points = points;
-  var sol = prompt('Solutions :', f.solutions); if (sol === null) return;
-  f.solutions = sol;
-  var obj = prompt('Objectifs :', f.objectifs); if (obj === null) return;
-  f.objectifs = obj;
-  var act = prompt('Actions :', f.actions); if (act === null) return;
-  f.actions = act;
   DB.set('fichesMensuelles', list);
   alert('✅ Modifiée');
   rechercherFreqAvance();
@@ -997,14 +866,10 @@ function rechercherFreqAvance() {
   var annee = (document.getElementById('searchFreqAnnee').value || '').trim();
   var mois = document.getElementById('searchFreqMois').value;
   var statut = document.getElementById('searchFreqStatut').value;
-  var fiches = DB.get('fichesMensuelles', []);
-  fiches = filtrerListe(fiches, statut);
+  var fiches = filtrerListe(DB.get('fichesMensuelles', []), statut);
   fiches = fiches.filter(function(f) {
     var nom = getEntiteNom(f.entiteId).toUpperCase();
-    var okQ = !q || nom.indexOf(q) !== -1;
-    var okA = !annee || String(f.annee) === annee;
-    var okM = !mois || f.mois === mois;
-    return okQ && okA && okM;
+    return (!q || nom.indexOf(q) !== -1) && (!annee || String(f.annee) === annee) && (!mois || f.mois === mois);
   });
   var html = '<h3>Résultats (' + fiches.length + ')</h3>';
   if (!fiches.length) html += '<p>Aucun résultat.</p>';
@@ -1020,7 +885,6 @@ function reinitialiserRechercheFreq() {
   document.getElementById('rapportFreqBox').innerHTML = '';
 }
 
-// ========== RAPPORTS MODULE I ==========
 function rapportFreqGlobal() {
   var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
   var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
@@ -1034,10 +898,7 @@ function rapportFreqGlobal() {
   html += '<tr><td>Total Sympathisants</td><td class="num">' + ts + '</td></tr>';
   html += '<tr><td>Total Nouveaux</td><td class="num">' + tn + '</td></tr>';
   html += '</tbody></table></div>';
-  if (fiches.length) {
-    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Fiches actives</h4>';
-    fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
-  }
+  if (fiches.length) fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
@@ -1049,7 +910,7 @@ function rapportFreqDetaille() {
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
-// ========== MODULE II — PHOTO ==========
+// ========== MODULE II — PHOTO (compression renforcée 250px/0.65) ==========
 function previewPhotoCandidat(ev) {
   var file = ev.target.files[0];
   if (!file) { photoCandidatTemp = null; var p = document.getElementById('cPhotoPreview'); if (p) p.innerHTML = ''; return; }
@@ -1059,12 +920,12 @@ function previewPhotoCandidat(ev) {
     var img = new Image();
     img.onload = function() {
       var canvas = document.createElement('canvas');
-      canvas.width = 300; canvas.height = 300;
+      canvas.width = 250; canvas.height = 250;
       var ctx = canvas.getContext('2d');
       var min = Math.min(img.width, img.height);
       var sx = (img.width - min) / 2, sy = (img.height - min) / 2;
-      ctx.drawImage(img, sx, sy, min, min, 0, 0, 300, 300);
-      photoCandidatTemp = canvas.toDataURL('image/jpeg', 0.8);
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, 250, 250);
+      photoCandidatTemp = canvas.toDataURL('image/jpeg', 0.65);
       document.getElementById('cPhotoPreview').innerHTML = '<img src="' + photoCandidatTemp + '" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c;box-shadow:0 2px 8px rgba(0,0,0,0.2)">';
     };
     img.src = e.target.result;
@@ -1103,7 +964,7 @@ function initSignature() {
     signatureCtx.beginPath(); signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); signatureCtx.fill();
     signatureVide = false;
     var st = document.getElementById('vSignatureStatus');
-    if (st) { st.textContent = '✅ Signature enregistrée'; st.style.color = '#0a6e2c'; }
+    if (st) { st.textContent = '✅ Signé'; st.style.color = '#0a6e2c'; }
   }
   function move(e) {
     if (!drawing) return;
@@ -1144,14 +1005,8 @@ function ajouterCandidat() {
   if (!nom) return alert('Entrez le nom');
   if (!nomEntite) return alert('Entrez l\'entité');
   var list = DB.get('candidats', []);
-  var existe = list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.statut === 'en_cours' && !c.archived; });
-  if (existe) return alert('⚠️ Candidat déjà en cours pour ce motif');
-  list.push({
-    id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite,
-    responsable: responsable, motif: motif, montantPrevu: montant, taux: taux,
-    totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(),
-    photo: photoCandidatTemp || null, archived: false
-  });
+  if (list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.statut === 'en_cours' && !c.archived; })) return alert('⚠️ Candidat déjà en cours');
+  list.push({ id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite, responsable: responsable, motif: motif, montantPrevu: montant, taux: taux, totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(), photo: photoCandidatTemp || null, archived: false });
   DB.set('candidats', list);
   reinitialiserFormCandidat();
   refreshAll();
@@ -1159,8 +1014,7 @@ function ajouterCandidat() {
 }
 
 function reinitialiserFormCandidat() {
-  var ids = ['cNom','cNomEntite','cResponsable'];
-  ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['cNom','cNomEntite','cResponsable'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   var m = document.getElementById('cMontant'); if (m) m.value = 200;
   var t = document.getElementById('cTaux'); if (t) t.value = 2300;
   var p = document.getElementById('cPhotoPreview'); if (p) p.innerHTML = '';
@@ -1172,8 +1026,7 @@ function reinitialiserFormCandidat() {
 function afficherCandidats() {
   var search = (document.getElementById('searchCand') ? document.getElementById('searchCand').value : '').toLowerCase();
   var filtre = document.getElementById('filtreCandidats') ? document.getElementById('filtreCandidats').value : 'actif';
-  var allCands = DB.get('candidats', []);
-  var list = allCands.slice();
+  var list = DB.get('candidats', []).slice();
   if (filtre === 'en_cours') list = list.filter(function(c) { return c.statut === 'en_cours' && !c.archived; });
   else if (filtre === 'termine') list = list.filter(function(c) { return c.statut === 'termine' && !c.archived; });
   else if (filtre === 'archive') list = list.filter(function(c) { return c.archived === true; });
@@ -1182,32 +1035,27 @@ function afficherCandidats() {
   list.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
   var box = document.getElementById('listeCandidats');
   if (!box) return;
-  if (!list.length) { box.innerHTML = '<p>Aucun candidat.</p>'; }
-  else {
-    var html = '<div class="table-wrapper"><table class="data-table">';
-    html += '<thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Statut</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
-    list.forEach(function(c) {
-      var badge = c.archived ? '<span class="badge badge-archive">📦</span>' : (c.statut === 'termine' ? '<span class="badge badge-ok">✅</span>' : '<span class="badge badge-progress">⏳</span>');
-      html += '<tr' + (c.archived ? ' style="opacity:0.6"' : '') + '><td style="text-align:center">';
-      if (c.photo) html += '<img src="' + c.photo + '" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
-      else html += '<div style="width:42px;height:42px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:16px">👤</div>';
-      html += '</td>';
-      html += '<td>' + echapper(c.nom) + '</td>';
-      html += '<td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td>';
-      html += '<td>' + echapper(c.motif) + '</td>';
-      html += '<td>' + badge + '</td>';
-      html += '<td class="num">' + c.totalVerse.toFixed(2) + '$</td>';
-      html += '<td>';
-      html += '<button class="btn-mini" onclick="verserRapide(\'' + c.id + '\')">💵</button>';
-      html += '<button class="btn-mini blue" onclick="changerPhoto(\'' + c.id + '\')">📷</button>';
-      html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')">✏️</button>';
-      html += '<button class="btn-mini ' + (c.archived ? 'blue' : 'gray') + '" onclick="archiverCandidat(\'' + c.id + '\')">' + (c.archived ? '↩️' : '📦') + '</button>';
-      html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')">🗑️</button>';
-      html += '</td></tr>';
-    });
-    html += '</tbody></table></div>';
-    box.innerHTML = html;
-  }
+  if (!list.length) { box.innerHTML = '<p>Aucun candidat.</p>'; return; }
+  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Statut</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
+  list.forEach(function(c) {
+    var badge = c.archived ? '<span class="badge badge-archive">📦</span>' : (c.statut === 'termine' ? '<span class="badge badge-ok">✅</span>' : '<span class="badge badge-progress">⏳</span>');
+    html += '<tr' + (c.archived ? ' style="opacity:0.6"' : '') + '><td style="text-align:center">';
+    if (c.photo) html += '<img src="' + c.photo + '" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
+    else html += '<div style="width:42px;height:42px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:16px">👤</div>';
+    html += '</td><td>' + echapper(c.nom) + '</td>';
+    html += '<td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td>';
+    html += '<td>' + echapper(c.motif) + '</td><td>' + badge + '</td>';
+    html += '<td class="num">' + c.totalVerse.toFixed(2) + '$</td>';
+    html += '<td>';
+    html += '<button class="btn-mini" onclick="verserRapide(\'' + c.id + '\')">💵</button>';
+    html += '<button class="btn-mini blue" onclick="changerPhoto(\'' + c.id + '\')">📷</button>';
+    html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')">✏️</button>';
+    html += '<button class="btn-mini ' + (c.archived ? 'blue' : 'gray') + '" onclick="archiverCandidat(\'' + c.id + '\')">' + (c.archived ? '↩️' : '📦') + '</button>';
+    html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')">🗑️</button>';
+    html += '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
 }
 
 function voirPhoto(cid) {
@@ -1215,12 +1063,11 @@ function voirPhoto(cid) {
   if (!c || !c.photo) return;
   var w = window.open('', '_blank');
   w.document.write('<html><head><meta charset="UTF-8"><title>Photo</title><style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column}img{max-width:90vw;max-height:80vh;border:4px solid white;border-radius:8px}p{color:white;font-family:Arial;margin-top:20px;font-size:18px}</style></head><body>');
-  w.document.write('<img src="' + c.photo + '"><p>' + echapper(c.nom) + '</p>');
-  w.document.write('</body></html>');
+  w.document.write('<img src="' + c.photo + '"><p>' + echapper(c.nom) + '</p></body></html>');
 }
 
 function changerPhoto(cid) {
-  var choix = confirm('📸 OK = Prendre une photo (caméra)\n❌ Annuler = Choisir dans la galerie');
+  var choix = confirm('📸 OK = Caméra\n❌ Annuler = Galerie');
   var input = document.createElement('input');
   input.type = 'file'; input.accept = 'image/*';
   if (choix) input.capture = 'user';
@@ -1233,11 +1080,11 @@ function changerPhoto(cid) {
       var img = new Image();
       img.onload = function() {
         var canvas = document.createElement('canvas');
-        canvas.width = 300; canvas.height = 300;
+        canvas.width = 250; canvas.height = 250;
         var ctx = canvas.getContext('2d');
         var min = Math.min(img.width, img.height);
-        ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 300, 300);
-        var data = canvas.toDataURL('image/jpeg', 0.8);
+        ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 250, 250);
+        var data = canvas.toDataURL('image/jpeg', 0.65);
         var list = DB.get('candidats', []);
         var c = list.find(function(x) { return x.id === cid; });
         if (c) { c.photo = data; DB.set('candidats', list); refreshAll(); alert('✅ Photo mise à jour'); }
@@ -1263,8 +1110,7 @@ function modifierCandidat(cid) {
   c.nomEntite = entite.trim().toUpperCase();
   c.responsable = resp.trim();
   c.montantPrevu = parseFloat(montant) || c.montantPrevu;
-  if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine';
-  else c.statut = 'en_cours';
+  c.statut = (c.totalVerse >= c.montantPrevu - 0.01) ? 'termine' : 'en_cours';
   DB.set('candidats', list);
   refreshAll();
   alert('✅ Modifié');
@@ -1354,7 +1200,7 @@ function enregistrerVersement() {
   DB.set('candidats', cands);
   reinitialiserFormVersement();
   refreshAll();
-  alert('✅ Versement enregistré : ' + montantUSD.toFixed(2) + '$');
+  alert('✅ Versement : ' + montantUSD.toFixed(2) + '$');
 }
 
 function reinitialiserFormVersement() {
@@ -1365,27 +1211,24 @@ function reinitialiserFormVersement() {
 
 function afficherVersements() {
   var filtre = document.getElementById('filtreVersements') ? document.getElementById('filtreVersements').value : 'actif';
-  var allVers = DB.get('versements', []);
-  var vers = filtrerListe(allVers, filtre);
+  var vers = filtrerListe(DB.get('versements', []), filtre);
   var box = document.getElementById('historiqueVersements');
   if (!box) return;
   if (!vers.length) { box.innerHTML = '<p>Aucun versement.</p>'; return; }
   var parCandidat = {};
   vers.forEach(function(v) { if (!parCandidat[v.candId]) parCandidat[v.candId] = []; parCandidat[v.candId].push(v); });
   var html = '';
-  var ids = Object.keys(parCandidat).sort(function(a, b) {
+  Object.keys(parCandidat).sort(function(a, b) {
     var ca = DB.get('candidats', []).find(function(x) { return x.id === a; });
     var cb = DB.get('candidats', []).find(function(x) { return x.id === b; });
     return (ca ? ca.nom : '').localeCompare(cb ? cb.nom : '');
-  });
-  ids.forEach(function(cid) {
+  }).forEach(function(cid) {
     var c = DB.get('candidats', []).find(function(x) { return x.id === cid; });
     if (!c) return;
     var lignes = parCandidat[cid].slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
     var totalFC = 0, totalUSD = 0;
     lignes.forEach(function(v) { totalUSD += v.montantUSD; if (v.monnaie === 'FC') totalFC += v.montantOrigine; });
-    html += '<div class="entity-block">';
-    html += '<h4 style="display:flex;align-items:center;gap:8px">';
+    html += '<div class="entity-block"><h4 style="display:flex;align-items:center;gap:8px">';
     if (c.photo) html += '<img src="' + c.photo + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c">';
     html += '👤 ' + echapper(c.nom) + '</h4>';
     html += '<div style="font-size:12px;color:#666;margin-bottom:8px">' + echapper(c.typeEntite) + ' - <strong>' + echapper(c.nomEntite) + '</strong> | ' + echapper(c.motif) + '</div>';
@@ -1403,9 +1246,7 @@ function afficherVersements() {
       html += '<button class="btn-mini blue" onclick="imprimerRecu(\'' + v.id + '\')">🖨️</button>';
       html += '</td></tr>';
     });
-    html += '</tbody><tfoot>';
-    html += '<tr><td>TOTAL</td><td class="num">' + totalFC.toLocaleString() + ' FC</td><td class="num">' + totalUSD.toFixed(2) + '$</td><td></td><td></td></tr>';
-    html += '</tfoot></table></div></div>';
+    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totalFC.toLocaleString() + ' FC</td><td class="num">' + totalUSD.toFixed(2) + '$</td><td></td><td></td></tr></tfoot></table></div></div>';
   });
   box.innerHTML = html;
 }
@@ -1416,8 +1257,7 @@ function voirSignature(vid) {
   var c = DB.get('candidats', []).find(function(x) { return x.id === v.candId; });
   var w = window.open('', '_blank');
   w.document.write('<html><head><meta charset="UTF-8"><title>Signature</title><style>body{margin:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;font-family:Arial}img{max-width:90vw;background:white;border:2px solid #0a6e2c;border-radius:8px;padding:20px}p{color:#333;margin-top:20px;font-size:16px;text-align:center}</style></head><body>');
-  w.document.write('<img src="' + v.signature + '"><p><strong>' + (c ? echapper(c.nom) : '') + '</strong><br>' + fmtDate(v.date) + ' — ' + v.montantUSD.toFixed(2) + ' $</p>');
-  w.document.write('</body></html>');
+  w.document.write('<img src="' + v.signature + '"><p><strong>' + (c ? echapper(c.nom) : '') + '</strong><br>' + fmtDate(v.date) + ' — ' + v.montantUSD.toFixed(2) + ' $</p></body></html>');
 }
 
 function modifierVersement(vid) {
@@ -1466,7 +1306,6 @@ function supprimerVersement(vid) {
   alert('✅ Supprimé');
 }
 
-// ========== REÇU ==========
 function imprimerRecu(vid) {
   var v = DB.get('versements', []).find(function(x) { return x.id === vid; });
   if (!v) return;
@@ -1474,20 +1313,7 @@ function imprimerRecu(vid) {
   if (!c) return;
   var w = window.open('', '_blank');
   w.document.write('<html><head><meta charset="UTF-8"><title>Reçu</title><style>');
-  w.document.write('body{font-family:Arial;padding:30px;max-width:600px;margin:auto}');
-  w.document.write('.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}');
-  w.document.write('h1{color:#0a6e2c;font-size:18px}');
-  w.document.write('.logo{width:80px;height:80px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;margin-bottom:10px}');
-  w.document.write('.photo-box{text-align:center;margin:15px 0}');
-  w.document.write('.photo-box img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}');
-  w.document.write('table{width:100%;border-collapse:collapse;margin:20px 0}');
-  w.document.write('td{padding:8px;border-bottom:1px solid #ddd}');
-  w.document.write('td.label{font-weight:bold;color:#0a6e2c}');
-  w.document.write('.montant{font-size:22px;color:#0a6e2c;font-weight:bold;text-align:center;padding:20px;background:#e8f5e9;border-radius:8px}');
-  w.document.write('.signature{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end}');
-  w.document.write('.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}');
-  w.document.write('.sig-img{width:45%;text-align:center;padding-bottom:5px}');
-  w.document.write('.sig-img img{max-height:70px;max-width:100%;border-bottom:1px solid #333}');
+  w.document.write('body{font-family:Arial;padding:30px;max-width:600px;margin:auto}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}h1{color:#0a6e2c;font-size:18px}.logo{width:80px;height:80px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;margin-bottom:10px}.photo-box{text-align:center;margin:15px 0}.photo-box img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}table{width:100%;border-collapse:collapse;margin:20px 0}td{padding:8px;border-bottom:1px solid #ddd}td.label{font-weight:bold;color:#0a6e2c}.montant{font-size:22px;color:#0a6e2c;font-weight:bold;text-align:center;padding:20px;background:#e8f5e9;border-radius:8px}.signature{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end}.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}.sig-img{width:45%;text-align:center;padding-bottom:5px}.sig-img img{max-height:70px;max-width:100%;border-bottom:1px solid #333}');
   w.document.write('</style></head><body>');
   w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666">EMM MONDIAL - Finance</p><h2 style="color:#0a6e2c">REÇU DE VERSEMENT</h2></div>');
   if (c.photo) w.document.write('<div class="photo-box"><img src="' + c.photo + '"><p style="font-size:14px;font-weight:bold;margin-top:6px">' + echapper(c.nom) + '</p></div>');
@@ -1500,26 +1326,21 @@ function imprimerRecu(vid) {
   w.document.write('<div class="signature">');
   if (v.signature) w.document.write('<div class="sig-img"><img src="' + v.signature + '"><br><small>Le candidat</small></div>');
   else w.document.write('<div class="sig-line">Le candidat</div>');
-  w.document.write('<div class="sig-line">Le responsable</div>');
-  w.document.write('</div>');
-  w.document.write('</body></html>');
+  w.document.write('<div class="sig-line">Le responsable</div></div></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 500);
 }
 
-// ========== RECHERCHE PAR ENTITÉ ==========
 function rechercherParEntite() {
   var q = (document.getElementById('searchEntiteFinance').value || '').trim().toUpperCase();
   var type = document.getElementById('searchEntiteType').value;
   var box = document.getElementById('resultatRechercheEntite');
   if (!box) return;
-  if (!q && !type) { box.innerHTML = '<p style="color:#888;font-size:13px">Entrez un nom pour voir les candidats.</p>'; return; }
+  if (!q && !type) { box.innerHTML = '<p style="color:#888;font-size:13px">Entrez un nom.</p>'; return; }
   var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).filter(function(c) {
-    var okQ = !q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1);
-    var okT = !type || c.typeEntite === type;
-    return okQ && okT;
+    return (!q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1)) && (!type || c.typeEntite === type);
   });
-  if (!cands.length) { box.innerHTML = '<p style="color:#888;font-size:13px">Aucun candidat trouvé.</p>'; return; }
+  if (!cands.length) { box.innerHTML = '<p style="color:#888;font-size:13px">Aucun candidat.</p>'; return; }
   var parEntite = {};
   cands.forEach(function(c) { var key = c.typeEntite + ' - ' + c.nomEntite; if (!parEntite[key]) parEntite[key] = []; parEntite[key].push(c); });
   var html = '';
@@ -1527,20 +1348,17 @@ function rechercherParEntite() {
     var liste = parEntite[key];
     var totalPrevu = 0, totalVerse = 0;
     liste.forEach(function(c) { totalPrevu += c.montantPrevu; totalVerse += (c.totalVerse || 0); });
-    html += '<div class="entity-block">';
-    html += '<h4>🏛️ ' + echapper(key) + '</h4>';
+    html += '<div class="entity-block"><h4>🏛️ ' + echapper(key) + '</h4>';
     html += '<div style="font-size:12px;color:#666;margin-bottom:8px">' + liste.length + ' candidat(s) | Prévu : <strong>' + totalPrevu.toFixed(2) + '$</strong> | Versé : <strong>' + totalVerse.toFixed(2) + '$</strong> | Solde : <strong style="color:#c62828">' + (totalPrevu - totalVerse).toFixed(2) + '$</strong></div>';
-    html += '<div class="table-wrapper"><table class="data-table">';
-    html += '<thead><tr><th>Photo</th><th>Nom</th><th>Motif</th><th>Statut</th><th>Prévu</th><th>Versé</th><th>Solde</th><th>Relevé</th></tr></thead><tbody>';
+    html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Nom</th><th>Motif</th><th>Statut</th><th>Prévu</th><th>Versé</th><th>Solde</th><th>Relevé</th></tr></thead><tbody>';
     liste.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
     liste.forEach(function(c) {
       var solde = c.montantPrevu - (c.totalVerse || 0);
-      var badge = c.statut === 'termine' ? '<span class="badge badge-ok">✅ Terminé</span>' : '<span class="badge badge-progress">⏳ En cours</span>';
+      var badge = c.statut === 'termine' ? '<span class="badge badge-ok">✅</span>' : '<span class="badge badge-progress">⏳</span>';
       html += '<tr><td style="text-align:center">';
       if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
       else html += '<div style="width:36px;height:36px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:14px">👤</div>';
-      html += '</td>';
-      html += '<td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + badge + '</td>';
+      html += '</td><td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + badge + '</td>';
       html += '<td class="num">' + c.montantPrevu + '$</td><td class="num">' + (c.totalVerse || 0).toFixed(2) + '$</td>';
       html += '<td class="num">' + solde.toFixed(2) + '$</td>';
       html += '<td><button class="btn-mini blue" onclick="afficherReleveVersement(\'' + c.id + '\')">📋</button></td></tr>';
@@ -1559,18 +1377,7 @@ function afficherReleveVersement(candId) {
   vers.forEach(function(v) { totalUSD += v.montantUSD; if (v.monnaie === 'FC') totalFC += v.montantOrigine; });
   var w = window.open('', '_blank');
   w.document.write('<html><head><meta charset="UTF-8"><title>Relevé</title><style>');
-  w.document.write('body{font-family:Arial;padding:24px;max-width:800px;margin:auto;color:#222}');
-  w.document.write('.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}');
-  w.document.write('.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}');
-  w.document.write('h1{color:#0a6e2c;font-size:18px}h2{color:#333;font-size:14px;margin:15px 0 10px;border-left:4px solid #0a6e2c;padding-left:8px}');
-  w.document.write('table{width:100%;border-collapse:collapse;margin:15px 0;font-size:13px}');
-  w.document.write('th{background:#0a6e2c;color:white;padding:8px;text-align:left}');
-  w.document.write('td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}');
-  w.document.write('tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}');
-  w.document.write('.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:15px 0;border-left:4px solid #0a6e2c}.info p{margin:4px 0;font-size:13px}');
-  w.document.write('.solde{font-size:15px;color:#0a6e2c;font-weight:bold;text-align:center;padding:15px;background:#e8f5e9;border-radius:8px;margin-top:15px}');
-  w.document.write('.signature{margin-top:60px;display:flex;justify-content:space-between}.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}');
-  w.document.write('.photo-top{text-align:center;margin:15px 0}.photo-top img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}');
+  w.document.write('body{font-family:Arial;padding:24px;max-width:800px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#333;font-size:14px;margin:15px 0 10px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:15px 0;font-size:13px}th{background:#0a6e2c;color:white;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:15px 0;border-left:4px solid #0a6e2c}.info p{margin:4px 0;font-size:13px}.solde{font-size:15px;color:#0a6e2c;font-weight:bold;text-align:center;padding:15px;background:#e8f5e9;border-radius:8px;margin-top:15px}.signature{margin-top:60px;display:flex;justify-content:space-between}.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}.photo-top{text-align:center;margin:15px 0}.photo-top img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}');
   w.document.write('</style></head><body>');
   w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666;font-size:12px">EMM MONDIAL — Finance</p><h2 style="border:none;text-align:center">RELEVÉ DE VERSEMENT INDIVIDUEL</h2></div>');
   if (c.photo) w.document.write('<div class="photo-top"><img src="' + c.photo + '"></div>');
@@ -1579,8 +1386,7 @@ function afficherReleveVersement(candId) {
   w.document.write('<p><strong>Entité :</strong> ' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</p>');
   w.document.write('<p><strong>Responsable :</strong> ' + echapper(c.responsable || '-') + '</p>');
   w.document.write('<p><strong>Motif :</strong> ' + echapper(c.motif) + '</p>');
-  w.document.write('<p><strong>Statut :</strong> ' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</p>');
-  w.document.write('<p><strong>Date d\'inscription :</strong> ' + fmtDate(c.dateInscription) + '</p></div>');
+  w.document.write('<p><strong>Statut :</strong> ' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</p></div>');
   w.document.write('<h2>Détail des versements (' + vers.length + ')</h2>');
   if (vers.length) {
     w.document.write('<table><thead><tr><th>#</th><th>Date</th><th>Monnaie</th><th>Montant</th><th>Taux</th><th>USD</th><th>Signature</th></tr></thead><tbody>');
@@ -1593,8 +1399,7 @@ function afficherReleveVersement(candId) {
   w.document.write('<div class="solde">Montant prévu : ' + c.montantPrevu + ' $<br>Total versé : ' + totalUSD.toFixed(2) + ' $');
   if (totalFC > 0) w.document.write(' (dont ' + totalFC.toLocaleString() + ' FC)');
   w.document.write('<br>Solde restant : ' + (c.montantPrevu - totalUSD).toFixed(2) + ' $</div>');
-  w.document.write('<div class="signature"><div class="sig-line">Le candidat</div><div class="sig-line">Le responsable</div></div>');
-  w.document.write('</body></html>');
+  w.document.write('<div class="signature"><div class="sig-line">Le candidat</div><div class="sig-line">Le responsable</div></div></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 500);
 }
@@ -1604,24 +1409,14 @@ function relevéCompletEntite() {
   var type = document.getElementById('searchEntiteType').value;
   if (!q && !type) return alert('Entrez d\'abord un nom');
   var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).filter(function(c) {
-    var okQ = !q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1);
-    var okT = !type || c.typeEntite === type;
-    return okQ && okT;
+    return (!q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1)) && (!type || c.typeEntite === type);
   });
   if (!cands.length) return alert('Aucun candidat');
   var vers = DB.get('versements', []).filter(function(v) { return !v.archived; });
   var parEntite = {};
   cands.forEach(function(c) { var key = c.typeEntite + ' - ' + c.nomEntite; if (!parEntite[key]) parEntite[key] = []; parEntite[key].push(c); });
   var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé entité</title><style>');
-  w.document.write('body{font-family:Arial;padding:24px;max-width:900px;margin:auto;color:#222}');
-  w.document.write('.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}h1{color:#0a6e2c;font-size:20px;text-align:center}');
-  w.document.write('h2{color:#0a6e2c;font-size:14px;margin:20px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}');
-  w.document.write('table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}');
-  w.document.write('th{background:#0a6e2c;color:white;padding:6px;text-align:left}');
-  w.document.write('td{padding:6px;border-bottom:1px solid #ddd}td.num{text-align:right}');
-  w.document.write('tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}');
-  w.document.write('</style></head><body>');
+  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé entité</title><style>body{font-family:Arial;padding:24px;max-width:900px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}h1{color:#0a6e2c;font-size:20px;text-align:center}h2{color:#0a6e2c;font-size:14px;margin:20px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}th{background:#0a6e2c;color:white;padding:6px;text-align:left}td{padding:6px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}</style></head><body>');
   w.document.write('<div class="header"><h1>EMM MONDIAL</h1><p style="text-align:center;color:#666;font-size:12px">Relevé global par entité</p></div>');
   Object.keys(parEntite).forEach(function(key) {
     var liste = parEntite[key];
@@ -1636,13 +1431,11 @@ function relevéCompletEntite() {
     });
     w.document.write('</tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">' + totalPrevu.toFixed(2) + '$</td><td class="num">' + totalVerse.toFixed(2) + '$</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td><td></td></tr></tfoot></table>');
   });
-  w.document.write('<p style="text-align:center;font-size:11px;color:#888;margin-top:30px">Généré le ' + new Date().toLocaleString('fr-FR') + ' par ' + (currentUser ? currentUser.nom : '') + '</p>');
-  w.document.write('</body></html>');
+  w.document.write('<p style="text-align:center;font-size:11px;color:#888;margin-top:30px">Généré le ' + new Date().toLocaleString('fr-FR') + '</p></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 600);
 }
 
-// ========== RAPPORTS MODULE II ==========
 function rapportFinGlobal() {
   var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
   var vers = DB.get('versements', []).filter(function(v) { return !v.archived; });
@@ -1657,21 +1450,6 @@ function rapportFinGlobal() {
   html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr>';
   html += '<tr><td>Versements</td><td class="num">' + vers.length + '</td></tr>';
   html += '</tbody></table></div>';
-  if (cands.length) {
-    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Candidats actifs avec actions</h4>';
-    cands.forEach(function(c) {
-      html += '<div class="entity-block">';
-      html += '<h4 style="display:flex;align-items:center;gap:8px">';
-      if (c.photo) html += '<img src="' + c.photo + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c">';
-      html += '👤 ' + echapper(c.nom) + '</h4>';
-      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | ' + echapper(c.motif) + '</div>';
-      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-      html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-      html += '<button class="btn-mini gray" onclick="archiverCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-      html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
-      html += '</div></div>';
-    });
-  }
   document.getElementById('rapportFinBox').innerHTML = html;
 }
 
@@ -1681,17 +1459,10 @@ function rapportFinDetaille() {
   if (!cands.length) html += '<p>Aucun candidat.</p>';
   else {
     cands.forEach(function(c) {
-      html += '<div class="entity-block">';
-      html += '<h4 style="display:flex;align-items:center;gap:8px">';
-      if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">';
+      html += '<div class="entity-block"><h4>';
+      if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">';
       html += '👤 ' + echapper(c.nom) + '</h4>';
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div>';
-      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-      html += '<button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-      html += '<button class="btn-mini gray" onclick="archiverCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-      html += '<button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
-      html += '<button class="btn-mini blue" onclick="afficherReleveVersement(\'' + c.id + '\')" style="padding:8px 12px;font-size:12px">📋 Relevé</button>';
-      html += '</div>';
       html += '<div class="table-wrapper"><table class="data-table"><tbody>';
       html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr>';
       html += '<tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr>';
@@ -1720,9 +1491,7 @@ function demarrerSeance() {
 }
 
 function reinitialiserSeance() {
-  if (seanceActive) {
-    if (!confirm('⚠️ Réinitialiser la séance en cours ?')) return;
-  }
+  if (seanceActive) { if (!confirm('⚠️ Réinitialiser la séance ?')) return; }
   seanceActive = null;
   document.getElementById('seanceStatus').innerHTML = '';
   document.getElementById('cardEntiteActive').style.display = 'none';
@@ -1741,8 +1510,8 @@ function ajouterOffrandeUnifiee() {
   var nom = document.getElementById('dOffrandeNom').value.trim();
   var fc = parseFloat(document.getElementById('dOffrandeFC').value) || 0;
   var usd = parseFloat(document.getElementById('dOffrandeUSD').value) || 0;
-  if (!nom) return alert('Entrez le nom de la personne');
-  if (fc === 0 && usd === 0) return alert('Entrez au moins un montant');
+  if (!nom) return alert('Entrez le nom');
+  if (fc === 0 && usd === 0) return alert('Entrez un montant');
   tempOffrandes[cat].push({ nom: nom, fc: fc, usd: usd });
   document.getElementById('dOffrandeNom').value = '';
   document.getElementById('dOffrandeFC').value = 0;
@@ -1760,37 +1529,31 @@ function afficherOffrandes() {
     if (!arr.length) return;
     var totFC = arr.reduce(function(a, o) { return a + o.fc; }, 0);
     var totUSD = arr.reduce(function(a, o) { return a + o.usd; }, 0);
-    totalGeneralFC += totFC;
-    totalGeneralUSD += totUSD;
-    html += '<div style="background:#f9f9f9;border-radius:8px;padding:8px;margin-bottom:8px;border-left:3px solid #0a6e2c;overflow:hidden;max-width:100%">';
+    totalGeneralFC += totFC; totalGeneralUSD += totUSD;
+    html += '<div style="background:#f9f9f9;border-radius:8px;padding:8px;margin-bottom:8px;border-left:3px solid #0a6e2c">';
     html += '<div style="font-weight:600;color:#0a6e2c;font-size:13px;margin-bottom:4px">' + CATEGORIES_OFFRANDES[cat] + '</div>';
     html += '<div class="table-wrapper"><table class="data-table" style="font-size:12px"><tbody>';
     arr.forEach(function(o, i) {
       html += '<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td>';
       html += '<td><button class="btn-mini danger" onclick="retirerOffrande(\'' + cat + '\',' + i + ')">✖</button></td></tr>';
     });
-    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td><td></td></tr></tfoot></table></div>';
-    html += '</div>';
+    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td><td></td></tr></tfoot></table></div></div>';
   });
   if (totalGeneralFC > 0 || totalGeneralUSD > 0) {
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;border:2px solid #0a6e2c">';
-    html += '<div style="font-weight:700;color:#0a6e2c;font-size:13px">TOTAL GÉNÉRAL OFFRANDES SPÉCIALES</div>';
-    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:700;margin-top:4px">' + totalGeneralFC.toLocaleString() + ' FC / ' + totalGeneralUSD.toLocaleString() + ' $</div>';
-    html += '</div>';
+    html += '<div style="font-weight:700;color:#0a6e2c;font-size:13px">TOTAL GÉNÉRAL</div>';
+    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:700;margin-top:4px">' + totalGeneralFC.toLocaleString() + ' FC / ' + totalGeneralUSD.toLocaleString() + ' $</div></div>';
   }
   box.innerHTML = html;
 }
 
-function retirerOffrande(cat, idx) {
-  tempOffrandes[cat].splice(idx, 1);
-  afficherOffrandes();
-}
+function retirerOffrande(cat, idx) { tempOffrandes[cat].splice(idx, 1); afficherOffrandes(); }
 
 function enregistrerEntiteSeance() {
   if (!seanceActive) return alert('⚠️ Démarrez d\'abord une séance');
   var nom = document.getElementById('dNomEntite').value.trim().toUpperCase();
-  if (!nom) return alert('Entrez le nom de l\'entité');
-  var entite = {
+  if (!nom) return alert('Entrez le nom');
+  seanceActive.entites.push({
     typeEntite: document.getElementById('dTypeEntite').value,
     nomEntite: nom,
     responsable: document.getElementById('dResponsable').value.trim(),
@@ -1808,8 +1571,7 @@ function enregistrerEntiteSeance() {
     mita: JSON.parse(JSON.stringify(tempOffrandes.mita)),
     transFC: parseFloat(document.getElementById('dTransFC').value) || 0,
     transUSD: parseFloat(document.getElementById('dTransUSD').value) || 0
-  };
-  seanceActive.entites.push(entite);
+  });
   tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
   afficherOffrandes();
   reinitialiserFormEntiteSeance();
@@ -1818,10 +1580,8 @@ function enregistrerEntiteSeance() {
 }
 
 function reinitialiserFormEntiteSeance() {
-  var ids = ['dNomEntite','dResponsable','dOffrandeNom'];
-  ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
-  var nums = ['dEnveloppes','dConstrFC','dConstrUSD','dNormFC','dNormUSD','dTransFC','dTransUSD','dOffrandeFC','dOffrandeUSD'];
-  nums.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = 0; });
+  ['dNomEntite','dResponsable','dOffrandeNom'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['dEnveloppes','dConstrFC','dConstrUSD','dNormFC','dNormUSD','dTransFC','dTransUSD','dOffrandeFC','dOffrandeUSD'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = 0; });
   var sel = document.getElementById('dOffrandeCategorie'); if (sel) sel.selectedIndex = 0;
   afficherOffrandes();
 }
@@ -1829,7 +1589,7 @@ function reinitialiserFormEntiteSeance() {
 function afficherEntitesSeance() {
   var box = document.getElementById('listeEntitesSeance');
   if (!box || !seanceActive) return;
-  if (!seanceActive.entites.length) { box.innerHTML = '<p style="color:#888">Aucune entité enregistrée.</p>'; return; }
+  if (!seanceActive.entites.length) { box.innerHTML = '<p style="color:#888">Aucune entité.</p>'; return; }
   var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>#</th><th>Entité</th><th>Responsable</th><th>Enveloppes</th><th>Actions</th></tr></thead><tbody>';
   seanceActive.entites.forEach(function(e, i) {
     html += '<tr><td>' + (i + 1) + '</td><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td><td>' + echapper(e.responsable) + '</td><td class="num">' + (e.enveloppes || 0) + '</td>';
@@ -1840,13 +1600,13 @@ function afficherEntitesSeance() {
 }
 
 function retirerEntiteSeance(i) {
-  if (!confirm('⚠️ Retirer cette entité ?')) return;
+  if (!confirm('⚠️ Retirer ?')) return;
   seanceActive.entites.splice(i, 1);
   afficherEntitesSeance();
 }
 
 function passerAuxDepenses() {
-  if (!seanceActive || !seanceActive.entites.length) return alert('⚠️ Enregistrez au moins une entité');
+  if (!seanceActive || !seanceActive.entites.length) return alert('⚠️ Enregistrez une entité');
   document.getElementById('cardDepensesSeance').style.display = 'block';
   document.getElementById('cardDepensesSeance').scrollIntoView({ behavior: 'smooth' });
 }
@@ -1857,7 +1617,7 @@ function ajouterDepenseSeance() {
   var usd = parseFloat(document.getElementById('dgUSD').value) || 0;
   var motif = document.getElementById('dgMotif').value.trim();
   if (!motif) return alert('Motif obligatoire');
-  if (fc === 0 && usd === 0) return alert('Entrez au moins un montant');
+  if (fc === 0 && usd === 0) return alert('Entrez un montant');
   seanceActive.depensesGenerales.push({ fc: fc, usd: usd, motif: motif });
   reinitialiserFormDepenseSeance();
   afficherDepensesSeance();
@@ -1884,7 +1644,7 @@ function afficherDepensesSeance() {
 }
 
 function retirerDepenseSeance(i) {
-  if (!confirm('⚠️ Retirer cette dépense ?')) return;
+  if (!confirm('⚠️ Retirer ?')) return;
   seanceActive.depensesGenerales.splice(i, 1);
   afficherDepensesSeance();
 }
@@ -1892,28 +1652,19 @@ function retirerDepenseSeance(i) {
 function calculerTotauxSeance() {
   if (!seanceActive) return alert('⚠️ Séance non démarrée');
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, totEnv = 0;
-  var html = '<h4>📊 Totaux par entité</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Enveloppes</th><th>Total FC</th><th>Total USD</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
+  var html = '<h4>📊 Totaux par entité</h4><div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Enveloppes</th><th>Total FC</th><th>Total USD</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
   seanceActive.entites.forEach(function(e) {
     var s = sumEntiteDep(e);
     totalFC += s.totFC; totalUSD += s.totUSD; soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; totEnv += (e.enveloppes || 0);
-    html += '<tr><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td>';
-    html += '<td class="num">' + (e.enveloppes || 0) + '</td>';
-    html += '<td class="num">' + s.totFC.toLocaleString() + '</td><td class="num">' + s.totUSD.toLocaleString() + '</td>';
-    html += '<td class="num">' + s.soldeFC.toLocaleString() + '</td><td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
+    html += '<tr><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td><td class="num">' + (e.enveloppes || 0) + '</td><td class="num">' + s.totFC.toLocaleString() + '</td><td class="num">' + s.totUSD.toLocaleString() + '</td><td class="num">' + s.soldeFC.toLocaleString() + '</td><td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
   });
-  html += '</tbody><tfoot><tr><td>TOTAL ENTITÉS</td><td class="num">' + totEnv + '</td><td class="num">' + totalFC.toLocaleString() + '</td><td class="num">' + totalUSD.toLocaleString() + '</td><td class="num">' + soldeFC.toLocaleString() + '</td><td class="num">' + soldeUSD.toLocaleString() + '</td></tr></tfoot></table></div>';
+  html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totEnv + '</td><td class="num">' + totalFC.toLocaleString() + '</td><td class="num">' + totalUSD.toLocaleString() + '</td><td class="num">' + soldeFC.toLocaleString() + '</td><td class="num">' + soldeUSD.toLocaleString() + '</td></tr></tfoot></table></div>';
   var genFC = seanceActive.depensesGenerales.reduce(function(a, x) { return a + x.fc; }, 0);
   var genUSD = seanceActive.depensesGenerales.reduce(function(a, x) { return a + x.usd; }, 0);
-  html += '<h4>💸 Dépenses générales</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
-  seanceActive.depensesGenerales.forEach(function(x) {
-    html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
-  });
-  html += '</tbody><tfoot>';
-  html += '<tr><td>TOTAL DÉPENSES</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
-  html += '<tr style="background:#fff3e0"><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr>';
-  html += '</tfoot></table></div>';
+  html += '<h4>💸 Dépenses générales</h4><div class="table-wrapper"><table class="data-table"><thead><tr><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
+  seanceActive.depensesGenerales.forEach(function(x) { html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>'; });
+  html += '</tbody><tfoot><tr><td>TOTAL DÉPENSES</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
+  html += '<tr style="background:#fff3e0"><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
   document.getElementById('depResultatSeance').innerHTML = html;
 }
 
@@ -1927,7 +1678,7 @@ function sumEntiteDep(e) {
 
 function enregistrerDepouillementSeance() {
   if (!seanceActive) return alert('⚠️ Séance non démarrée');
-  if (!seanceActive.entites.length) return alert('⚠️ Enregistrez au moins une entité');
+  if (!seanceActive.entites.length) return alert('⚠️ Enregistrez une entité');
   var deps = DB.get('depouillements', []);
   deps.push(JSON.parse(JSON.stringify(seanceActive)));
   DB.set('depouillements', deps);
@@ -1937,7 +1688,7 @@ function enregistrerDepouillementSeance() {
   document.getElementById('cardEntitesSeance').style.display = 'none';
   document.getElementById('cardDepensesSeance').style.display = 'none';
   document.getElementById('depResultatSeance').innerHTML = '';
-  alert('✅ Dépouillement enregistré avec succès');
+  alert('✅ Dépouillement enregistré');
 }
 
 // ========== RECHERCHE DÉPOUILLEMENT ==========
@@ -1947,47 +1698,28 @@ function rechercherDepouillement() {
   var phase = document.getElementById('searchDepPhase').value;
   var statut = document.getElementById('searchDepStatut').value;
   var entite = (document.getElementById('searchDepEntite').value || '').trim().toUpperCase();
-  var deps = DB.get('depouillements', []);
-  deps = filtrerListe(deps, statut);
-  deps = deps.filter(function(d) {
-    var okA = !annee || String(d.annee) === annee;
-    var okM = !mois || d.mois === mois;
-    var okP = !phase || String(d.phase) === phase;
-    var okE = !entite || d.entites.some(function(e) { return e.nomEntite.indexOf(entite) !== -1; });
-    return okA && okM && okP && okE;
+  var deps = filtrerListe(DB.get('depouillements', []), statut).filter(function(d) {
+    return (!annee || String(d.annee) === annee) && (!mois || d.mois === mois) && (!phase || String(d.phase) === phase) &&
+           (!entite || d.entites.some(function(e) { return e.nomEntite.indexOf(entite) !== -1; }));
   });
   var box = document.getElementById('resultatRechercheDep');
   if (!deps.length) { box.innerHTML = '<p style="color:#888">Aucun résultat.</p>'; return; }
   var html = '<h4>Résultats (' + deps.length + ')</h4>';
   deps.forEach(function(d) {
-    html += '<div class="entity-block"' + (d.archived ? ' style="opacity:0.75;background:#f0f0f0;border-left-color:#999"' : '') + '>';
-    html += '<h4 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">';
-    html += '<span>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + ' (' + fmtDate(d.date) + ')</span>';
-    if (d.archived) html += '<span class="badge badge-archive">📦 Archivé</span>';
-    else html += '<span class="badge badge-ok">✅ Actif</span>';
+    html += '<div class="entity-block"' + (d.archived ? ' style="opacity:0.75;background:#f0f0f0"' : '') + '>';
+    html += '<h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + ' (' + fmtDate(d.date) + ')';
+    if (d.archived) html += ' <span class="badge badge-archive">📦</span>';
     html += '</h4>';
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-    if (d.archived) {
-      html += '<button class="btn-mini blue" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">↩️ Désarchiver</button>';
-    } else {
-      html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-    }
-    html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️</button>';
+    html += '<button class="btn-mini ' + (d.archived ? 'blue' : 'gray') + '" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">' + (d.archived ? '↩️' : '📦') + '</button>';
+    html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️</button>';
     html += '</div>';
-    html += '<div class="table-wrapper"><table class="data-table">';
-    html += '<thead><tr><th>Entité</th><th>Enveloppes</th><th>Total FC</th><th>Total USD</th><th>Solde FC</th><th>Solde USD</th><th>Relevé</th></tr></thead><tbody>';
+    html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Enveloppes</th><th>Total FC</th><th>Total USD</th><th>Solde FC</th><th>Solde USD</th><th>Relevé</th></tr></thead><tbody>';
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
-      html += '<tr>';
-      html += '<td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td>';
-      html += '<td class="num">' + (e.enveloppes || 0) + '</td>';
-      html += '<td class="num">' + s.totFC.toLocaleString() + '</td>';
-      html += '<td class="num">' + s.totUSD.toLocaleString() + '</td>';
-      html += '<td class="num">' + s.soldeFC.toLocaleString() + '</td>';
-      html += '<td class="num">' + s.soldeUSD.toLocaleString() + '</td>';
-      html += '<td><button class="btn-mini blue" onclick="releveEntiteIndividuelle(\'' + e.nomEntite + '\',\'' + d.mois + '\',\'' + d.annee + '\',\'' + d.phase + '\')" style="padding:6px 10px">📄 Envoyer</button></td>';
-      html += '</tr>';
+      html += '<tr><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td><td class="num">' + (e.enveloppes || 0) + '</td><td class="num">' + s.totFC.toLocaleString() + '</td><td class="num">' + s.totUSD.toLocaleString() + '</td><td class="num">' + s.soldeFC.toLocaleString() + '</td><td class="num">' + s.soldeUSD.toLocaleString() + '</td>';
+      html += '<td><button class="btn-mini blue" onclick="releveEntiteIndividuelle(\'' + e.nomEntite + '\',\'' + d.mois + '\',\'' + d.annee + '\',\'' + d.phase + '\')" style="padding:6px 10px">📄 Envoyer</button></td></tr>';
     });
     html += '</tbody></table></div></div>';
   });
@@ -1995,11 +1727,8 @@ function rechercherDepouillement() {
 }
 
 function reinitialiserRechercheDep() {
-  var a = document.getElementById('searchDepAnnee'); if (a) a.value = '';
-  var b = document.getElementById('searchDepMois'); if (b) b.selectedIndex = 0;
-  var c = document.getElementById('searchDepPhase'); if (c) c.selectedIndex = 0;
-  var d = document.getElementById('searchDepEntite'); if (d) d.value = '';
-  var e = document.getElementById('searchDepStatut'); if (e) e.selectedIndex = 0;
+  ['searchDepAnnee','searchDepEntite'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['searchDepMois','searchDepPhase','searchDepStatut'].forEach(function(id) { var el = document.getElementById(id); if (el) el.selectedIndex = 0; });
   document.getElementById('resultatRechercheDep').innerHTML = '';
 }
 
@@ -2007,9 +1736,7 @@ function rechercherDepGeneral() {
   var annee = (document.getElementById('gSearchAnnee').value || '').trim();
   var mois = document.getElementById('gSearchMois').value;
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; }).filter(function(d) {
-    var okA = !annee || String(d.annee) === annee;
-    var okM = !mois || d.mois === mois;
-    return okA && okM;
+    return (!annee || String(d.annee) === annee) && (!mois || d.mois === mois);
   });
   var box = document.getElementById('resultatRechercheGeneral');
   if (!deps.length) { box.innerHTML = '<p style="color:#888">Aucun résultat.</p>'; return; }
@@ -2021,9 +1748,9 @@ function rechercherDepGeneral() {
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
     html += '<div style="font-size:13px;margin-top:6px">Total : <strong>' + totalFC.toLocaleString() + ' FC</strong> / <strong>' + totalUSD.toLocaleString() + ' $</strong></div>';
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-    html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-    html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
+    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')">✏️</button>';
+    html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')">📦</button>';
+    html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')">🗑️</button>';
     html += '</div></div>';
   });
   box.innerHTML = html;
@@ -2043,10 +1770,7 @@ function modifierDepouillement(id) {
   var annee = prompt('Année :', d.annee); if (annee === null) return;
   var phase = prompt('Phase (1-4) :', d.phase); if (phase === null) return;
   var date = prompt('Date (AAAA-MM-JJ) :', d.date); if (date === null) return;
-  d.mois = mois.trim();
-  d.annee = annee.trim();
-  d.phase = phase.trim();
-  d.date = date.trim();
+  d.mois = mois.trim(); d.annee = annee.trim(); d.phase = phase.trim(); d.date = date.trim();
   DB.set('depouillements', list);
   rechercherDepouillement();
   alert('✅ Modifié');
@@ -2069,91 +1793,41 @@ function supprimerDepouillement(id) {
   alert('✅ Supprimé');
 }
 
-// ========== RELEVÉ INDIVIDUEL D'UNE ENTITÉ ==========
 function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   var deps = DB.get('depouillements', []);
-  var entiteTrouvee = null;
-  var seanceTrouvee = null;
-  deps.forEach(function(d) {
-    if (d.mois === mois && String(d.annee) === String(annee) && String(d.phase) === String(phase)) {
-      d.entites.forEach(function(e) {
-        if (e.nomEntite === entiteNom) { entiteTrouvee = e; seanceTrouvee = d; }
-      });
+  var e = null, d = null;
+  deps.forEach(function(dep) {
+    if (dep.mois === mois && String(dep.annee) === String(annee) && String(dep.phase) === String(phase)) {
+      dep.entites.forEach(function(ent) { if (ent.nomEntite === entiteNom) { e = ent; d = dep; } });
     }
   });
-  if (!entiteTrouvee || !seanceTrouvee) return alert('Entité non trouvée');
-
-  var e = entiteTrouvee;
-  var d = seanceTrouvee;
+  if (!e || !d) return alert('Entité non trouvée');
   var s = sumEntiteDep(e);
-
   var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé ' + entiteNom + '</title><style>');
-  w.document.write('body{font-family:Arial;padding:24px;max-width:700px;margin:auto;color:#222}');
-  w.document.write('.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}');
-  w.document.write('.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}');
-  w.document.write('h1{color:#0a6e2c;font-size:18px}h2{color:#0a6e2c;font-size:15px;margin:15px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}');
-  w.document.write('table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}');
-  w.document.write('th{background:#0a6e2c;color:white;padding:8px;text-align:left}');
-  w.document.write('td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}');
-  w.document.write('tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}');
-  w.document.write('.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:10px 0;border-left:4px solid #0a6e2c;font-size:13px}');
-  w.document.write('.info p{margin:4px 0}');
-  w.document.write('.env{background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border-left:4px solid #e65100;font-size:14px;font-weight:600;color:#e65100}');
-  w.document.write('.cat{background:#e8f5e9;padding:8px;border-radius:6px;margin:10px 0;font-weight:700;color:#0a6e2c;font-size:13px}');
-  w.document.write('.recap{background:#fff3e0;padding:14px;border-radius:8px;margin-top:15px;border:2px solid #e65100}');
-  w.document.write('.recap-ligne{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}');
-  w.document.write('.recap-final{font-size:16px;font-weight:700;color:#0a6e2c;border-top:2px solid #e65100;padding-top:8px;margin-top:8px;text-align:center}');
-  w.document.write('.signature{margin-top:50px;display:flex;justify-content:space-between}');
-  w.document.write('.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}');
-  w.document.write('</style></head><body>');
-
-  w.document.write('<div class="header"><div class="logo">EMM</div>');
-  w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1>');
-  w.document.write('<p style="color:#666;font-size:12px">EMM MONDIAL — Dépouillement</p>');
-  w.document.write('<h2 style="border:none;text-align:center">RELEVÉ INDIVIDUEL D\'ENTITÉ</h2></div>');
-
-  w.document.write('<div class="info">');
-  w.document.write('<p><strong>Entité :</strong> ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</p>');
+  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé</title><style>body{font-family:Arial;padding:24px;max-width:700px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#0a6e2c;font-size:15px;margin:15px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}th{background:#0a6e2c;color:white;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:10px 0;border-left:4px solid #0a6e2c;font-size:13px}.info p{margin:4px 0}.env{background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border-left:4px solid #e65100;font-size:14px;font-weight:600;color:#e65100}.cat{background:#e8f5e9;padding:8px;border-radius:6px;margin:10px 0;font-weight:700;color:#0a6e2c;font-size:13px}.recap{background:#fff3e0;padding:14px;border-radius:8px;margin-top:15px;border:2px solid #e65100}.recap-ligne{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.recap-final{font-size:16px;font-weight:700;color:#0a6e2c;border-top:2px solid #e65100;padding-top:8px;margin-top:8px;text-align:center}.signature{margin-top:50px;display:flex;justify-content:space-between}.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}</style></head><body>');
+  w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666;font-size:12px">EMM MONDIAL — Dépouillement</p><h2 style="border:none;text-align:center">RELEVÉ INDIVIDUEL D\'ENTITÉ</h2></div>');
+  w.document.write('<div class="info"><p><strong>Entité :</strong> ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</p>');
   w.document.write('<p><strong>Responsable :</strong> ' + echapper(e.responsable || '-') + '</p>');
   w.document.write('<p><strong>Mois :</strong> ' + d.mois + ' ' + d.annee + '</p>');
   w.document.write('<p><strong>Phase :</strong> ' + d.phase + '</p>');
-  w.document.write('<p><strong>Date :</strong> ' + fmtDate(d.date) + '</p>');
-  w.document.write('</div>');
-
-  w.document.write('<div class="env">📩 Nombre d\'enveloppes : ' + (e.enveloppes || 0) + '</div>');
-
-  w.document.write('<table><tbody>');
-  w.document.write('<tr><td>Construction</td><td class="num">' + (e.constrFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.constrUSD || 0).toLocaleString() + ' $</td></tr>');
-  w.document.write('<tr><td>Normales</td><td class="num">' + (e.normFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.normUSD || 0).toLocaleString() + ' $</td></tr>');
-  w.document.write('</tbody></table>');
-
-  var cats = [];
+  w.document.write('<p><strong>Date :</strong> ' + fmtDate(d.date) + '</p></div>');
+  w.document.write('<div class="env">📩 Enveloppes : ' + (e.enveloppes || 0) + '</div>');
+  w.document.write('<table><tbody><tr><td>Construction</td><td class="num">' + (e.constrFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.constrUSD || 0).toLocaleString() + ' $</td></tr>');
+  w.document.write('<tr><td>Normales</td><td class="num">' + (e.normFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.normUSD || 0).toLocaleString() + ' $</td></tr></tbody></table>');
   Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
-    if (e[cat] && e[cat].length) cats.push({ cat: cat, arr: e[cat] });
+    if (e[cat] && e[cat].length) {
+      var totFC = e[cat].reduce(function(a, o) { return a + o.fc; }, 0);
+      var totUSD = e[cat].reduce(function(a, o) { return a + o.usd; }, 0);
+      w.document.write('<div class="cat">🎁 ' + CATEGORIES_OFFRANDES[cat] + '</div>');
+      w.document.write('<table><tbody>');
+      e[cat].forEach(function(o) { w.document.write('<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td></tr>'); });
+      w.document.write('</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td></tr></tfoot></table>');
+    }
   });
-  if (cats.length) {
-    w.document.write('<div class="cat">🎁 Offrandes spéciales détaillées</div>');
-    cats.forEach(function(item) {
-      var totFC = item.arr.reduce(function(a, o) { return a + o.fc; }, 0);
-      var totUSD = item.arr.reduce(function(a, o) { return a + o.usd; }, 0);
-      w.document.write('<table><thead><tr><th colspan="3" style="background:#4caf50">' + CATEGORIES_OFFRANDES[item.cat] + '</th></tr></thead><tbody>');
-      item.arr.forEach(function(o) {
-        w.document.write('<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td></tr>');
-      });
-      w.document.write('</tbody><tfoot><tr><td>TOTAL ' + CATEGORIES_OFFRANDES[item.cat] + '</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td></tr></tfoot></table>');
-    });
-  }
-
-  w.document.write('<div class="recap">');
-  w.document.write('<div class="recap-ligne"><span>Total construction + normales + offrandes</span><strong>' + s.totFC.toLocaleString() + ' FC / ' + s.totUSD.toLocaleString() + ' $</strong></div>');
+  w.document.write('<div class="recap"><div class="recap-ligne"><span>Total</span><strong>' + s.totFC.toLocaleString() + ' FC / ' + s.totUSD.toLocaleString() + ' $</strong></div>');
   w.document.write('<div class="recap-ligne"><span>Transport</span><strong>- ' + (e.transFC || 0).toLocaleString() + ' FC / - ' + (e.transUSD || 0).toLocaleString() + ' $</strong></div>');
-  w.document.write('<div class="recap-final">💰 SOLDE À VERSER : ' + s.soldeFC.toLocaleString() + ' FC / ' + s.soldeUSD.toLocaleString() + ' $</div>');
-  w.document.write('</div>');
-
-  w.document.write('<div class="signature"><div class="sig-line">Le responsable</div><div class="sig-line">Le superviseur</div></div>');
-  w.document.write('<p style="text-align:center;font-size:11px;color:#888;margin-top:30px">Généré le ' + new Date().toLocaleString('fr-FR') + ' par ' + (currentUser ? currentUser.nom : '') + '</p>');
-  w.document.write('</body></html>');
+  w.document.write('<div class="recap-final">💰 SOLDE : ' + s.soldeFC.toLocaleString() + ' FC / ' + s.soldeUSD.toLocaleString() + ' $</div></div>');
+  w.document.write('<div class="signature"><div class="sig-line">Responsable</div><div class="sig-line">Superviseur</div></div></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 600);
 }
@@ -2163,96 +1837,31 @@ function releveFicheEntite(entiteNom, mois, annee) {
   var resultats = [];
   deps.forEach(function(d) {
     d.entites.forEach(function(e) {
-      var matchNom = !entiteNom || e.nomEntite.toUpperCase().indexOf(entiteNom.toUpperCase()) !== -1;
-      var matchMois = !mois || d.mois === mois;
-      var matchAnnee = !annee || String(d.annee) === annee;
-      if (matchNom && matchMois && matchAnnee) resultats.push({ entite: e, seance: d });
+      var ok = (!entiteNom || e.nomEntite.toUpperCase().indexOf(entiteNom.toUpperCase()) !== -1) &&
+               (!mois || d.mois === mois) && (!annee || String(d.annee) === annee);
+      if (ok) resultats.push({ entite: e, seance: d });
     });
   });
-  if (!resultats.length) return alert('Aucune fiche trouvée');
-
+  if (!resultats.length) return alert('Aucune fiche');
   var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé fiche</title><style>');
-  w.document.write('body{font-family:Arial;padding:20px;max-width:900px;margin:auto;color:#222}');
-  w.document.write('.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}');
-  w.document.write('.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}');
-  w.document.write('h1{color:#0a6e2c;font-size:18px}h2{color:#0a6e2c;font-size:14px;margin:20px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}');
-  w.document.write('h3{color:#0a6e2c;font-size:13px;margin:12px 0 6px}');
-  w.document.write('table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}');
-  w.document.write('th{background:#0a6e2c;color:white;padding:6px;text-align:left}');
-  w.document.write('td{padding:6px;border-bottom:1px solid #ddd}td.num{text-align:right}');
-  w.document.write('tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}');
-  w.document.write('.info{background:#f9f9f9;padding:10px;border-radius:8px;margin:10px 0;border-left:4px solid #0a6e2c;font-size:12px}');
-  w.document.write('.cat{background:#e8f5e9;padding:6px;border-radius:6px;margin:8px 0;font-weight:600;color:#0a6e2c;font-size:12px}');
-  w.document.write('.recap{background:#fff3e0;padding:12px;border-radius:8px;margin-top:10px;border:2px solid #e65100}');
-  w.document.write('</style></head><body>');
-
-  w.document.write('<div class="header"><div class="logo">EMM</div>');
-  w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1>');
-  w.document.write('<p style="color:#666;font-size:12px">EMM MONDIAL — Dépouillement</p>');
-  w.document.write('<h2 style="border:none;text-align:center">RELEVÉ FICHE PAR ENTITÉ</h2></div>');
-
+  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé</title><style>body{font-family:Arial;padding:20px;max-width:900px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#0a6e2c;font-size:14px;margin:20px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}h3{color:#0a6e2c;font-size:13px;margin:12px 0 6px}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}th{background:#0a6e2c;color:white;padding:6px;text-align:left}td{padding:6px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:10px;border-radius:8px;margin:10px 0;border-left:4px solid #0a6e2c;font-size:12px}.recap{background:#fff3e0;padding:12px;border-radius:8px;margin-top:10px;border:2px solid #e65100}</style></head><body>');
+  w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666;font-size:12px">EMM MONDIAL</p><h2 style="border:none;text-align:center">RELEVÉ FICHE PAR ENTITÉ</h2></div>');
   var parEntite = {};
-  resultats.forEach(function(r) {
-    var key = r.entite.typeEntite + ' - ' + r.entite.nomEntite;
-    if (!parEntite[key]) parEntite[key] = [];
-    parEntite[key].push(r);
-  });
-
-  var totalGeneralFC = 0, totalGeneralUSD = 0;
-
+  resultats.forEach(function(r) { var k = r.entite.typeEntite + ' - ' + r.entite.nomEntite; if (!parEntite[k]) parEntite[k] = []; parEntite[k].push(r); });
+  var totFC = 0, totUSD = 0;
   Object.keys(parEntite).forEach(function(key) {
-    var liste = parEntite[key];
     w.document.write('<h2>🏛️ ' + echapper(key) + '</h2>');
-    w.document.write('<div class="info"><strong>Responsable :</strong> ' + echapper(liste[0].entite.responsable) + '</div>');
-
-    liste.forEach(function(r) {
-      var e = r.entite;
-      var d = r.seance;
-      var s = sumEntiteDep(e);
-      totalGeneralFC += s.soldeFC;
-      totalGeneralUSD += s.soldeUSD;
-
-      w.document.write('<h3>📅 Séance : ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + ' (' + fmtDate(d.date) + ')</h3>');
-      w.document.write('<div class="info">📩 Nombre d\'enveloppes : <strong>' + (e.enveloppes || 0) + '</strong></div>');
-
-      w.document.write('<table><tbody>');
-      w.document.write('<tr><td>Construction</td><td class="num">' + (e.constrFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.constrUSD || 0).toLocaleString() + ' $</td></tr>');
-      w.document.write('<tr><td>Normales</td><td class="num">' + (e.normFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.normUSD || 0).toLocaleString() + ' $</td></tr>');
-      w.document.write('</tbody></table>');
-
-      var cats = [];
-      Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
-        if (e[cat] && e[cat].length) cats.push({ cat: cat, arr: e[cat] });
-      });
-      if (cats.length) {
-        w.document.write('<div class="cat">🎁 Offrandes spéciales</div>');
-        cats.forEach(function(item) {
-          var totFC = item.arr.reduce(function(a, o) { return a + o.fc; }, 0);
-          var totUSD = item.arr.reduce(function(a, o) { return a + o.usd; }, 0);
-          w.document.write('<table><thead><tr><th colspan="3" style="background:#4caf50">' + CATEGORIES_OFFRANDES[item.cat] + '</th></tr></thead><tbody>');
-          item.arr.forEach(function(o) {
-            w.document.write('<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td></tr>');
-          });
-          w.document.write('</tbody><tfoot><tr><td>TOTAL ' + CATEGORIES_OFFRANDES[item.cat] + '</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td></tr></tfoot></table>');
-        });
-      }
-
-      w.document.write('<table><tfoot>');
-      w.document.write('<tr><td>TOTAL GÉNÉRAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>');
-      w.document.write('<tr><td>Transport</td><td class="num">- ' + (e.transFC || 0).toLocaleString() + ' FC</td><td class="num">- ' + (e.transUSD || 0).toLocaleString() + ' $</td></tr>');
-      w.document.write('<tr><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>');
-      w.document.write('</tfoot></table>');
+    parEntite[key].forEach(function(r) {
+      var s = sumEntiteDep(r.entite);
+      totFC += s.soldeFC; totUSD += s.soldeUSD;
+      w.document.write('<h3>📅 ' + r.seance.mois + ' ' + r.seance.annee + ' — Phase ' + r.seance.phase + '</h3>');
+      w.document.write('<div class="info">📩 Enveloppes : <strong>' + (r.entite.enveloppes || 0) + '</strong></div>');
+      w.document.write('<table><tfoot><tr><td>TOTAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>');
+      w.document.write('<tr><td>Transport</td><td class="num">- ' + (r.entite.transFC || 0).toLocaleString() + ' FC</td><td class="num">- ' + (r.entite.transUSD || 0).toLocaleString() + ' $</td></tr>');
+      w.document.write('<tr><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table>');
     });
   });
-
-  w.document.write('<div class="recap">');
-  w.document.write('<strong>🌍 TOTAL GÉNÉRAL (toutes séances) :</strong><br>');
-  w.document.write('<div style="font-size:16px;font-weight:700;color:#0a6e2c;margin-top:6px">' + totalGeneralFC.toLocaleString() + ' FC / ' + totalGeneralUSD.toLocaleString() + ' $</div>');
-  w.document.write('</div>');
-
-  w.document.write('<p style="text-align:center;font-size:11px;color:#888;margin-top:30px">Généré le ' + new Date().toLocaleString('fr-FR') + ' par ' + (currentUser ? currentUser.nom : '') + '</p>');
-  w.document.write('</body></html>');
+  w.document.write('<div class="recap"><strong>🌍 TOTAL GÉNÉRAL :</strong><br><div style="font-size:16px;font-weight:700;color:#0a6e2c;margin-top:6px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div></div></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 600);
 }
@@ -2265,7 +1874,6 @@ function genererReleveEntiteFiltre() {
   releveFicheEntite(entite, mois, annee);
 }
 
-// ========== RAPPORTS MODULE III ==========
 function rapportDepGlobal() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0, totEnv = 0;
@@ -2276,23 +1884,11 @@ function rapportDepGlobal() {
   var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — DÉPOUILLEMENT</h3></div>';
   html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Rubrique</th><th>FC</th><th>USD</th></tr></thead><tbody>';
   html += '<tr><td>Séances</td><td colspan="2" class="num">' + deps.length + '</td></tr>';
-  html += '<tr><td>Nombre total d\'enveloppes</td><td colspan="2" class="num">' + totEnv + '</td></tr>';
+  html += '<tr><td>Enveloppes totales</td><td colspan="2" class="num">' + totEnv + '</td></tr>';
   html += '<tr><td>Total offrandes</td><td class="num">' + totalFC.toLocaleString() + '</td><td class="num">' + totalUSD.toLocaleString() + '</td></tr>';
   html += '<tr><td>Solde entités</td><td class="num">' + soldeFC.toLocaleString() + '</td><td class="num">' + soldeUSD.toLocaleString() + '</td></tr>';
   html += '<tr><td>Dépenses générales</td><td class="num">- ' + genFC.toLocaleString() + '</td><td class="num">- ' + genUSD.toLocaleString() + '</td></tr>';
   html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC</td><td class="num">' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
-  if (deps.length) {
-    html += '<h4 style="color:#0a6e2c;margin:16px 0 8px">📋 Séances actives avec actions</h4>';
-    deps.forEach(function(d) {
-      html += '<div class="entity-block">';
-      html += '<h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</h4>';
-      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-      html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-      html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-      html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
-      html += '</div></div>';
-    });
-  }
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
@@ -2302,84 +1898,27 @@ function rapportDepDetaille() {
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — DÉPOUILLEMENT</h3></div>';
   deps.forEach(function(d) {
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:16px 0 10px;border-left:5px solid #0a6e2c">';
-    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 Séance : ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
-    html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
-    html += '</div>';
-    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-    html += '<button class="btn-mini orange" onclick="modifierDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">✏️ Modifier</button>';
-    html += '<button class="btn-mini gray" onclick="archiverDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">📦 Archiver</button>';
-    html += '<button class="btn-mini danger" onclick="supprimerDepouillement(\'' + d.id + '\')" style="padding:8px 12px;font-size:12px">🗑️ Supprimer</button>';
-    html += '</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div></div>';
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
-      html += '<div class="entity-block">';
-      html += '<h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
-      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">👤 ' + echapper(e.responsable) + ' | 📅 ' + d.mois + ' ' + d.annee + ' | 🗓️ ' + fmtDate(d.date) + '</div>';
-      html += '<div style="background:#fff3e0;padding:8px 10px;border-radius:6px;margin-bottom:8px;border-left:4px solid #e65100;font-size:13px"><strong>📩 Nombre d\'enveloppes :</strong> ' + (e.enveloppes || 0) + '</div>';
-      html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-      html += '<tr><td>Construction</td><td class="num">' + (e.constrFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.constrUSD || 0).toLocaleString() + ' $</td></tr>';
-      html += '<tr><td>Normales</td><td class="num">' + (e.normFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.normUSD || 0).toLocaleString() + ' $</td></tr>';
-      html += '</tbody></table></div>';
-      var categoriesAvecDonnees = [];
-      Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
-        var arr = e[cat] || [];
-        if (arr.length) categoriesAvecDonnees.push({ cat: cat, arr: arr });
-      });
-      if (categoriesAvecDonnees.length) {
-        html += '<h5 style="color:#0a6e2c;font-size:13px;margin:10px 0 6px">Offrandes spéciales détaillées</h5>';
-        categoriesAvecDonnees.forEach(function(item) {
-          var totFC = item.arr.reduce(function(a, o) { return a + o.fc; }, 0);
-          var totUSD = item.arr.reduce(function(a, o) { return a + o.usd; }, 0);
-          html += '<div style="background:#f9f9f9;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #0a6e2c;overflow:hidden;max-width:100%">';
-          html += '<div style="font-weight:600;color:#0a6e2c;font-size:12px;margin-bottom:4px">' + CATEGORIES_OFFRANDES[item.cat] + '</div>';
-          html += '<div class="table-wrapper"><table class="data-table" style="font-size:11px"><tbody>';
-          item.arr.forEach(function(o) {
-            html += '<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td></tr>';
-          });
-          html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
-          html += '</div>';
-        });
-      }
-      html += '<div style="text-align:center;margin:10px 0">';
-      html += '<button class="btn-primary" onclick="releveEntiteIndividuelle(\'' + e.nomEntite + '\',\'' + d.mois + '\',\'' + d.annee + '\',\'' + d.phase + '\')" style="background:linear-gradient(135deg,#1976d2,#1565c0);padding:10px;font-size:13px">📄 Relevé individuel de cette entité</button>';
-      html += '</div>';
+      html += '<div class="entity-block"><h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
+      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">👤 ' + echapper(e.responsable) + ' | 📅 ' + d.mois + ' ' + d.annee + '</div>';
+      html += '<div style="background:#fff3e0;padding:8px 10px;border-radius:6px;margin-bottom:8px;border-left:4px solid #e65100;font-size:13px"><strong>📩 Enveloppes :</strong> ' + (e.enveloppes || 0) + '</div>';
       html += '<div class="table-wrapper"><table class="data-table"><tfoot>';
       html += '<tr><td>TOTAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>';
       html += '<tr><td>Transport</td><td class="num">- ' + (e.transFC || 0).toLocaleString() + ' FC</td><td class="num">- ' + (e.transUSD || 0).toLocaleString() + ' $</td></tr>';
       html += '<tr style="background:#e8f5e9"><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
       html += '</tfoot></table></div></div>';
     });
-    if (d.depensesGenerales && d.depensesGenerales.length) {
-      html += '<div class="entity-block" style="border-left-color:#c62828">';
-      html += '<h4 style="color:#c62828">💸 Dépenses générales de la séance</h4>';
-      html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
-      var genFC = 0, genUSD = 0;
-      d.depensesGenerales.forEach(function(x) {
-        genFC += x.fc; genUSD += x.usd;
-        html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
-      });
-      html += '</tbody><tfoot><tr><td>TOTAL DÉPENSES</td><td class="num">' + genFC.toLocaleString() + ' FC</td><td class="num">' + genUSD.toLocaleString() + ' $</td></tr></tfoot>';
-      html += '</table></div></div>';
-    }
-    var totalSoldeFC = 0, totalSoldeUSD = 0;
-    d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalSoldeFC += s.soldeFC; totalSoldeUSD += s.soldeUSD; });
-    var totalGenFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
-    var totalGenUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
-    html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin-top:10px;border:2px solid #e65100">';
-    html += '<div style="font-size:13px;color:#e65100;font-weight:700;margin-bottom:6px">RÉCAPITULATIF DE LA SÉANCE</div>';
-    html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-    html += '<tr><td>Total soldes entités</td><td class="num">' + totalSoldeFC.toLocaleString() + ' FC</td><td class="num">' + totalSoldeUSD.toLocaleString() + ' $</td></tr>';
-    html += '<tr><td>Total dépenses générales</td><td class="num">- ' + totalGenFC.toLocaleString() + ' FC</td><td class="num">- ' + totalGenUSD.toLocaleString() + ' $</td></tr>';
-    html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC</td><td class="num">' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
-    html += '</div>';
   });
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
 function soldeTransferer() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
-  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif.</p>'; return; }
-  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3><p>Détail complet par séance</p></div>';
+  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun.</p>'; return; }
+  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3></div>';
   var totalSoldeFC = 0, totalSoldeUSD = 0, totalGenFC = 0, totalGenUSD = 0;
   deps.forEach(function(d) {
     var soldeFC = 0, soldeUSD = 0;
@@ -2387,36 +1926,15 @@ function soldeTransferer() {
     var genFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
     var genUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
     totalSoldeFC += soldeFC; totalSoldeUSD += soldeUSD; totalGenFC += genFC; totalGenUSD += genUSD;
-    html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c">';
-    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
-    html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div>';
-    html += '</div>';
+    html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c"><div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div></div>';
     html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
-    d.entites.forEach(function(e) {
-      var s = sumEntiteDep(e);
-      html += '<tr><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td>';
-      html += '<td class="num">' + s.soldeFC.toLocaleString() + '</td>';
-      html += '<td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
-    });
-    html += '</tbody><tfoot><tr><td>TOTAL SOLDES ENTITÉS</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
-    if (d.depensesGenerales && d.depensesGenerales.length) {
-      html += '<div class="table-wrapper"><table class="data-table" style="margin-top:8px"><thead><tr><th>Motif de dépense</th><th>FC</th><th>USD</th></tr></thead><tbody>';
-      d.depensesGenerales.forEach(function(x) {
-        html += '<tr><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
-      });
-      html += '</tbody><tfoot><tr><td>TOTAL DÉPENSES</td><td class="num">' + genFC.toLocaleString() + ' FC</td><td class="num">' + genUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
-    }
-    html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100">';
-    html += '<div style="font-size:14px;color:#e65100;font-weight:700">SOLDE À TRANSFÉRER (cette séance)</div>';
-    html += '<div style="font-size:16px;color:#0a6e2c;font-weight:700;margin-top:6px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div>';
-    html += '</div>';
+    d.entites.forEach(function(e) { var s = sumEntiteDep(e); html += '<tr><td>' + echapper(e.nomEntite) + '</td><td class="num">' + s.soldeFC.toLocaleString() + '</td><td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>'; });
+    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
+    html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100"><div style="font-size:14px;color:#e65100;font-weight:700">À TRANSFÉRER (cette séance)</div>';
+    html += '<div style="font-size:16px;color:#0a6e2c;font-weight:700;margin-top:6px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div></div>';
   });
-  html += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
-  html += '<div style="font-size:14px;font-weight:700;margin-bottom:8px">🌍 TOTAUX GÉNÉRAUX (toutes séances actives)</div>';
-  html += '<div style="font-size:12px;margin:4px 0">Total soldes entités : <strong>' + totalSoldeFC.toLocaleString() + ' FC / ' + totalSoldeUSD.toLocaleString() + ' $</strong></div>';
-  html += '<div style="font-size:12px;margin:4px 0">Total dépenses générales : <strong>- ' + totalGenFC.toLocaleString() + ' FC / - ' + totalGenUSD.toLocaleString() + ' $</strong></div>';
-  html += '<div style="font-size:16px;font-weight:700;margin-top:10px;border-top:1px solid rgba(255,255,255,0.3);padding-top:10px">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
-  html += '</div>';
+  html += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px"><div style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL</div>';
+  html += '<div style="font-size:16px;font-weight:700;margin-top:10px">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div></div>';
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
@@ -2457,36 +1975,31 @@ function afficherDashboard() {
 function rapportGeneralConsolide() {
   var box = document.getElementById('rapportGeneralBox');
   var html = '<div class="rapport-header"><h3>🌍 RAPPORT GÉNÉRAL CONSOLIDÉ</h3><p>EMM MONDIAL — Tous Modules</p></div>';
-  html += '<p style="text-align:center;font-size:12px;color:#666;margin-bottom:14px">Généré par <strong>' + echapper(currentUser ? currentUser.nom : '') + '</strong> le ' + new Date().toLocaleString('fr-FR') + '</p>';
+  html += '<p style="text-align:center;font-size:12px;color:#666;margin-bottom:14px">Généré le ' + new Date().toLocaleString('fr-FR') + '</p>';
   var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
   var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
   var tm = 0, ts = 0, tn = 0;
   parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
-  html += '<h4 style="color:#0a6e2c;margin:14px 0 8px">📈 MODULE I — FRÉQUENCES</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<h4>📈 MODULE I — FRÉQUENCES</h4><div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Entités</td><td class="num">' + entites + '</td></tr>';
   html += '<tr><td>Membres</td><td class="num">' + tm + '</td></tr>';
   html += '<tr><td>Sympathisants</td><td class="num">' + ts + '</td></tr>';
-  html += '<tr><td>Nouveaux venus</td><td class="num">' + tn + '</td></tr>';
-  html += '</tbody></table></div>';
+  html += '<tr><td>Nouveaux venus</td><td class="num">' + tn + '</td></tr></tbody></table></div>';
   var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
   var totalVerse = 0, totalPrevu = 0;
   cands.forEach(function(c) { totalVerse += c.totalVerse || 0; totalPrevu += c.montantPrevu; });
-  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">💰 MODULE II — FINANCE</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<h4>💰 MODULE II — FINANCE</h4><div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
   html += '<tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr>';
   html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr>';
-  html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr>';
-  html += '</tbody></table></div>';
+  html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr></tbody></table></div>';
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
   deps.forEach(function(d) {
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
     d.depensesGenerales.forEach(function(x) { genFC += x.fc; genUSD += x.usd; });
   });
-  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">🧾 MODULE III — DÉPOUILLEMENT</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<h4>🧾 MODULE III — DÉPOUILLEMENT</h4><div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Séances</td><td class="num">' + deps.length + '</td></tr>';
   html += '<tr><td>Solde FC</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td></tr>';
   html += '<tr><td>Solde USD</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr>';
@@ -2495,28 +2008,22 @@ function rapportGeneralConsolide() {
   html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
   var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
   var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
-  html += '<h4 style="color:#0a6e2c;margin:20px 0 8px">🏛️ MODULE IV — PATRIMOINE</h4>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<h4>🏛️ MODULE IV — PATRIMOINE</h4><div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Sites</td><td class="num">' + sitesP + '</td></tr>';
-  html += '<tr><td>Biens</td><td class="num">' + biensP + '</td></tr>';
-  html += '</tbody></table></div>';
+  html += '<tr><td>Biens</td><td class="num">' + biensP + '</td></tr></tbody></table></div>';
   box.innerHTML = html;
 }
 
-// ========== IMPRESSIONS (passent par la modal d'options) ==========
+// ========== IMPRESSIONS ==========
 function imprimerRapportFreq() { ouvrirModalPdf({ type: 'box', boxId: 'rapportFreqBox', titre: 'Rapport Fréquence' }); }
 function imprimerRapportFin() { ouvrirModalPdf({ type: 'box', boxId: 'rapportFinBox', titre: 'Rapport Finance' }); }
 function imprimerRapportDep() { ouvrirModalPdf({ type: 'box', boxId: 'rapportDepBox', titre: 'Rapport Dépouillement' }); }
 function imprimerGeneral() { ouvrirModalPdf({ type: 'box', boxId: 'rapportGeneralBox', titre: 'Rapport Général' }); }
 function imprimerPatrimoine() { ouvrirModalPdf({ type: 'box', boxId: 'pRapportBox', titre: 'Rapport Patrimoine' }); }
-
 function exporterPDFFreq() { ouvrirModalPdf({ type: 'box', boxId: 'rapportFreqBox', titre: 'Rapport Fréquence' }); }
 function exporterPDFFin() { ouvrirModalPdf({ type: 'box', boxId: 'rapportFinBox', titre: 'Rapport Finance' }); }
 function exporterPDFDep() { ouvrirModalPdf({ type: 'box', boxId: 'rapportDepBox', titre: 'Rapport Dépouillement' }); }
 function exporterPDFGeneral() { ouvrirModalPdf({ type: 'box', boxId: 'rapportGeneralBox', titre: 'Rapport Général' }); }
-
-function imprimerBox(boxId) { ouvrirModalPdf({ type: 'box', boxId: boxId, titre: 'Rapport' }); }
-function exporterPDFBox(boxId) { ouvrirModalPdf({ type: 'box', boxId: boxId, titre: 'Rapport PDF' }); }
 
 function exporterWordFreq() { exporterWordBox('rapportFreqBox','Frequence'); }
 function exporterWordFin() { exporterWordBox('rapportFinBox','Finance'); }
@@ -2526,8 +2033,7 @@ function exporterWordGeneral() { exporterWordBox('rapportGeneralBox','General');
 function exporterWordBox(boxId, nom) {
   var contenu = document.getElementById(boxId).innerHTML;
   if (!contenu) return alert('Rapport vide');
-  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"></head><body>';
-  html += '<h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>' + contenu + '</body></html>';
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"></head><body><h1 style="text-align:center;color:#0a6e2c">EMM MONDIAL</h1><hr>' + contenu + '</body></html>';
   var blob = new Blob(['\ufeff', html], { type: 'application/msword' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
@@ -2578,8 +2084,7 @@ function ajouterUtilisateur() {
 }
 
 function reinitialiserFormUtilisateur() {
-  var a = document.getElementById('uNom'); if (a) a.value = '';
-  var b = document.getElementById('uPass'); if (b) b.value = '';
+  ['uNom','uPass'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   var c = document.getElementById('uRole'); if (c) c.selectedIndex = 0;
 }
 
@@ -2590,11 +2095,7 @@ function afficherUtilisateurs() {
   var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Nom</th><th>Rôle</th><th>Actions</th></tr></thead><tbody>';
   users.forEach(function(u) {
     html += '<tr><td>' + echapper(u.nom) + '</td><td>' + (u.role === 'admin' ? '👑 Admin' : '👤 Utilisateur') + '</td>';
-    html += '<td>';
-    if (u.nom !== 'admin') {
-      html += '<button class="btn-mini danger" onclick="supprimerUtilisateur(\'' + u.id + '\')">🗑️</button>';
-    }
-    html += '</td></tr>';
+    html += '<td>' + (u.nom !== 'admin' ? '<button class="btn-mini danger" onclick="supprimerUtilisateur(\'' + u.id + '\')">🗑️</button>' : '') + '</td></tr>';
   });
   html += '</tbody></table></div>';
   box.innerHTML = html;
@@ -2611,9 +2112,8 @@ function supprimerUtilisateur(id) {
 function exporterDonnees() {
   var data = {};
   ['users','entites','participations','fichesMensuelles','candidats','versements','depouillements','depensesGenerales','annonces','patrimoineSites','patrimoineBiens','patrimoineMouvements','patrimoineReparations','rapportsNumeriques'].forEach(function(k) { data[k] = DB.get(k, []); });
-  var json = JSON.stringify(data, null, 2);
   try {
-    var blob = new Blob([json], { type: 'application/json' });
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
@@ -2621,12 +2121,12 @@ function exporterDonnees() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
     alert('✅ Fichier téléchargé');
-  } catch (e) { alert('Erreur export'); }
+  } catch(e) { alert('Erreur export'); }
 }
 
 function restaurerTexte() {
   var txt = document.getElementById('importText').value.trim();
-  if (!txt) return alert('Collez d\'abord un JSON');
+  if (!txt) return alert('Collez un JSON');
   try {
     var data = JSON.parse(txt);
     Object.keys(data).forEach(function(k) { DB.set(k, data[k]); });
@@ -2634,7 +2134,7 @@ function restaurerTexte() {
     refreshAll();
     afficherDashboard();
     document.getElementById('importText').value = '';
-  } catch (e) { alert('❌ JSON invalide'); }
+  } catch(e) { alert('❌ JSON invalide'); }
 }
 
 function importerDonnees(ev) {
@@ -2648,20 +2148,35 @@ function importerDonnees(ev) {
       alert('✅ Données restaurées');
       refreshAll();
       afficherDashboard();
-    } catch (err) { alert('❌ Fichier invalide'); }
+    } catch(err) { alert('❌ Fichier invalide'); }
   };
   reader.readAsText(file);
 }
 
-function toutEffacer() {
+async function toutEffacer() {
   if (!isAdmin()) return alert('Réservé admin');
   if (!confirm('⚠️ Effacer TOUTES les données (sauf utilisateurs) ?')) return;
   var users = DB.get('users', []);
-  localStorage.clear();
+  try { await DB.clearAll(); } catch(e) { console.warn('clearAll:', e); }
   DB.set('users', users);
   initDB();
-  alert('✅ Effacé');
+  alert('✅ Toutes les données effacées');
   location.reload();
+}
+
+async function afficherDiagnosticStockage() {
+  var box = document.getElementById('diagnosticStockage');
+  if (!box) return;
+  box.innerHTML = '<p>⏳ Analyse…</p>';
+  var info = await DB.diagnostique();
+  var html = '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>IndexedDB</td><td>' + info.indexedDB + '</td></tr>';
+  html += '<tr><td>Clés en cache</td><td class="num">' + info.clesCache + '</td></tr>';
+  html += '<tr><td>localStorage utilisé</td><td class="num">' + info.localStorageUtilise + '</td></tr>';
+  html += '<tr><td>localStorage limite</td><td class="num">' + info.localStorageMax + '</td></tr>';
+  html += '</tbody></table></div>';
+  html += '<p style="font-size:12px;color:#666;margin-top:8px">💡 Les données sont enregistrées dans IndexedDB (capacité plusieurs Go) et sauvegardées en secours dans localStorage.</p>';
+  box.innerHTML = html;
 }
 
 // ========== PWA ==========
@@ -2686,6 +2201,7 @@ function installApp() {
 // ========== REFRESH ==========
 function refreshAll() {
   rafraichirEntites();
+  rafraichirEntitesRN();
   afficherListeEntites();
   afficherJournaliere();
   rafraichirCandidatsSelect();
@@ -2694,25 +2210,20 @@ function refreshAll() {
   afficherUtilisateurs();
   refreshPatrimoineSites();
   recalculerTotauxRN();
-  rafraichirEntitesRN();
   if (typeof rechercherParEntite === 'function') rechercherParEntite();
 }
 
 // ========== MODULE IV — PATRIMOINE ==========
 var photoBienTemp = null;
 var CATEGORIES_PATRIMOINE = {
-  LIT: 'Liturgie',
-  SAL: 'Salle de culte',
-  BUR: 'Bureau administratif',
-  IMM: 'Immobilier',
-  AUT: 'Autres biens'
+  LIT: 'Liturgie', SAL: 'Salle de culte', BUR: 'Bureau administratif', IMM: 'Immobilier', AUT: 'Autres biens'
 };
 
 function ajouterSitePatrimoine() {
   var type = document.getElementById('pTypeSite').value;
   var nom = document.getElementById('pNomSite').value.trim();
   var resp = document.getElementById('pRespSite').value.trim();
-  if (!nom) return alert('Entrez le nom du site');
+  if (!nom) return alert('Entrez le nom');
   var list = DB.get('patrimoineSites', []);
   if (list.find(function(s) { return s.nom.toLowerCase() === nom.toLowerCase() && !s.archived; })) return alert('Ce site existe déjà');
   list.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false, dateCreation: new Date().toISOString() });
@@ -2731,9 +2242,7 @@ function reinitialiserFormSitePatrimoine() {
 function refreshPatrimoineSites() {
   var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
   var sel = document.getElementById('pBienSite');
-  if (sel) {
-    sel.innerHTML = sites.map(function(s) { return '<option value="' + s.id + '">' + s.type + ' - ' + s.nom + '</option>'; }).join('');
-  }
+  if (sel) sel.innerHTML = sites.map(function(s) { return '<option value="' + s.id + '">' + s.type + ' - ' + s.nom + '</option>'; }).join('');
   var selRep = document.getElementById('pRepBien');
   if (selRep) {
     var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
@@ -2755,11 +2264,10 @@ function afficherSitesPatrimoine() {
     html += '<div class="item-list" style="padding:12px' + (s.archived ? ';opacity:0.7;background:#f0f0f0' : '') + '">';
     html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600">🏛️ ' + echapper(s.type) + ' - ' + echapper(s.nom) + (s.archived ? ' <span class="badge badge-archive">📦</span>' : '') + '</div>';
     html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(s.responsable || '-') + '</div>';
-    html += '<button class="btn-mini orange" onclick="modifierSitePatrimoine(\'' + s.id + '\')">✏️ Modifier</button> ';
+    html += '<button class="btn-mini orange" onclick="modifierSitePatrimoine(\'' + s.id + '\')">✏️</button> ';
     html += '<button class="btn-mini ' + (s.archived ? 'blue' : 'gray') + '" onclick="archiverSitePatrimoine(\'' + s.id + '\')">' + (s.archived ? '↩️' : '📦') + '</button> ';
-    html += '<button class="btn-mini blue" onclick="relevePatrimoineSite(\'' + s.id + '\')">📄 Relevé</button> ';
-    html += '<button class="btn-mini danger" onclick="supprimerSitePatrimoine(\'' + s.id + '\')">🗑️ Supprimer</button>';
-    html += '</div>';
+    html += '<button class="btn-mini blue" onclick="relevePatrimoineSite(\'' + s.id + '\')">📄</button> ';
+    html += '<button class="btn-mini danger" onclick="supprimerSitePatrimoine(\'' + s.id + '\')">🗑️</button></div>';
   });
   box.innerHTML = html;
 }
@@ -2784,11 +2292,11 @@ function archiverSitePatrimoine(id) {
   s.archived = !s.archived;
   DB.set('patrimoineSites', list);
   refreshPatrimoineSites();
-  alert(s.archived ? '📦 Archivé' : '↩️ Restauré');
+  alert(s.archived ? '📦' : '↩️');
 }
 
 function supprimerSitePatrimoine(id) {
-  if (!confirm('⚠️ Supprimer ce site et tous ses biens associés ?')) return;
+  if (!confirm('⚠️ Supprimer ce site et ses biens ?')) return;
   DB.set('patrimoineSites', DB.get('patrimoineSites', []).filter(function(s) { return s.id !== id; }));
   DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; }));
   refreshPatrimoineSites();
@@ -2802,11 +2310,11 @@ function previewPhotoBien(ev) {
     var img = new Image();
     img.onload = function() {
       var canvas = document.createElement('canvas');
-      canvas.width = 300; canvas.height = 300;
+      canvas.width = 250; canvas.height = 250;
       var ctx = canvas.getContext('2d');
       var min = Math.min(img.width, img.height);
-      ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 300, 300);
-      photoBienTemp = canvas.toDataURL('image/jpeg', 0.8);
+      ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 250, 250);
+      photoBienTemp = canvas.toDataURL('image/jpeg', 0.65);
       document.getElementById('pPhotoPreview').innerHTML = '<img src="' + photoBienTemp + '" style="width:120px;height:120px;border-radius:8px;object-fit:cover;border:2px solid #0a6e2c">';
     };
     img.src = e.target.result;
@@ -2818,8 +2326,7 @@ function genererCodeBien(siteId, cat) {
   var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === siteId; });
   var prefixSite = site ? (site.type.substring(0,2).toUpperCase() + '-' + site.nom.substring(0,3).toUpperCase()) : 'GEN';
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && b.categorie === cat; });
-  var num = (biens.length + 1).toString().padStart(3, '0');
-  return prefixSite + '-' + cat + '-' + num;
+  return prefixSite + '-' + cat + '-' + (biens.length + 1).toString().padStart(3, '0');
 }
 
 function ajouterBienPatrimoine() {
@@ -2836,7 +2343,7 @@ function ajouterBienPatrimoine() {
   DB.set('patrimoineBiens', list);
   reinitialiserFormBienPatrimoine();
   refreshPatrimoineSites();
-  alert('✅ Bien ajouté avec code : ' + code);
+  alert('✅ Bien ajouté : ' + code);
 }
 
 function reinitialiserFormBienPatrimoine() {
@@ -2858,19 +2365,13 @@ function afficherBiensPatrimoine() {
   var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Code</th><th>Désignation</th><th>Site</th><th>Qté</th><th>État</th><th>Actions</th></tr></thead><tbody>';
   biens.forEach(function(b) {
     var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === b.siteId; });
-    var siteNom = site ? site.nom : 'Inconnu';
     html += '<tr' + (b.archived ? ' style="opacity:0.6"' : '') + '>';
     html += '<td style="text-align:center">' + (b.photo ? '<img src="' + b.photo + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover">' : '📦') + '</td>';
-    html += '<td>' + echapper(b.code) + '</td>';
-    html += '<td>' + echapper(b.nom) + '</td>';
-    html += '<td>' + echapper(siteNom) + '</td>';
-    html += '<td class="num">' + b.qte + '</td>';
-    html += '<td>' + echapper(b.etat) + '</td>';
-    html += '<td>';
-    html += '<button class="btn-mini orange" onclick="modifierBienPatrimoine(\'' + b.id + '\')">✏️</button>';
+    html += '<td>' + echapper(b.code) + '</td><td>' + echapper(b.nom) + '</td><td>' + echapper(site ? site.nom : '-') + '</td>';
+    html += '<td class="num">' + b.qte + '</td><td>' + echapper(b.etat) + '</td>';
+    html += '<td><button class="btn-mini orange" onclick="modifierBienPatrimoine(\'' + b.id + '\')">✏️</button>';
     html += '<button class="btn-mini ' + (b.archived ? 'blue' : 'gray') + '" onclick="archiverBienPatrimoine(\'' + b.id + '\')">' + (b.archived ? '↩️' : '📦') + '</button>';
-    html += '<button class="btn-mini danger" onclick="supprimerBienPatrimoine(\'' + b.id + '\')">🗑️</button>';
-    html += '</td></tr>';
+    html += '<button class="btn-mini danger" onclick="supprimerBienPatrimoine(\'' + b.id + '\')">🗑️</button></td></tr>';
   });
   html += '</tbody></table></div>';
   box.innerHTML = html;
@@ -2896,7 +2397,7 @@ function archiverBienPatrimoine(id) {
   b.archived = !b.archived;
   DB.set('patrimoineBiens', list);
   refreshPatrimoineSites();
-  alert(b.archived ? '📦 Archivé' : '↩️ Restauré');
+  alert(b.archived ? '📦' : '↩️');
 }
 
 function supprimerBienPatrimoine(id) {
@@ -2924,8 +2425,8 @@ function afficherReparations() {
   var list = DB.get('patrimoineReparations', []);
   var box = document.getElementById('pListeReparations');
   if (!box) return;
-  if (!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888">Aucune réparation enregistrée.</p>'; return; }
-  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût (FC)</th></tr></thead><tbody>';
+  if (!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888">Aucune réparation.</p>'; return; }
+  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût</th></tr></thead><tbody>';
   list.slice().reverse().forEach(function(r) {
     var bien = DB.get('patrimoineBiens', []).find(function(b) { return b.id === r.bienId; });
     html += '<tr><td>' + fmtDate(r.date) + '</td><td>' + (bien ? bien.code : '-') + '</td><td>' + echapper(r.desc) + '</td><td class="num">' + r.cout.toLocaleString() + '</td></tr>';
@@ -2953,23 +2454,28 @@ function relevePatrimoineSite(siteId) {
   w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1>');
   w.document.write('<h2>Relevé Patrimoine : ' + echapper(site.nom) + '</h2>');
   w.document.write('<table><thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>État</th></tr></thead><tbody>');
-  biens.forEach(function(b) {
-    w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>');
-  });
-  w.document.write('</tbody></table>');
-  w.document.write('</body></html>');
+  biens.forEach(function(b) { w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>'); });
+  w.document.write('</tbody></table></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 500);
 }
 
-// ========== INIT ==========
-window.addEventListener('load', function() {
+// ========== INITIALISATION ==========
+window.addEventListener('load', async function() {
+  showScreen('splashScreen');
+  try {
+    await DB.init();
+    initDB();
+    console.log('✅ Base de données prête');
+  } catch(e) {
+    console.error('❌ Erreur init DB:', e);
+  }
   showSplash();
   setTimeout(initSignature, 500);
   setTimeout(initSignature, 1500);
 });
 
-// ⬇️ Ferme le menu hamburger en cliquant à l'extérieur
+// Fermer le menu en cliquant à l'extérieur
 document.addEventListener('click', function(e) {
   var menu = document.getElementById('mainMenu');
   var btn = document.querySelector('.btn-hamburger');
@@ -2977,3 +2483,26 @@ document.addEventListener('click', function(e) {
     fermerMainMenu();
   }
 });
+
+// Indicateur de sauvegarde
+window._signalerSauvegarde = function() {
+  var el = document.getElementById('saveIndicator');
+  if (!el) return;
+  el.style.opacity = '1';
+  el.textContent = '💾 Sauvegardé';
+  clearTimeout(window._saveTimeout);
+  window._saveTimeout = setTimeout(function() {
+    el.style.opacity = '0.35';
+    el.textContent = '💾';
+  }, 1200);
+};
+
+// Détection online / offline
+function majBandeauOffline() {
+  var banner = document.getElementById('offlineBanner');
+  if (!banner) return;
+  banner.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online', majBandeauOffline);
+window.addEventListener('offline', majBandeauOffline);
+window.addEventListener('load', majBandeauOffline);
