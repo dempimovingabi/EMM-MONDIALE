@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v18
+// EMM MONDIAL — LOGIQUE PRINCIPALE v19
 // ============================================
 
 var currentUser = null;
@@ -57,6 +57,7 @@ function switchMainTab(name, btn) {
     setTimeout(initSignature, 800);
   }
   if (name === 'patrimoine') refreshPatrimoineSites();
+  if (name === 'archives') afficherArchives();
 }
 
 // ========== LOGIN / LOGOUT ==========
@@ -910,7 +911,7 @@ function rapportFreqDetaille() {
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
 
-// ========== MODULE II — PHOTO (compression renforcée 250px/0.65) ==========
+// ========== MODULE II — PHOTO ==========
 function previewPhotoCandidat(ev) {
   var file = ev.target.files[0];
   if (!file) { photoCandidatTemp = null; var p = document.getElementById('cPhotoPreview'); if (p) p.innerHTML = ''; return; }
@@ -1121,14 +1122,14 @@ function archiverCandidat(cid) {
   var c = list.find(function(x) { return x.id === cid; });
   if (!c) return;
   if (!c.archived) {
-    if (!confirm('📦 Archiver "' + c.nom + '" ?')) return;
+    if (!confirm('📦 Archiver "' + c.nom + '" ?\n\nIl n\'apparaîtra plus dans les rapports PDF.\nTu pourras le restaurer depuis 📦 Archives.')) return;
     c.archived = true;
   } else {
     c.archived = false;
   }
   DB.set('candidats', list);
   refreshAll();
-  alert(c.archived ? '📦 Archivé' : '↩️ Restauré');
+  alert(c.archived ? '📦 Archivé — récupérable dans 📦 Archives' : '↩️ Restauré');
 }
 
 function supprimerCandidat(cid) {
@@ -1289,7 +1290,7 @@ function archiverVersement(vid) {
   v.archived = !v.archived;
   DB.set('versements', list);
   afficherVersements();
-  alert(v.archived ? '📦 Archivé' : '↩️ Restauré');
+  alert(v.archived ? '📦 Archivé — récupérable dans 📦 Archives' : '↩️ Restauré');
 }
 
 function supprimerVersement(vid) {
@@ -1783,7 +1784,7 @@ function archiverDepouillement(id) {
   d.archived = !d.archived;
   DB.set('depouillements', list);
   rechercherDepouillement();
-  alert(d.archived ? '📦 Archivé' : '↩️ Restauré');
+  alert(d.archived ? '📦 Archivé — récupérable dans 📦 Archives' : '↩️ Restauré');
 }
 
 function supprimerDepouillement(id) {
@@ -2292,7 +2293,7 @@ function archiverSitePatrimoine(id) {
   s.archived = !s.archived;
   DB.set('patrimoineSites', list);
   refreshPatrimoineSites();
-  alert(s.archived ? '📦' : '↩️');
+  alert(s.archived ? '📦 Archivé — récupérable dans 📦 Archives' : '↩️ Restauré');
 }
 
 function supprimerSitePatrimoine(id) {
@@ -2397,7 +2398,7 @@ function archiverBienPatrimoine(id) {
   b.archived = !b.archived;
   DB.set('patrimoineBiens', list);
   refreshPatrimoineSites();
-  alert(b.archived ? '📦' : '↩️');
+  alert(b.archived ? '📦 Archivé — récupérable dans 📦 Archives' : '↩️ Restauré');
 }
 
 function supprimerBienPatrimoine(id) {
@@ -2460,6 +2461,160 @@ function relevePatrimoineSite(siteId) {
   setTimeout(function() { w.print(); }, 500);
 }
 
+// ========== ARCHIVES CENTRALISÉES ==========
+function _typesArchives() {
+  return [
+    { key: 'entites', label: 'Entités', icon: '🏛️',
+      nom: function(x) { return (x.type || '') + ' - ' + (x.nom || '') + ' | Resp : ' + (x.responsable || '-'); } },
+    { key: 'participations', label: 'Participations', icon: '📝',
+      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + fmtDate(x.date) + ' (M:' + (x.m||0) + ' S:' + (x.s||0) + ' NV:' + (x.n||0) + ')'; } },
+    { key: 'fichesMensuelles', label: 'Fiches mensuelles', icon: '📆',
+      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + (x.mois||'') + ' ' + (x.annee||'') + ' | Resp : ' + (x.responsable||'-'); } },
+    { key: 'candidats', label: 'Candidats', icon: '👤',
+      nom: function(x) { return (x.nom||'') + ' — ' + (x.motif||'') + ' (' + (x.typeEntite||'') + ' ' + (x.nomEntite||'') + ') | Versé : ' + (x.totalVerse||0).toFixed(2) + '$'; } },
+    { key: 'versements', label: 'Versements', icon: '💵',
+      nom: function(x) {
+        var c = DB.get('candidats', []).find(function(z) { return z.id === x.candId; });
+        return (c ? c.nom : 'Candidat supprimé') + ' — ' + fmtDate(x.date) + ' — ' + (x.montantUSD||0).toFixed(2) + '$ (' + (x.montantOrigine||0) + ' ' + (x.monnaie||'') + ')';
+      } },
+    { key: 'depouillements', label: 'Dépouillements', icon: '🧾',
+      nom: function(x) { return (x.mois||'') + ' ' + (x.annee||'') + ' — Phase ' + (x.phase||'') + ' (' + (x.entites ? x.entites.length : 0) + ' entités)'; } },
+    { key: 'annonces', label: 'Annonces', icon: '📢',
+      nom: function(x) { return fmtDate(x.date) + ' — ' + (x.texte || '').substring(0, 80) + ((x.texte||'').length > 80 ? '...' : ''); } },
+    { key: 'patrimoineSites', label: 'Sites patrimoine', icon: '🏛️',
+      nom: function(x) { return (x.type||'') + ' - ' + (x.nom||'') + ' | Resp : ' + (x.responsable||'-'); } },
+    { key: 'patrimoineBiens', label: 'Biens patrimoine', icon: '📦',
+      nom: function(x) { return (x.code||'') + ' — ' + (x.nom||'') + ' (' + (x.qte||1) + 'x, ' + (x.etat||'') + ')'; } }
+  ];
+}
+
+function afficherArchives() {
+  var box = document.getElementById('archivesBox');
+  if (!box) return;
+  var recherche = (document.getElementById('archiveSearch').value || '').toLowerCase().trim();
+  var catFiltre = document.getElementById('archiveCategorie').value;
+  var types = _typesArchives();
+  var totalGeneral = 0;
+  var blocs = '';
+
+  types.forEach(function(t) {
+    if (catFiltre && catFiltre !== t.key) return;
+    var list = DB.get(t.key, []).filter(function(x) { return x.archived === true; });
+    if (recherche) {
+      list = list.filter(function(x) {
+        var n = (t.nom(x) || '').toLowerCase();
+        return n.indexOf(recherche) !== -1;
+      });
+    }
+    totalGeneral += list.length;
+    if (!list.length) return;
+
+    blocs += '<div class="card" style="margin-bottom:12px">';
+    blocs += '<h3>' + t.icon + ' ' + t.label + ' <span class="badge badge-archive">' + list.length + ' archivé(s)</span></h3>';
+    blocs += '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">';
+    blocs += '<button class="btn-mini blue" onclick="restaurerTouteCategorie(\'' + t.key + '\')">↩️ Tout restaurer</button>';
+    blocs += '<button class="btn-mini danger" onclick="purgerTouteCategorie(\'' + t.key + '\')">🗑️ Tout purger</button>';
+    blocs += '</div>';
+    blocs += '<div class="table-wrapper"><table class="data-table">';
+    blocs += '<thead><tr><th>Détail</th><th style="width:170px">Actions</th></tr></thead><tbody>';
+    list.forEach(function(x) {
+      var nomAffiche = echapper(t.nom(x) || '(sans détail)');
+      blocs += '<tr>';
+      blocs += '<td>' + nomAffiche + '</td>';
+      blocs += '<td>';
+      blocs += '<button class="btn-mini blue" onclick="restaurerArchive(\'' + t.key + '\', \'' + x.id + '\')">↩️ Restaurer</button> ';
+      blocs += '<button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + t.key + '\', \'' + x.id + '\')">🗑️ Supprimer</button>';
+      blocs += '</td></tr>';
+    });
+    blocs += '</tbody></table></div></div>';
+  });
+
+  if (!totalGeneral) {
+    var msgVide = catFiltre || recherche
+      ? '📭 Aucun élément archivé ne correspond à ces filtres.'
+      : '📭 Aucun élément archivé pour le moment. Les éléments que vous archivez apparaîtront ici.';
+    box.innerHTML = '<div class="card"><p style="text-align:center;padding:24px;color:#888;font-size:14px">' + msgVide + '</p></div>';
+    return;
+  }
+
+  var intro = '<div class="card" style="background:#fffde7;border-left:4px solid #f9a825">';
+  intro += '<h3 style="color:#e65100">📦 Archives — ' + totalGeneral + ' élément(s)</h3>';
+  intro += '<p style="font-size:12px;color:#666;margin-top:6px">Les éléments archivés sont exclus des rapports PDF. Restaure-les pour les réintégrer dans les rapports et listes actives.</p>';
+  intro += '</div>';
+
+  box.innerHTML = intro + blocs;
+}
+
+function restaurerArchive(type, id) {
+  var list = DB.get(type, []);
+  var item = list.find(function(x) { return x.id === id; });
+  if (!item) return alert('❌ Élément introuvable (peut-être déjà restauré)');
+  item.archived = false;
+  DB.set(type, list);
+  afficherArchives();
+  refreshAll();
+  alert('✅ Élément restauré — il réapparaît dans les listes et rapports actifs');
+}
+
+function restaurerTouteCategorie(type) {
+  var list = DB.get(type, []);
+  var n = 0;
+  list.forEach(function(x) { if (x.archived === true) { x.archived = false; n++; } });
+  if (!n) return alert('Aucun élément à restaurer');
+  if (!confirm('↩️ Restaurer ' + n + ' élément(s) de cette catégorie ?')) return;
+  DB.set(type, list);
+  afficherArchives();
+  refreshAll();
+  alert('✅ ' + n + ' élément(s) restauré(s)');
+}
+
+function supprimerDefinitifArchive(type, id) {
+  if (!confirm('⚠️ Supprimer DÉFINITIVEMENT cet élément ?\n\nCette action est irréversible.\n\nPour le récupérer ensuite, il faudra le recréer entièrement.')) return;
+  var list = DB.get(type, []).filter(function(x) { return x.id !== id; });
+  DB.set(type, list);
+
+  if (type === 'candidats') {
+    DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== id; }));
+  }
+  if (type === 'entites') {
+    DB.set('participations', DB.get('participations', []).filter(function(p) { return p.entiteId !== id; }));
+    DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(f) { return f.entiteId !== id; }));
+  }
+  if (type === 'patrimoineSites') {
+    DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; }));
+  }
+
+  afficherArchives();
+  refreshAll();
+  alert('✅ Supprimé définitivement');
+}
+
+function purgerTouteCategorie(type) {
+  var list = DB.get(type, []);
+  var archives = list.filter(function(x) { return x.archived === true; });
+  if (!archives.length) return alert('Aucune archive dans cette catégorie');
+  if (!confirm('⚠️ Supprimer DÉFINITIVEMENT ' + archives.length + ' élément(s) archivé(s) de cette catégorie ?\n\nAction irréversible.')) return;
+  DB.set(type, list.filter(function(x) { return x.archived !== true; }));
+
+  if (type === 'candidats') {
+    var idsCands = archives.map(function(x) { return x.id; });
+    DB.set('versements', DB.get('versements', []).filter(function(v) { return idsCands.indexOf(v.candId) === -1; }));
+  }
+  if (type === 'entites') {
+    var idsEnt = archives.map(function(x) { return x.id; });
+    DB.set('participations', DB.get('participations', []).filter(function(p) { return idsEnt.indexOf(p.entiteId) === -1; }));
+    DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(f) { return idsEnt.indexOf(f.entiteId) === -1; }));
+  }
+  if (type === 'patrimoineSites') {
+    var idsSites = archives.map(function(x) { return x.id; });
+    DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return idsSites.indexOf(b.siteId) === -1; }));
+  }
+
+  afficherArchives();
+  refreshAll();
+  alert('✅ Purge effectuée');
+}
+
 // ========== INITIALISATION ==========
 window.addEventListener('load', async function() {
   showScreen('splashScreen');
@@ -2475,7 +2630,6 @@ window.addEventListener('load', async function() {
   setTimeout(initSignature, 1500);
 });
 
-// Fermer le menu en cliquant à l'extérieur
 document.addEventListener('click', function(e) {
   var menu = document.getElementById('mainMenu');
   var btn = document.querySelector('.btn-hamburger');
@@ -2484,7 +2638,6 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// Indicateur de sauvegarde
 window._signalerSauvegarde = function() {
   var el = document.getElementById('saveIndicator');
   if (!el) return;
@@ -2497,7 +2650,6 @@ window._signalerSauvegarde = function() {
   }, 1200);
 };
 
-// Détection online / offline
 function majBandeauOffline() {
   var banner = document.getElementById('offlineBanner');
   if (!banner) return;
