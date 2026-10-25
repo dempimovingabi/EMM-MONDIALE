@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v19
+// EMM MONDIAL — LOGIQUE PRINCIPALE v20
 // ============================================
 
 var currentUser = null;
@@ -7,6 +7,8 @@ var photoCandidatTemp = null;
 var signatureCanvas = null, signatureCtx = null, signatureVide = true;
 var seanceActive = null;
 var tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
+var _releveFicheHTML = '';
+var _releveGlobalHTML = '';
 
 var CATEGORIES_OFFRANDES = {
   init: 'Initiation', sorei: 'Sorei Saichi', kannon: 'Kannon',
@@ -1731,6 +1733,9 @@ function reinitialiserRechercheDep() {
   ['searchDepAnnee','searchDepEntite'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   ['searchDepMois','searchDepPhase','searchDepStatut'].forEach(function(id) { var el = document.getElementById(id); if (el) el.selectedIndex = 0; });
   document.getElementById('resultatRechercheDep').innerHTML = '';
+  var rb = document.getElementById('releveFicheBox'); if (rb) rb.innerHTML = '';
+  _releveFicheHTML = '';
+  _releveGlobalHTML = '';
 }
 
 function rechercherDepGeneral() {
@@ -1833,7 +1838,8 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   setTimeout(function() { w.print(); }, 600);
 }
 
-function releveFicheEntite(entiteNom, mois, annee) {
+// ========== CONSTRUCTION RELEVÉ FICHE PAR ENTITÉ (dans la page) ==========
+function construireReleveFicheEntite(entiteNom, mois, annee) {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var resultats = [];
   deps.forEach(function(d) {
@@ -1843,28 +1849,58 @@ function releveFicheEntite(entiteNom, mois, annee) {
       if (ok) resultats.push({ entite: e, seance: d });
     });
   });
-  if (!resultats.length) return alert('Aucune fiche');
-  var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé</title><style>body{font-family:Arial;padding:20px;max-width:900px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#0a6e2c;font-size:14px;margin:20px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}h3{color:#0a6e2c;font-size:13px;margin:12px 0 6px}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}th{background:#0a6e2c;color:white;padding:6px;text-align:left}td{padding:6px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:10px;border-radius:8px;margin:10px 0;border-left:4px solid #0a6e2c;font-size:12px}.recap{background:#fff3e0;padding:12px;border-radius:8px;margin-top:10px;border:2px solid #e65100}</style></head><body>');
-  w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666;font-size:12px">EMM MONDIAL</p><h2 style="border:none;text-align:center">RELEVÉ FICHE PAR ENTITÉ</h2></div>');
+  if (!resultats.length) return null;
+
+  var filtres = [];
+  if (entiteNom) filtres.push('Entité : ' + entiteNom);
+  if (mois) filtres.push('Mois : ' + mois);
+  if (annee) filtres.push('Année : ' + annee);
+
+  var h = '<div class="rapport-header"><h3>📋 RELEVÉ FICHE PAR ENTITÉ</h3>';
+  if (filtres.length) h += '<p style="font-size:12px;color:#666">' + filtres.join(' — ') + '</p>';
+  h += '</div>';
+
   var parEntite = {};
-  resultats.forEach(function(r) { var k = r.entite.typeEntite + ' - ' + r.entite.nomEntite; if (!parEntite[k]) parEntite[k] = []; parEntite[k].push(r); });
+  resultats.forEach(function(r) {
+    var k = r.entite.typeEntite + ' - ' + r.entite.nomEntite;
+    if (!parEntite[k]) parEntite[k] = [];
+    parEntite[k].push(r);
+  });
   var totFC = 0, totUSD = 0;
+
   Object.keys(parEntite).forEach(function(key) {
-    w.document.write('<h2>🏛️ ' + echapper(key) + '</h2>');
+    h += '<div class="entity-block">';
+    h += '<h4>🏛️ ' + echapper(key) + '</h4>';
     parEntite[key].forEach(function(r) {
       var s = sumEntiteDep(r.entite);
       totFC += s.soldeFC; totUSD += s.soldeUSD;
-      w.document.write('<h3>📅 ' + r.seance.mois + ' ' + r.seance.annee + ' — Phase ' + r.seance.phase + '</h3>');
-      w.document.write('<div class="info">📩 Enveloppes : <strong>' + (r.entite.enveloppes || 0) + '</strong></div>');
-      w.document.write('<table><tfoot><tr><td>TOTAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>');
-      w.document.write('<tr><td>Transport</td><td class="num">- ' + (r.entite.transFC || 0).toLocaleString() + ' FC</td><td class="num">- ' + (r.entite.transUSD || 0).toLocaleString() + ' $</td></tr>');
-      w.document.write('<tr><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table>');
+      h += '<h5 style="color:#0a6e2c;font-size:13px;margin:10px 0 4px">📅 ' + r.seance.mois + ' ' + r.seance.annee + ' — Phase ' + r.seance.phase + '</h5>';
+      h += '<div style="background:#fff3e0;padding:6px 10px;border-radius:6px;margin-bottom:8px;border-left:4px solid #e65100;font-size:12px"><strong>📩 Enveloppes :</strong> ' + (r.entite.enveloppes || 0) + '</div>';
+      h += '<div class="table-wrapper"><table class="data-table"><tbody>';
+      h += '<tr><td>Construction</td><td class="num">' + (r.entite.constrFC || 0).toLocaleString() + ' FC</td><td class="num">' + (r.entite.constrUSD || 0).toLocaleString() + ' $</td></tr>';
+      h += '<tr><td>Normales</td><td class="num">' + (r.entite.normFC || 0).toLocaleString() + ' FC</td><td class="num">' + (r.entite.normUSD || 0).toLocaleString() + ' $</td></tr>';
+      Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
+        var arr = r.entite[cat] || [];
+        if (!arr.length) return;
+        var cfFC = arr.reduce(function(a,o){return a+o.fc;},0);
+        var cfUSD = arr.reduce(function(a,o){return a+o.usd;},0);
+        h += '<tr><td>' + CATEGORIES_OFFRANDES[cat] + '</td><td class="num">' + cfFC.toLocaleString() + ' FC</td><td class="num">' + cfUSD.toLocaleString() + ' $</td></tr>';
+      });
+      h += '</tbody><tfoot>';
+      h += '<tr><td>TOTAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>';
+      h += '<tr><td>Transport</td><td class="num">- ' + (r.entite.transFC || 0).toLocaleString() + ' FC</td><td class="num">- ' + (r.entite.transUSD || 0).toLocaleString() + ' $</td></tr>';
+      h += '<tr style="background:#e8f5e9"><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
+      h += '</tfoot></table></div>';
     });
+    h += '</div>';
   });
-  w.document.write('<div class="recap"><strong>🌍 TOTAL GÉNÉRAL :</strong><br><div style="font-size:16px;font-weight:700;color:#0a6e2c;margin-top:6px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div></div></body></html>');
-  w.document.close();
-  setTimeout(function() { w.print(); }, 600);
+
+  h += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:16px">';
+  h += '<div style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL (toutes entités)</div>';
+  h += '<div style="font-size:16px;font-weight:700;margin-top:8px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div>';
+  h += '</div>';
+
+  return h;
 }
 
 function genererReleveEntiteFiltre() {
@@ -1872,7 +1908,122 @@ function genererReleveEntiteFiltre() {
   var annee = (document.getElementById('searchDepAnnee').value || '').trim();
   var mois = document.getElementById('searchDepMois').value;
   if (!entite && !annee && !mois) return alert('Entrez au moins un critère');
-  releveFicheEntite(entite, mois, annee);
+  var html = construireReleveFicheEntite(entite, mois, annee);
+  if (!html) {
+    document.getElementById('releveFicheBox').innerHTML = '<div class="card"><p style="color:#888;text-align:center;padding:20px">Aucune fiche trouvée pour ces critères.</p></div>';
+    return;
+  }
+  _releveFicheHTML = html;
+  var box = document.getElementById('releveFicheBox');
+  box.innerHTML = '<div class="card">' + html +
+    '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#1976d2,#1565c0)" onclick="imprimerReleveFicheCourant()">🖨️ Imprimer / PDF</button>' +
+    '</div>';
+  setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+}
+
+function imprimerReleveFicheCourant() {
+  if (!_releveFicheHTML) return alert('Aucun relevé à imprimer');
+  ouvrirModalPdf({ type: 'html', html: _releveFicheHTML, titre: 'Relevé Fiche par Entité' });
+}
+
+// ========== RELEVÉ FICHE GLOBALE DES ENTITÉS ==========
+function construireReleveGlobalEntites(mois, annee) {
+  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  if (mois || annee) {
+    deps = deps.filter(function(d) {
+      return (!mois || d.mois === mois) && (!annee || String(d.annee) === annee);
+    });
+  }
+  if (!deps.length) return null;
+
+  var filtres = [];
+  if (mois) filtres.push('Mois : ' + mois);
+  if (annee) filtres.push('Année : ' + annee);
+
+  var h = '<div class="rapport-header"><h3>📊 RELEVÉ FICHE GLOBALE DES ENTITÉS</h3>';
+  h += '<p style="font-size:12px;color:#666">' + deps.length + ' séance(s)';
+  if (filtres.length) h += ' — ' + filtres.join(' — ');
+  h += '</p></div>';
+
+  var totalSoldeFC = 0, totalSoldeUSD = 0;
+  var totalGenFC = 0, totalGenUSD = 0;
+
+  deps.forEach(function(d) {
+    h += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:16px 0 8px;border-left:5px solid #0a6e2c">';
+    h += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    h += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div>';
+    h += '</div>';
+
+    var soldeFC = 0, soldeUSD = 0;
+    d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
+    totalSoldeFC += soldeFC; totalSoldeUSD += soldeUSD;
+
+    h += '<div class="table-wrapper"><table class="data-table">';
+    h += '<thead><tr><th>Entité</th><th>Responsable</th><th>Enveloppes</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
+    d.entites.forEach(function(e) {
+      var s = sumEntiteDep(e);
+      h += '<tr><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td>';
+      h += '<td>' + echapper(e.responsable || '-') + '</td>';
+      h += '<td class="num">' + (e.enveloppes || 0) + '</td>';
+      h += '<td class="num">' + s.soldeFC.toLocaleString() + '</td>';
+      h += '<td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
+    });
+    h += '</tbody><tfoot><tr><td colspan="2">TOTAL SOLDES ENTITÉS</td><td class="num"></td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot>';
+    h += '</table></div>';
+
+    var genFC = 0, genUSD = 0;
+    if (d.depensesGenerales && d.depensesGenerales.length) {
+      h += '<h5 style="color:#c62828;font-size:13px;margin:12px 0 6px">💸 Dépenses générales</h5>';
+      h += '<div class="table-wrapper"><table class="data-table">';
+      h += '<thead><tr><th>#</th><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
+      d.depensesGenerales.forEach(function(x, i) {
+        genFC += x.fc; genUSD += x.usd;
+        h += '<tr><td>' + (i+1) + '</td><td>' + echapper(x.motif) + '</td><td class="num">' + x.fc.toLocaleString() + '</td><td class="num">' + x.usd.toLocaleString() + '</td></tr>';
+      });
+      h += '</tbody><tfoot><tr><td colspan="2">TOTAL DÉPENSES</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr></tfoot>';
+      h += '</table></div>';
+    } else {
+      h += '<p style="font-size:12px;color:#888;margin:8px 0">Aucune dépense générale pour cette séance.</p>';
+    }
+    totalGenFC += genFC; totalGenUSD += genUSD;
+
+    h += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100">';
+    h += '<div style="font-size:13px;color:#e65100;font-weight:700">💰 SOLDE À TRANSFÉRER (cette séance)</div>';
+    h += '<div style="font-size:15px;color:#0a6e2c;font-weight:700;margin-top:4px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div>';
+    h += '</div>';
+  });
+
+  h += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
+  h += '<div style="font-size:14px;font-weight:700;margin-bottom:10px">🌍 TOTAL GÉNÉRAL À LA BANQUE</div>';
+  h += '<table style="width:100%;color:white;font-size:13px;margin-bottom:8px">';
+  h += '<tr><td style="padding:4px 0">Total soldes entités</td><td style="text-align:right;padding:4px 0"><strong>' + totalSoldeFC.toLocaleString() + ' FC / ' + totalSoldeUSD.toLocaleString() + ' $</strong></td></tr>';
+  h += '<tr><td style="padding:4px 0">Total dépenses générales</td><td style="text-align:right;padding:4px 0"><strong>- ' + totalGenFC.toLocaleString() + ' FC / - ' + totalGenUSD.toLocaleString() + ' $</strong></td></tr>';
+  h += '</table>';
+  h += '<div style="font-size:18px;font-weight:700;border-top:2px solid rgba(255,255,255,0.4);padding-top:10px;margin-top:6px;text-align:center">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
+  h += '</div>';
+
+  return h;
+}
+
+function genererReleveGlobalEntites() {
+  var mois = document.getElementById('searchDepMois').value;
+  var annee = (document.getElementById('searchDepAnnee').value || '').trim();
+  var html = construireReleveGlobalEntites(mois, annee);
+  if (!html) {
+    document.getElementById('releveFicheBox').innerHTML = '<div class="card"><p style="color:#888;text-align:center;padding:20px">Aucune séance trouvée pour ces critères.</p></div>';
+    return;
+  }
+  _releveGlobalHTML = html;
+  var box = document.getElementById('releveFicheBox');
+  box.innerHTML = '<div class="card">' + html +
+    '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#6a1b9a,#8e24aa)" onclick="imprimerReleveGlobalCourant()">🖨️ Imprimer / PDF</button>' +
+    '</div>';
+  setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+}
+
+function imprimerReleveGlobalCourant() {
+  if (!_releveGlobalHTML) return alert('Aucun relevé à imprimer');
+  ouvrirModalPdf({ type: 'html', html: _releveGlobalHTML, titre: 'Relevé Fiche Globale des Entités' });
 }
 
 function rapportDepGlobal() {
@@ -1916,10 +2067,11 @@ function rapportDepDetaille() {
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
+// ========== SOLDE À TRANSFÉRER (avec dépenses générales détaillées) ==========
 function soldeTransferer() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun.</p>'; return; }
-  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3></div>';
+  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3><p>Détail complet par séance</p></div>';
   var totalSoldeFC = 0, totalSoldeUSD = 0, totalGenFC = 0, totalGenUSD = 0;
   deps.forEach(function(d) {
     var soldeFC = 0, soldeUSD = 0;
@@ -1927,15 +2079,49 @@ function soldeTransferer() {
     var genFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
     var genUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
     totalSoldeFC += soldeFC; totalSoldeUSD += soldeUSD; totalGenFC += genFC; totalGenUSD += genUSD;
-    html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c"><div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div></div>';
+
+    html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c">';
+    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div></div>';
+
     html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
-    d.entites.forEach(function(e) { var s = sumEntiteDep(e); html += '<tr><td>' + echapper(e.nomEntite) + '</td><td class="num">' + s.soldeFC.toLocaleString() + '</td><td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>'; });
-    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
-    html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100"><div style="font-size:14px;color:#e65100;font-weight:700">À TRANSFÉRER (cette séance)</div>';
-    html += '<div style="font-size:16px;color:#0a6e2c;font-weight:700;margin-top:6px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div></div>';
+    d.entites.forEach(function(e) {
+      var s = sumEntiteDep(e);
+      html += '<tr><td>' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</td>';
+      html += '<td class="num">' + s.soldeFC.toLocaleString() + '</td>';
+      html += '<td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
+    });
+    html += '</tbody><tfoot><tr><td>TOTAL SOLDES ENTITÉS</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
+
+    if (d.depensesGenerales && d.depensesGenerales.length) {
+      html += '<h5 style="color:#c62828;font-size:13px;margin:14px 0 6px">💸 Dépenses générales (' + d.depensesGenerales.length + ')</h5>';
+      html += '<div class="table-wrapper"><table class="data-table">';
+      html += '<thead><tr><th>#</th><th>Motif</th><th>FC</th><th>USD</th></tr></thead><tbody>';
+      d.depensesGenerales.forEach(function(x, i) {
+        html += '<tr><td>' + (i+1) + '</td><td>' + echapper(x.motif) + '</td>';
+        html += '<td class="num">' + x.fc.toLocaleString() + '</td>';
+        html += '<td class="num">' + x.usd.toLocaleString() + '</td></tr>';
+      });
+      html += '</tbody><tfoot>';
+      html += '<tr><td colspan="2">TOTAL DÉPENSES</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
+      html += '</tfoot></table></div>';
+    } else {
+      html += '<p style="font-size:12px;color:#888;margin:8px 0">Aucune dépense générale pour cette séance.</p>';
+    }
+
+    html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100">';
+    html += '<div style="font-size:14px;color:#e65100;font-weight:700">💰 SOLDE À TRANSFÉRER (cette séance)</div>';
+    html += '<div style="font-size:16px;color:#0a6e2c;font-weight:700;margin-top:6px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div>';
+    html += '</div>';
   });
-  html += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px"><div style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL</div>';
-  html += '<div style="font-size:16px;font-weight:700;margin-top:10px">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div></div>';
+
+  html += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
+  html += '<div style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL (toutes séances actives)</div>';
+  html += '<div style="font-size:13px;margin:8px 0 4px">Total soldes entités : <strong>' + totalSoldeFC.toLocaleString() + ' FC / ' + totalSoldeUSD.toLocaleString() + ' $</strong></div>';
+  html += '<div style="font-size:13px;margin:4px 0">Total dépenses générales : <strong>- ' + totalGenFC.toLocaleString() + ' FC / - ' + totalGenUSD.toLocaleString() + ' $</strong></div>';
+  html += '<div style="font-size:16px;font-weight:700;margin-top:10px;border-top:1px solid rgba(255,255,255,0.3);padding-top:10px">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
+  html += '</div>';
+
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
