@@ -556,7 +556,9 @@
       <button class="btn-secondary" onclick="rechercherDepouillement()">🔍 Rechercher</button>
       <button class="btn-secondary" onclick="reinitialiserRechercheDep()">🔄 Réinitialiser</button>
       <button class="btn-primary" onclick="genererReleveEntiteFiltre()" style="background:linear-gradient(135deg,#1976d2,#1565c0)">📄 Relevé fiche par entité</button>
+      <button class="btn-primary" onclick="genererReleveGlobalEntites()" style="background:linear-gradient(135deg,#6a1b9a,#8e24aa)">📊 Relevé fiche globale des entités</button>
       <div id="resultatRechercheDep"></div>
+      <div id="releveFicheBox" style="margin-top:15px"></div>
     </div>
 
     <div class="card">
@@ -653,7 +655,7 @@
     </div>
   </div>
 
-  <!-- ⬇️ ONGLET ARCHIVES -->
+  <!-- ONGLET ARCHIVES -->
   <div id="tab-archives" class="main-tab-content">
     <div class="card">
       <h3>🔍 Filtrer les archives</h3>
