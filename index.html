@@ -729,7 +729,7 @@
 
 </div>
 
-<!-- MODAL OPTIONS PDF (tailles de police étendues jusqu'à 32 pt) -->
+<!-- MODAL OPTIONS PDF (avec sélecteur de couleur de signature) -->
 <div id="pdfOptionsModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🖨️ Options d'impression / PDF</h3>
@@ -776,6 +776,16 @@
         <option value="landscape">Paysage</option>
       </select>
     </div>
+    <div class="input-group">
+      <label>🎨 Couleur des cases de signature</label>
+      <div style="display:flex;gap:10px;align-items:center;background:#f9f9f9;padding:8px 12px;border-radius:8px;border:1px solid #ddd">
+        <input type="color" id="pdfSignatureColor" value="#0a6e2c" style="width:56px;height:36px;padding:2px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:white;flex-shrink:0">
+        <div style="display:flex;flex-direction:column;flex:1">
+          <span id="pdfSignatureColorValue" style="font-size:12px;color:#0a6e2c;font-weight:600">#0a6e2c</span>
+          <span style="font-size:10px;color:#888">Appliqué à tous les rapports</span>
+        </div>
+      </div>
+    </div>
     <button class="btn-primary" onclick="confirmerImpressionPdf()">🖨️ Générer / Imprimer</button>
     <button class="btn-secondary" onclick="fermerModalPdf()">Annuler</button>
   </div>
@@ -809,4 +819,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-                                                     </html>
+                                                                 </html>                                                                                                     </html>
