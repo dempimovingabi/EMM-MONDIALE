@@ -729,7 +729,7 @@
 
 </div>
 
-<!-- MODAL OPTIONS PDF (avec sélecteur de couleur de signature) -->
+<!-- MODAL OPTIONS PDF (avec couleur de signature) -->
 <div id="pdfOptionsModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🖨️ Options d'impression / PDF</h3>
@@ -778,12 +778,17 @@
     </div>
     <div class="input-group">
       <label>🎨 Couleur des cases de signature</label>
-      <div style="display:flex;gap:10px;align-items:center;background:#f9f9f9;padding:8px 12px;border-radius:8px;border:1px solid #ddd">
-        <input type="color" id="pdfSignatureColor" value="#0a6e2c" style="width:56px;height:36px;padding:2px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:white;flex-shrink:0">
-        <div style="display:flex;flex-direction:column;flex:1">
-          <span id="pdfSignatureColorValue" style="font-size:12px;color:#0a6e2c;font-weight:600">#0a6e2c</span>
-          <span style="font-size:10px;color:#888">Appliqué à tous les rapports</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f9f9f9;padding:8px 12px;border-radius:8px;border:1px solid #ddd">
+        <input type="color" id="pdfSignatureColor" value="#0a6e2c" oninput="appliquerCouleurSignature(this.value)" onchange="appliquerCouleurSignature(this.value)" style="width:52px;height:36px;padding:2px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:white;flex-shrink:0">
+        <input type="text" id="pdfSignatureColorText" value="#0a6e2c" maxlength="7" onchange="appliquerCouleurSignature(this.value)" style="width:90px;padding:8px;border:2px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;text-align:center;background:white">
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button type="button" onclick="appliquerCouleurSignature('#0a6e2c')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#0a6e2c;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Vert"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#000000')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#000000;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Noir"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#1976d2')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#1976d2;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Bleu"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#d32f2f')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#d32f2f;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Rouge"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#6a1b9a')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#6a1b9a;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Violet"></button>
         </div>
+        <span id="pdfSignatureColorValue" style="font-size:12px;color:#0a6e2c;font-weight:600;margin-left:auto">#0a6e2c</span>
       </div>
     </div>
     <button class="btn-primary" onclick="confirmerImpressionPdf()">🖨️ Générer / Imprimer</button>
@@ -819,4 +824,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-                                                                 </html>                                                                                                     </html>
+  </html>                                                    
