@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v25
+// EMM MONDIAL — LOGIQUE PRINCIPALE v26
 // ============================================
 
 var currentUser = null;
@@ -22,20 +22,33 @@ function getSignatureColor() { return DB.get('signatureColor', '#0a6e2c'); }
 function setSignatureColor(couleur) {
   if (!couleur || !/^#[0-9A-Fa-f]{6}$/.test(couleur)) return;
   DB.set('signatureColor', couleur);
-  document.querySelectorAll('.signature-box').forEach(function(b) {
-    b.style.border = '2px solid ' + couleur;
-  });
-  document.querySelectorAll('.signature-line').forEach(function(l) {
-    l.style.borderTop = '1px solid ' + couleur;
-    l.style.color = couleur;
-  });
+  document.querySelectorAll('.signature-box').forEach(function(b) { b.style.border = '2px solid ' + couleur; });
+  document.querySelectorAll('.signature-line').forEach(function(l) { l.style.borderTop = '1px solid ' + couleur; l.style.color = couleur; });
   var mi = document.getElementById('pdfSignatureColor');
   if (mi) mi.value = couleur;
+  var mit = document.getElementById('pdfSignatureColorText');
+  if (mit && document.activeElement !== mit) mit.value = couleur;
   var lbl = document.getElementById('pdfSignatureColorValue');
   if (lbl) { lbl.textContent = couleur; lbl.style.color = couleur; }
+  document.querySelectorAll('.signature-color-picker [data-color]').forEach(function(btn) {
+    var c = btn.getAttribute('data-color');
+    btn.style.boxShadow = (c.toLowerCase() === couleur.toLowerCase()) ? '0 0 0 2px #333' : '0 0 0 1px #ddd';
+  });
+  document.querySelectorAll('.signature-color-picker input[type="text"]').forEach(function(inp) {
+    if (document.activeElement !== inp) inp.value = couleur;
+  });
+  document.querySelectorAll('.signature-color-picker input[type="color"]').forEach(function(inp) { inp.value = couleur; });
 }
 
-function changerCouleurSignature(couleur) { setSignatureColor(couleur); }
+function appliquerCouleurSignature(couleur) {
+  if (!couleur) return;
+  couleur = String(couleur).trim();
+  if (couleur[0] !== '#') couleur = '#' + couleur;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(couleur)) return alert('⚠️ Format invalide.\nUtilisez #0a6e2c (avec # + 6 caractères)');
+  setSignatureColor(couleur);
+}
+
+function changerCouleurSignature(couleur) { appliquerCouleurSignature(couleur); }
 
 // ========== SPLASH ==========
 function showSplash() {
@@ -154,6 +167,8 @@ function ouvrirModalPdf(contexte) {
   var sigColor = getSignatureColor();
   var input = document.getElementById('pdfSignatureColor');
   if (input) input.value = sigColor;
+  var itext = document.getElementById('pdfSignatureColorText');
+  if (itext) itext.value = sigColor;
   var lbl = document.getElementById('pdfSignatureColorValue');
   if (lbl) { lbl.textContent = sigColor; lbl.style.color = sigColor; }
   document.getElementById('pdfOptionsModal').style.display = 'flex';
@@ -168,6 +183,8 @@ function lireOptionsPdf() {
   var sigColor = getSignatureColor();
   var input = document.getElementById('pdfSignatureColor');
   if (input && input.value) sigColor = input.value;
+  var itext = document.getElementById('pdfSignatureColorText');
+  if (itext && itext.value && /^#[0-9A-Fa-f]{6}$/.test(itext.value)) sigColor = itext.value;
   return {
     paperSize: document.getElementById('pdfPaperSize').value,
     fontFamily: document.getElementById('pdfFontFamily').value,
@@ -254,13 +271,28 @@ function confirmerImpressionPdf() {
 // ========== HELPER : CASES DE SIGNATURE ==========
 function signatureBlockHTML() {
   var couleur = getSignatureColor();
+  var presets = ['#0a6e2c','#000000','#1976d2','#d32f2f','#6a1b9a','#e65100','#1b5e20','#37474f'];
+  var presetsHtml = '';
+  presets.forEach(function(c) {
+    var sel = (c.toLowerCase() === couleur.toLowerCase());
+    presetsHtml += '<button type="button" data-color="' + c + '" onclick="appliquerCouleurSignature(\'' + c + '\')" ' +
+      'style="width:30px;height:30px;border-radius:50%;border:2px solid white;background:' + c + ';cursor:pointer;padding:0;' +
+      (sel ? 'box-shadow:0 0 0 2px #333;' : 'box-shadow:0 0 0 1px #ddd;') + '" ' +
+      'title="' + c + '"></button>';
+  });
   return '<div class="signature-block" style="margin-top:40px;page-break-inside:avoid">' +
-    '<div class="signature-color-picker" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;justify-content:flex-end">' +
-      '<span style="font-size:11px;color:#666">🎨 Couleur signature :</span>' +
-      '<input type="color" value="' + couleur + '" onchange="changerCouleurSignature(this.value)" style="width:42px;height:28px;padding:2px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:white">' +
+    '<div class="signature-color-picker" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:10px;background:#f0f4f0;border-radius:8px;border:2px dashed #0a6e2c">' +
+      '<div style="font-size:11px;color:#0a6e2c;font-weight:700;text-align:center;margin-bottom:2px">🎨 Couleur de la signature</div>' +
+      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">' + presetsHtml + '</div>' +
+      '<div style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:4px">' +
+        '<label style="font-size:11px;color:#555">Perso :</label>' +
+        '<input type="color" value="' + couleur + '" oninput="appliquerCouleurSignature(this.value)" onchange="appliquerCouleurSignature(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">' +
+        '<input type="text" value="' + couleur + '" onchange="appliquerCouleurSignature(this.value)" maxlength="7" style="width:90px;padding:6px 8px;border:2px solid #ddd;border-radius:6px;font-size:12px;font-family:monospace;text-align:center">' +
+        '<button type="button" onclick="appliquerCouleurSignature(\'#0a6e2c\')" style="padding:6px 10px;border:1px solid #0a6e2c;border-radius:6px;background:#e8f5e9;color:#0a6e2c;cursor:pointer;font-size:11px;font-weight:600">↺ Reset</button>' +
+      '</div>' +
+      '<div style="font-size:10px;color:#888;text-align:center;font-style:italic">Choisis une couleur ci-dessus ou tape un code hexadécimal</div>' +
     '</div>' +
-    '<table style="width:100%;border:none;border-collapse:separate">' +
-    '<tr>' +
+    '<table style="width:100%;border:none;border-collapse:separate"><tr>' +
       '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
         '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:10px;background:#f9f9f9;min-height:80px">' +
           '<div class="signature-label" style="font-size:10pt;color:#666;text-align:center;margin-bottom:50px">Signature</div>' +
