@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v21
+// EMM MONDIAL — LOGIQUE PRINCIPALE v23
 // ============================================
 
 var currentUser = null;
@@ -9,6 +9,7 @@ var seanceActive = null;
 var tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
 var _releveFicheHTML = '';
 var _releveGlobalHTML = '';
+var _releveIndividuelHTML = '';
 
 var CATEGORIES_OFFRANDES = {
   init: 'Initiation', sorei: 'Sorei Saichi', kannon: 'Kannon',
@@ -363,7 +364,7 @@ function reinitialiserRapportNumerique() {
   recalculerTotauxRN();
 }
 
-// ========== RAPPORT NUMÉRIQUE — GLOBAL ==========
+// ========== RAPPORT NUMÉRIQUE — GLOBAL / DÉTAILLÉ ==========
 function filtrerRapportsNum() {
   var fm = document.getElementById('rnFiltreMois') ? document.getElementById('rnFiltreMois').value : '';
   var fa = document.getElementById('rnFiltreAnnee') ? document.getElementById('rnFiltreAnnee').value.trim() : '';
@@ -1339,7 +1340,7 @@ function imprimerRecu(vid) {
   w.document.write('<div class="signature">');
   if (v.signature) w.document.write('<div class="sig-img"><img src="' + v.signature + '"><br><small>Le candidat</small></div>');
   else w.document.write('<div class="sig-line">Le candidat</div>');
-  w.document.write('<div class="sig-line">Le responsable</div></div></body></html>');
+  w.document.write('<div class="sig-line">Le Responsable</div></div></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 500);
 }
@@ -1412,7 +1413,7 @@ function afficherReleveVersement(candId) {
   w.document.write('<div class="solde">Montant prévu : ' + c.montantPrevu + ' $<br>Total versé : ' + totalUSD.toFixed(2) + ' $');
   if (totalFC > 0) w.document.write(' (dont ' + totalFC.toLocaleString() + ' FC)');
   w.document.write('<br>Solde restant : ' + (c.montantPrevu - totalUSD).toFixed(2) + ' $</div>');
-  w.document.write('<div class="signature"><div class="sig-line">Le candidat</div><div class="sig-line">Le responsable</div></div></body></html>');
+  w.document.write('<div class="signature"><div class="sig-line">Le candidat</div><div class="sig-line">Le Responsable</div></div></body></html>');
   w.document.close();
   setTimeout(function() { w.print(); }, 500);
 }
@@ -1746,6 +1747,7 @@ function reinitialiserRechercheDep() {
   var rb = document.getElementById('releveFicheBox'); if (rb) rb.innerHTML = '';
   _releveFicheHTML = '';
   _releveGlobalHTML = '';
+  _releveIndividuelHTML = '';
 }
 
 function rechercherDepGeneral() {
@@ -1809,7 +1811,8 @@ function supprimerDepouillement(id) {
   alert('✅ Supprimé');
 }
 
-function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
+// ========== RELEVÉ INDIVIDUEL (dans la page avec bouton PDF) ==========
+function construireReleveIndividuel(entiteNom, mois, annee, phase) {
   var deps = DB.get('depouillements', []);
   var e = null, d = null;
   deps.forEach(function(dep) {
@@ -1817,38 +1820,58 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
       dep.entites.forEach(function(ent) { if (ent.nomEntite === entiteNom) { e = ent; d = dep; } });
     }
   });
-  if (!e || !d) return alert('Entité non trouvée');
+  if (!e || !d) return null;
   var s = sumEntiteDep(e);
-  var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé</title><style>body{font-family:Arial;padding:24px;max-width:700px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#0a6e2c;font-size:15px;margin:15px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}th{background:#0a6e2c;color:white;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:10px 0;border-left:4px solid #0a6e2c;font-size:13px}.info p{margin:4px 0}.env{background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border-left:4px solid #e65100;font-size:14px;font-weight:600;color:#e65100}.cat{background:#e8f5e9;padding:8px;border-radius:6px;margin:10px 0;font-weight:700;color:#0a6e2c;font-size:13px}.recap{background:#fff3e0;padding:14px;border-radius:8px;margin-top:15px;border:2px solid #e65100}.recap-ligne{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.recap-final{font-size:16px;font-weight:700;color:#0a6e2c;border-top:2px solid #e65100;padding-top:8px;margin-top:8px;text-align:center}.signature{margin-top:50px;display:flex;justify-content:space-between}.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}</style></head><body>');
-  w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666;font-size:12px">EMM MONDIAL — Dépouillement</p><h2 style="border:none;text-align:center">RELEVÉ INDIVIDUEL D\'ENTITÉ</h2></div>');
-  w.document.write('<div class="info"><p><strong>Entité :</strong> ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</p>');
-  w.document.write('<p><strong>Responsable :</strong> ' + echapper(e.responsable || '-') + '</p>');
-  w.document.write('<p><strong>Mois :</strong> ' + d.mois + ' ' + d.annee + '</p>');
-  w.document.write('<p><strong>Phase :</strong> ' + d.phase + '</p>');
-  w.document.write('<p><strong>Date :</strong> ' + fmtDate(d.date) + '</p></div>');
-  w.document.write('<div class="env">📩 Enveloppes : ' + (e.enveloppes || 0) + '</div>');
-  w.document.write('<table><tbody><tr><td>Construction</td><td class="num">' + (e.constrFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.constrUSD || 0).toLocaleString() + ' $</td></tr>');
-  w.document.write('<tr><td>Normales</td><td class="num">' + (e.normFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.normUSD || 0).toLocaleString() + ' $</td></tr></tbody></table>');
+
+  var h = '<div class="rapport-header"><h3>📄 RELEVÉ INDIVIDUEL D\'ENTITÉ</h3>';
+  h += '<p style="font-size:12px;color:#666">' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + ' — ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</p></div>';
+
+  h += '<div class="entity-block">';
+  h += '<h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
+  h += '<div style="background:#fff3e0;padding:8px 10px;border-radius:6px;margin-bottom:8px;border-left:4px solid #e65100;font-size:13px"><strong>📩 Enveloppes :</strong> ' + (e.enveloppes || 0) + '</div>';
+  h += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  h += '<tr><td>Construction</td><td class="num">' + (e.constrFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.constrUSD || 0).toLocaleString() + ' $</td></tr>';
+  h += '<tr><td>Normales</td><td class="num">' + (e.normFC || 0).toLocaleString() + ' FC</td><td class="num">' + (e.normUSD || 0).toLocaleString() + ' $</td></tr>';
   Object.keys(CATEGORIES_OFFRANDES).forEach(function(cat) {
-    if (e[cat] && e[cat].length) {
-      var totFC = e[cat].reduce(function(a, o) { return a + o.fc; }, 0);
-      var totUSD = e[cat].reduce(function(a, o) { return a + o.usd; }, 0);
-      w.document.write('<div class="cat">🎁 ' + CATEGORIES_OFFRANDES[cat] + '</div>');
-      w.document.write('<table><tbody>');
-      e[cat].forEach(function(o) { w.document.write('<tr><td>' + echapper(o.nom) + '</td><td class="num">' + o.fc.toLocaleString() + ' FC</td><td class="num">' + o.usd.toLocaleString() + ' $</td></tr>'); });
-      w.document.write('</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td></tr></tfoot></table>');
-    }
+    var arr = e[cat] || [];
+    if (!arr.length) return;
+    var totFC = arr.reduce(function(a, o) { return a + o.fc; }, 0);
+    var totUSD = arr.reduce(function(a, o) { return a + o.usd; }, 0);
+    h += '<tr><td>' + CATEGORIES_OFFRANDES[cat] + '</td><td class="num">' + totFC.toLocaleString() + ' FC</td><td class="num">' + totUSD.toLocaleString() + ' $</td></tr>';
   });
-  w.document.write('<div class="recap"><div class="recap-ligne"><span>Total</span><strong>' + s.totFC.toLocaleString() + ' FC / ' + s.totUSD.toLocaleString() + ' $</strong></div>');
-  w.document.write('<div class="recap-ligne"><span>Transport</span><strong>- ' + (e.transFC || 0).toLocaleString() + ' FC / - ' + (e.transUSD || 0).toLocaleString() + ' $</strong></div>');
-  w.document.write('<div class="recap-final">💰 SOLDE : ' + s.soldeFC.toLocaleString() + ' FC / ' + s.soldeUSD.toLocaleString() + ' $</div></div>');
-  w.document.write('<div class="signature"><div class="sig-line">Responsable</div><div class="sig-line">Superviseur</div></div></body></html>');
-  w.document.close();
-  setTimeout(function() { w.print(); }, 600);
+  h += '</tbody><tfoot>';
+  h += '<tr><td>TOTAL</td><td class="num">' + s.totFC.toLocaleString() + ' FC</td><td class="num">' + s.totUSD.toLocaleString() + ' $</td></tr>';
+  h += '<tr><td>Transport</td><td class="num">- ' + (e.transFC || 0).toLocaleString() + ' FC</td><td class="num">- ' + (e.transUSD || 0).toLocaleString() + ' $</td></tr>';
+  h += '<tr style="background:#e8f5e9"><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
+  h += '</tfoot></table></div></div>';
+
+  // ⬇️ SIGNATURES : Responsable + Administrateur
+  h += '<div style="margin-top:40px;display:flex;justify-content:space-between">';
+  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Responsable</div>';
+  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Administrateur</div>';
+  h += '</div>';
+
+  return h;
 }
 
-// ========== RELEVÉ FICHE PAR ENTITÉ (dans la page) ==========
+function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
+  var html = construireReleveIndividuel(entiteNom, mois, annee, phase);
+  if (!html) return alert('Entité non trouvée');
+  _releveIndividuelHTML = html;
+  var box = document.getElementById('releveFicheBox');
+  if (!box) { box = document.createElement('div'); box.id = 'releveFicheBox'; document.getElementById('tab-depouillement').appendChild(box); }
+  box.innerHTML = '<div class="card">' + html +
+    '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#1976d2,#1565c0)" onclick="imprimerReleveIndividuelCourant()">🖨️ Imprimer / PDF</button>' +
+    '</div>';
+  setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+}
+
+function imprimerReleveIndividuelCourant() {
+  if (!_releveIndividuelHTML) return alert('Aucun relevé à imprimer');
+  ouvrirModalPdf({ type: 'html', html: _releveIndividuelHTML, titre: 'Relevé Individuel d\'Entité' });
+}
+
+// ========== RELEVÉ FICHE PAR ENTITÉ ==========
 function construireReleveFicheEntite(entiteNom, mois, annee) {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var resultats = [];
@@ -1908,6 +1931,12 @@ function construireReleveFicheEntite(entiteNom, mois, annee) {
   h += '<div class="total-banque-final" style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:16px">';
   h += '<div class="banque-title" style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL (toutes entités)</div>';
   h += '<div class="banque-montant" style="font-size:16px;font-weight:700;margin-top:8px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div>';
+  h += '</div>';
+
+  // SIGNATURES : Responsable + Administrateur
+  h += '<div style="margin-top:40px;display:flex;justify-content:space-between">';
+  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Responsable</div>';
+  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Administrateur</div>';
   h += '</div>';
 
   return h;
@@ -2012,6 +2041,12 @@ function construireReleveGlobalEntites(mois, annee) {
   h += '<div class="banque-montant" style="font-size:18px;font-weight:700;border-top:2px solid rgba(255,255,255,0.4);padding-top:10px;margin-top:6px;text-align:center">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
   h += '</div>';
 
+  // SIGNATURES : Responsable + Administrateur
+  h += '<div style="margin-top:40px;display:flex;justify-content:space-between">';
+  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Responsable</div>';
+  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Administrateur</div>';
+  h += '</div>';
+
   return h;
 }
 
@@ -2077,7 +2112,7 @@ function rapportDepDetaille() {
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
-// ========== SOLDE À TRANSFÉRER (avec dépenses générales détaillées) ==========
+// ========== SOLDE À TRANSFÉRER ==========
 function soldeTransferer() {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun.</p>'; return; }
@@ -2715,8 +2750,7 @@ function afficherArchives() {
     blocs += '<thead><tr><th>Détail</th><th style="width:170px">Actions</th></tr></thead><tbody>';
     list.forEach(function(x) {
       var nomAffiche = echapper(t.nom(x) || '(sans détail)');
-      blocs += '<tr>';
-      blocs += '<td>' + nomAffiche + '</td>';
+      blocs += '<tr><td>' + nomAffiche + '</td>';
       blocs += '<td>';
       blocs += '<button class="btn-mini blue" onclick="restaurerArchive(\'' + t.key + '\', \'' + x.id + '\')">↩️ Restaurer</button> ';
       blocs += '<button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + t.key + '\', \'' + x.id + '\')">🗑️ Supprimer</button>';
@@ -2765,7 +2799,7 @@ function restaurerTouteCategorie(type) {
 }
 
 function supprimerDefinitifArchive(type, id) {
-  if (!confirm('⚠️ Supprimer DÉFINITIVEMENT cet élément ?\n\nCette action est irréversible.\n\nPour le récupérer ensuite, il faudra le recréer entièrement.')) return;
+  if (!confirm('⚠️ Supprimer DÉFINITIVEMENT cet élément ?\n\nCette action est irréversible.')) return;
   var list = DB.get(type, []).filter(function(x) { return x.id !== id; });
   DB.set(type, list);
 
