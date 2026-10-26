@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v23
+// EMM MONDIAL — LOGIQUE PRINCIPALE v25
 // ============================================
 
 var currentUser = null;
@@ -16,6 +16,26 @@ var CATEGORIES_OFFRANDES = {
   photo: 'Photo sacrée', shinrei: 'Shinrei Saichi',
   gosh: 'Goshintai familiale', mita: 'Mitamaya'
 };
+
+function getSignatureColor() { return DB.get('signatureColor', '#0a6e2c'); }
+
+function setSignatureColor(couleur) {
+  if (!couleur || !/^#[0-9A-Fa-f]{6}$/.test(couleur)) return;
+  DB.set('signatureColor', couleur);
+  document.querySelectorAll('.signature-box').forEach(function(b) {
+    b.style.border = '2px solid ' + couleur;
+  });
+  document.querySelectorAll('.signature-line').forEach(function(l) {
+    l.style.borderTop = '1px solid ' + couleur;
+    l.style.color = couleur;
+  });
+  var mi = document.getElementById('pdfSignatureColor');
+  if (mi) mi.value = couleur;
+  var lbl = document.getElementById('pdfSignatureColorValue');
+  if (lbl) { lbl.textContent = couleur; lbl.style.color = couleur; }
+}
+
+function changerCouleurSignature(couleur) { setSignatureColor(couleur); }
 
 // ========== SPLASH ==========
 function showSplash() {
@@ -131,6 +151,11 @@ var pdfContexteEnAttente = null;
 
 function ouvrirModalPdf(contexte) {
   pdfContexteEnAttente = contexte;
+  var sigColor = getSignatureColor();
+  var input = document.getElementById('pdfSignatureColor');
+  if (input) input.value = sigColor;
+  var lbl = document.getElementById('pdfSignatureColorValue');
+  if (lbl) { lbl.textContent = sigColor; lbl.style.color = sigColor; }
   document.getElementById('pdfOptionsModal').style.display = 'flex';
 }
 
@@ -140,16 +165,21 @@ function fermerModalPdf() {
 }
 
 function lireOptionsPdf() {
+  var sigColor = getSignatureColor();
+  var input = document.getElementById('pdfSignatureColor');
+  if (input && input.value) sigColor = input.value;
   return {
     paperSize: document.getElementById('pdfPaperSize').value,
     fontFamily: document.getElementById('pdfFontFamily').value,
     fontSize: parseInt(document.getElementById('pdfFontSize').value) || 12,
-    orientation: document.getElementById('pdfOrientation').value
+    orientation: document.getElementById('pdfOrientation').value,
+    signatureColor: sigColor
   };
 }
 
 function cssImpression(options) {
   var fs = options.fontSize;
+  var sigColor = options.signatureColor || getSignatureColor();
   return '@page { size: ' + options.paperSize + ' ' + options.orientation + '; margin: 12mm; }' +
     ' *, html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
     ' body { font-family: ' + options.fontFamily + '; font-size: ' + fs + 'pt; padding: 10px; color: #222; line-height: 1.45; }' +
@@ -184,12 +214,20 @@ function cssImpression(options) {
     ' .total-banque-final .banque-table td { padding: 4px 0 !important; border-bottom: none !important; background: transparent !important; }' +
     ' .total-banque-final .banque-table td.num, .total-banque-final .banque-table strong { color: white !important; }' +
     ' .total-banque-final .banque-montant { font-size: ' + (fs + 4) + 'pt; font-weight: 700; border-top: 2px solid rgba(255,255,255,0.4); padding-top: 10px; margin-top: 6px; text-align: center; }' +
+    ' .signature-block { page-break-inside: avoid !important; margin-top: 40px !important; }' +
+    ' .signature-block table { width: 100% !important; margin: 0 !important; border-collapse: separate !important; }' +
+    ' .signature-block td { border: none !important; padding: 0 !important; background: transparent !important; vertical-align: top !important; }' +
+    ' .signature-color-picker { display: none !important; }' +
+    ' .signature-box { border: 2px solid ' + sigColor + ' !important; border-radius: 8px !important; padding: 10px !important; background: #f9f9f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+    ' .signature-label { font-size: ' + (fs - 2) + 'pt !important; color: #666 !important; text-align: center !important; margin-bottom: 50px !important; }' +
+    ' .signature-line { border-top: 1px solid ' + sigColor + ' !important; padding-top: 5px !important; font-size: ' + (fs - 1) + 'pt !important; text-align: center !important; font-weight: 700 !important; color: ' + sigColor + ' !important; }' +
     ' div[style*="background:#fff3e0"] { font-size: inherit !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }';
 }
 
 function confirmerImpressionPdf() {
   if (!pdfContexteEnAttente) return;
   var options = lireOptionsPdf();
+  setSignatureColor(options.signatureColor);
   var ctx = pdfContexteEnAttente;
   var contenu = '', titre = 'Rapport';
   if (ctx.type === 'box') {
@@ -211,6 +249,32 @@ function confirmerImpressionPdf() {
   w.document.close();
   fermerModalPdf();
   setTimeout(function() { w.print(); }, 800);
+}
+
+// ========== HELPER : CASES DE SIGNATURE ==========
+function signatureBlockHTML() {
+  var couleur = getSignatureColor();
+  return '<div class="signature-block" style="margin-top:40px;page-break-inside:avoid">' +
+    '<div class="signature-color-picker" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;justify-content:flex-end">' +
+      '<span style="font-size:11px;color:#666">🎨 Couleur signature :</span>' +
+      '<input type="color" value="' + couleur + '" onchange="changerCouleurSignature(this.value)" style="width:42px;height:28px;padding:2px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:white">' +
+    '</div>' +
+    '<table style="width:100%;border:none;border-collapse:separate">' +
+    '<tr>' +
+      '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
+        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:10px;background:#f9f9f9;min-height:80px">' +
+          '<div class="signature-label" style="font-size:10pt;color:#666;text-align:center;margin-bottom:50px">Signature</div>' +
+          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">Le Responsable</div>' +
+        '</div>' +
+      '</td>' +
+      '<td style="width:4%;padding:0;border:none"></td>' +
+      '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
+        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:10px;background:#f9f9f9;min-height:80px">' +
+          '<div class="signature-label" style="font-size:10pt;color:#666;text-align:center;margin-bottom:50px">Signature</div>' +
+          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">L\'Administrateur</div>' +
+        '</div>' +
+      '</td>' +
+    '</tr></table></div>';
 }
 
 // ========== RAPPORT NUMÉRIQUE ==========
@@ -1325,9 +1389,10 @@ function imprimerRecu(vid) {
   if (!v) return;
   var c = DB.get('candidats', []).find(function(x) { return x.id === v.candId; });
   if (!c) return;
+  var sigColor = getSignatureColor();
   var w = window.open('', '_blank');
   w.document.write('<html><head><meta charset="UTF-8"><title>Reçu</title><style>');
-  w.document.write('body{font-family:Arial;padding:30px;max-width:600px;margin:auto}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}h1{color:#0a6e2c;font-size:18px}.logo{width:80px;height:80px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;margin-bottom:10px}.photo-box{text-align:center;margin:15px 0}.photo-box img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}table{width:100%;border-collapse:collapse;margin:20px 0}td{padding:8px;border-bottom:1px solid #ddd}td.label{font-weight:bold;color:#0a6e2c}.montant{font-size:22px;color:#0a6e2c;font-weight:bold;text-align:center;padding:20px;background:#e8f5e9;border-radius:8px}.signature{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end}.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}.sig-img{width:45%;text-align:center;padding-bottom:5px}.sig-img img{max-height:70px;max-width:100%;border-bottom:1px solid #333}');
+  w.document.write('body{font-family:Arial;padding:30px;max-width:600px;margin:auto}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}h1{color:#0a6e2c;font-size:18px}.logo{width:80px;height:80px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;margin-bottom:10px}.photo-box{text-align:center;margin:15px 0}.photo-box img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}table{width:100%;border-collapse:collapse;margin:20px 0}td{padding:8px;border-bottom:1px solid #ddd}td.label{font-weight:bold;color:#0a6e2c}.montant{font-size:22px;color:#0a6e2c;font-weight:bold;text-align:center;padding:20px;background:#e8f5e9;border-radius:8px}.signature{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end}.sig-line{border-top:1px solid ' + sigColor + ';color:' + sigColor + ';width:45%;padding-top:5px;font-size:12px;text-align:center;font-weight:600}.sig-img{width:45%;text-align:center;padding-bottom:5px}.sig-img img{max-height:70px;max-width:100%;border-bottom:1px solid ' + sigColor + '}');
   w.document.write('</style></head><body>');
   w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666">EMM MONDIAL - Finance</p><h2 style="color:#0a6e2c">REÇU DE VERSEMENT</h2></div>');
   if (c.photo) w.document.write('<div class="photo-box"><img src="' + c.photo + '"><p style="font-size:14px;font-weight:bold;margin-top:6px">' + echapper(c.nom) + '</p></div>');
@@ -1389,9 +1454,10 @@ function afficherReleveVersement(candId) {
   vers.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
   var totalUSD = 0, totalFC = 0;
   vers.forEach(function(v) { totalUSD += v.montantUSD; if (v.monnaie === 'FC') totalFC += v.montantOrigine; });
+  var sigColor = getSignatureColor();
   var w = window.open('', '_blank');
   w.document.write('<html><head><meta charset="UTF-8"><title>Relevé</title><style>');
-  w.document.write('body{font-family:Arial;padding:24px;max-width:800px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#333;font-size:14px;margin:15px 0 10px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:15px 0;font-size:13px}th{background:#0a6e2c;color:white;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:15px 0;border-left:4px solid #0a6e2c}.info p{margin:4px 0;font-size:13px}.solde{font-size:15px;color:#0a6e2c;font-weight:bold;text-align:center;padding:15px;background:#e8f5e9;border-radius:8px;margin-top:15px}.signature{margin-top:60px;display:flex;justify-content:space-between}.sig-line{border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center}.photo-top{text-align:center;margin:15px 0}.photo-top img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}');
+  w.document.write('body{font-family:Arial;padding:24px;max-width:800px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#333;font-size:14px;margin:15px 0 10px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:15px 0;font-size:13px}th{background:#0a6e2c;color:white;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:15px 0;border-left:4px solid #0a6e2c}.info p{margin:4px 0;font-size:13px}.solde{font-size:15px;color:#0a6e2c;font-weight:bold;text-align:center;padding:15px;background:#e8f5e9;border-radius:8px;margin-top:15px}.signature{margin-top:60px;display:flex;justify-content:space-between}.sig-line{border-top:1px solid ' + sigColor + ';color:' + sigColor + ';font-weight:600;width:45%;padding-top:5px;font-size:12px;text-align:center}.photo-top{text-align:center;margin:15px 0}.photo-top img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}');
   w.document.write('</style></head><body>');
   w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666;font-size:12px">EMM MONDIAL — Finance</p><h2 style="border:none;text-align:center">RELEVÉ DE VERSEMENT INDIVIDUEL</h2></div>');
   if (c.photo) w.document.write('<div class="photo-top"><img src="' + c.photo + '"></div>');
@@ -1811,7 +1877,7 @@ function supprimerDepouillement(id) {
   alert('✅ Supprimé');
 }
 
-// ========== RELEVÉ INDIVIDUEL (dans la page avec bouton PDF) ==========
+// ========== RELEVÉ INDIVIDUEL ==========
 function construireReleveIndividuel(entiteNom, mois, annee, phase) {
   var deps = DB.get('depouillements', []);
   var e = null, d = null;
@@ -1845,12 +1911,7 @@ function construireReleveIndividuel(entiteNom, mois, annee, phase) {
   h += '<tr style="background:#e8f5e9"><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
   h += '</tfoot></table></div></div>';
 
-  // ⬇️ SIGNATURES : Responsable + Administrateur
-  h += '<div style="margin-top:40px;display:flex;justify-content:space-between">';
-  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Responsable</div>';
-  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Administrateur</div>';
-  h += '</div>';
-
+  h += signatureBlockHTML();
   return h;
 }
 
@@ -1933,12 +1994,7 @@ function construireReleveFicheEntite(entiteNom, mois, annee) {
   h += '<div class="banque-montant" style="font-size:16px;font-weight:700;margin-top:8px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div>';
   h += '</div>';
 
-  // SIGNATURES : Responsable + Administrateur
-  h += '<div style="margin-top:40px;display:flex;justify-content:space-between">';
-  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Responsable</div>';
-  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Administrateur</div>';
-  h += '</div>';
-
+  h += signatureBlockHTML();
   return h;
 }
 
@@ -2041,12 +2097,7 @@ function construireReleveGlobalEntites(mois, annee) {
   h += '<div class="banque-montant" style="font-size:18px;font-weight:700;border-top:2px solid rgba(255,255,255,0.4);padding-top:10px;margin-top:6px;text-align:center">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
   h += '</div>';
 
-  // SIGNATURES : Responsable + Administrateur
-  h += '<div style="margin-top:40px;display:flex;justify-content:space-between">';
-  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Responsable</div>';
-  h += '<div style="border-top:1px solid #333;width:45%;padding-top:5px;font-size:12px;text-align:center">Administrateur</div>';
-  h += '</div>';
-
+  h += signatureBlockHTML();
   return h;
 }
 
