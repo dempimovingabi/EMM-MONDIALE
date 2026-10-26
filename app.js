@@ -1,5 +1,6 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v26
+// EMM MONDIAL — LOGIQUE PRINCIPALE v27
+// Signature au doigt + couleur personnalisable
 // ============================================
 
 var currentUser = null;
@@ -49,6 +50,89 @@ function appliquerCouleurSignature(couleur) {
 }
 
 function changerCouleurSignature(couleur) { appliquerCouleurSignature(couleur); }
+
+// ========== SIGNATURE BLOCK — INITIALISATION DES CANVAS ==========
+function initSignatureBlockCanvases() {
+  document.querySelectorAll('canvas.sig-canvas').forEach(function(canvas) {
+    if (canvas.dataset.init === '1') return;
+    var ratio = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      setTimeout(initSignatureBlockCanvases, 150);
+      return;
+    }
+    canvas.dataset.init = '1';
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111';
+    var drawing = false, lastX = 0, lastY = 0;
+    function getPos(e) {
+      var r = canvas.getBoundingClientRect();
+      var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e);
+      return { x: p.clientX - r.left, y: p.clientY - r.top };
+    }
+    function start(e) {
+      e.preventDefault(); drawing = true;
+      var p = getPos(e); lastX = p.x; lastY = p.y;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2); ctx.fill();
+    }
+    function move(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      var p = getPos(e);
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+      lastX = p.x; lastY = p.y;
+    }
+    function stop() { drawing = false; }
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseleave', stop);
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', stop);
+    canvas.addEventListener('touchcancel', stop);
+  });
+}
+
+function effacerSignatureBlock(btn) {
+  var box = btn.closest('.signature-box');
+  if (!box) return;
+  var canvas = box.querySelector('canvas.sig-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function captureSignaturesFromDOM() {
+  var box = document.getElementById('releveFicheBox');
+  if (!box) return null;
+  var card = box.querySelector('.card');
+  if (!card) return null;
+  var clone = card.cloneNode(true);
+  clone.querySelectorAll('.btn-primary').forEach(function(b) {
+    var t = b.textContent || '';
+    if (t.indexOf('Imprimer') !== -1 || t.indexOf('PDF') !== -1) b.remove();
+  });
+  var originaux = card.querySelectorAll('canvas.sig-canvas');
+  var clones = clone.querySelectorAll('canvas.sig-canvas');
+  for (var i = 0; i < originaux.length; i++) {
+    var co = originaux[i];
+    var cc = clones[i];
+    if (!cc) continue;
+    var img = document.createElement('img');
+    img.src = co.toDataURL('image/png');
+    img.style.cssText = 'display:block;width:100%;height:110px;object-fit:contain;background:white;border:1px dashed #ccc;border-radius:6px;';
+    cc.parentNode.replaceChild(img, cc);
+  }
+  return clone.innerHTML;
+}
 
 // ========== SPLASH ==========
 function showSplash() {
@@ -235,9 +319,11 @@ function cssImpression(options) {
     ' .signature-block table { width: 100% !important; margin: 0 !important; border-collapse: separate !important; }' +
     ' .signature-block td { border: none !important; padding: 0 !important; background: transparent !important; vertical-align: top !important; }' +
     ' .signature-color-picker { display: none !important; }' +
-    ' .signature-box { border: 2px solid ' + sigColor + ' !important; border-radius: 8px !important; padding: 10px !important; background: #f9f9f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
-    ' .signature-label { font-size: ' + (fs - 2) + 'pt !important; color: #666 !important; text-align: center !important; margin-bottom: 50px !important; }' +
-    ' .signature-line { border-top: 1px solid ' + sigColor + ' !important; padding-top: 5px !important; font-size: ' + (fs - 1) + 'pt !important; text-align: center !important; font-weight: 700 !important; color: ' + sigColor + ' !important; }' +
+    ' .sig-canvas { display: none !important; }' +
+    ' .signature-box img { display: block !important; }' +
+    ' .signature-box { border: 2px solid ' + sigColor + ' !important; border-radius: 8px !important; padding: 8px !important; background: #f9f9f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+    ' .signature-label { font-size: ' + (fs - 1) + 'pt !important; color: #666 !important; font-weight: 600 !important; }' +
+    ' .signature-line { border-top: 1px solid ' + sigColor + ' !important; padding-top: 5px !important; font-size: ' + (fs - 1) + 'pt !important; text-align: center !important; font-weight: 700 !important; color: ' + sigColor + ' !important; margin-top: 6px !important; }' +
     ' div[style*="background:#fff3e0"] { font-size: inherit !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }';
 }
 
@@ -268,7 +354,7 @@ function confirmerImpressionPdf() {
   setTimeout(function() { w.print(); }, 800);
 }
 
-// ========== HELPER : CASES DE SIGNATURE ==========
+// ========== HELPER : CASES DE SIGNATURE AVEC CANVAS ==========
 function signatureBlockHTML() {
   var couleur = getSignatureColor();
   var presets = ['#0a6e2c','#000000','#1976d2','#d32f2f','#6a1b9a','#e65100','#1b5e20','#37474f'];
@@ -294,16 +380,24 @@ function signatureBlockHTML() {
     '</div>' +
     '<table style="width:100%;border:none;border-collapse:separate"><tr>' +
       '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
-        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:10px;background:#f9f9f9;min-height:80px">' +
-          '<div class="signature-label" style="font-size:10pt;color:#666;text-align:center;margin-bottom:50px">Signature</div>' +
-          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">Le Responsable</div>' +
+        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:8px;background:#f9f9f9">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+            '<span class="signature-label" style="font-size:11pt;color:#666;font-weight:600">✍️ Signature</span>' +
+            '<button type="button" onclick="effacerSignatureBlock(this)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;font-size:11px">🧹 Effacer</button>' +
+          '</div>' +
+          '<canvas class="sig-canvas" style="width:100%;height:110px;touch-action:none;display:block;background:white;border:1px dashed #ccc;border-radius:6px;cursor:crosshair"></canvas>' +
+          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';margin-top:6px;padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">Le Responsable</div>' +
         '</div>' +
       '</td>' +
       '<td style="width:4%;padding:0;border:none"></td>' +
       '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
-        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:10px;background:#f9f9f9;min-height:80px">' +
-          '<div class="signature-label" style="font-size:10pt;color:#666;text-align:center;margin-bottom:50px">Signature</div>' +
-          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">L\'Administrateur</div>' +
+        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:8px;background:#f9f9f9">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+            '<span class="signature-label" style="font-size:11pt;color:#666;font-weight:600">✍️ Signature</span>' +
+            '<button type="button" onclick="effacerSignatureBlock(this)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;font-size:11px">🧹 Effacer</button>' +
+          '</div>' +
+          '<canvas class="sig-canvas" style="width:100%;height:110px;touch-action:none;display:block;background:white;border:1px dashed #ccc;border-radius:6px;cursor:crosshair"></canvas>' +
+          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';margin-top:6px;padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">L\'Administrateur</div>' +
         '</div>' +
       '</td>' +
     '</tr></table></div>';
@@ -1043,7 +1137,7 @@ function previewPhotoCandidat(ev) {
   reader.readAsDataURL(file);
 }
 
-// ========== MODULE II — SIGNATURE ==========
+// ========== MODULE II — SIGNATURE (canvas du versement) ==========
 function initSignature() {
   var canvas = document.getElementById('vSignatureCanvas');
   if (!canvas) return;
@@ -1956,12 +2050,14 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   box.innerHTML = '<div class="card">' + html +
     '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#1976d2,#1565c0)" onclick="imprimerReleveIndividuelCourant()">🖨️ Imprimer / PDF</button>' +
     '</div>';
+  setTimeout(function() { initSignatureBlockCanvases(); }, 50);
   setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
 
 function imprimerReleveIndividuelCourant() {
   if (!_releveIndividuelHTML) return alert('Aucun relevé à imprimer');
-  ouvrirModalPdf({ type: 'html', html: _releveIndividuelHTML, titre: 'Relevé Individuel d\'Entité' });
+  var html = captureSignaturesFromDOM() || _releveIndividuelHTML;
+  ouvrirModalPdf({ type: 'html', html: html, titre: 'Relevé Individuel d\'Entité' });
 }
 
 // ========== RELEVÉ FICHE PAR ENTITÉ ==========
@@ -2045,12 +2141,14 @@ function genererReleveEntiteFiltre() {
   box.innerHTML = '<div class="card">' + html +
     '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#1976d2,#1565c0)" onclick="imprimerReleveFicheCourant()">🖨️ Imprimer / PDF</button>' +
     '</div>';
+  setTimeout(function() { initSignatureBlockCanvases(); }, 50);
   setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
 
 function imprimerReleveFicheCourant() {
   if (!_releveFicheHTML) return alert('Aucun relevé à imprimer');
-  ouvrirModalPdf({ type: 'html', html: _releveFicheHTML, titre: 'Relevé Fiche par Entité' });
+  var html = captureSignaturesFromDOM() || _releveFicheHTML;
+  ouvrirModalPdf({ type: 'html', html: html, titre: 'Relevé Fiche par Entité' });
 }
 
 // ========== RELEVÉ FICHE GLOBALE DES ENTITÉS ==========
@@ -2146,12 +2244,14 @@ function genererReleveGlobalEntites() {
   box.innerHTML = '<div class="card">' + html +
     '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#6a1b9a,#8e24aa)" onclick="imprimerReleveGlobalCourant()">🖨️ Imprimer / PDF</button>' +
     '</div>';
+  setTimeout(function() { initSignatureBlockCanvases(); }, 50);
   setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
 
 function imprimerReleveGlobalCourant() {
   if (!_releveGlobalHTML) return alert('Aucun relevé à imprimer');
-  ouvrirModalPdf({ type: 'html', html: _releveGlobalHTML, titre: 'Relevé Fiche Globale des Entités' });
+  var html = captureSignaturesFromDOM() || _releveGlobalHTML;
+  ouvrirModalPdf({ type: 'html', html: html, titre: 'Relevé Fiche Globale des Entités' });
 }
 
 function rapportDepGlobal() {
