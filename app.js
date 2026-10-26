@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v20
+// EMM MONDIAL — LOGIQUE PRINCIPALE v21
 // ============================================
 
 var currentUser = null;
@@ -150,30 +150,40 @@ function lireOptionsPdf() {
 function cssImpression(options) {
   var fs = options.fontSize;
   return '@page { size: ' + options.paperSize + ' ' + options.orientation + '; margin: 12mm; }' +
-    ' body { font-family: ' + options.fontFamily + '; font-size: ' + fs + 'pt; padding: 10px; color: #222; line-height: 1.4; }' +
-    ' h1 { text-align: center; color: #0a6e2c; font-size: ' + (fs + 5) + 'pt; margin-bottom: 6px; }' +
-    ' h2 { color: #0a6e2c; font-size: ' + (fs + 2) + 'pt; margin: 12px 0 6px; border-left: 4px solid #0a6e2c; padding-left: 8px; }' +
-    ' h3 { color: #0a6e2c; font-size: ' + (fs + 1) + 'pt; margin: 10px 0 6px; }' +
-    ' h4 { color: #0a6e2c; font-size: ' + fs + 'pt; margin: 8px 0 4px; }' +
-    ' h5 { color: #0a6e2c; font-size: ' + fs + 'pt; margin: 6px 0 4px; }' +
+    ' *, html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
+    ' body { font-family: ' + options.fontFamily + '; font-size: ' + fs + 'pt; padding: 10px; color: #222; line-height: 1.45; }' +
+    ' h1 { text-align: center; color: #0a6e2c; font-size: ' + (fs + 6) + 'pt; margin-bottom: 8px; }' +
+    ' h2 { color: #0a6e2c; font-size: ' + (fs + 4) + 'pt; margin: 14px 0 8px; border-left: 4px solid #0a6e2c; padding-left: 8px; }' +
+    ' h3 { color: #0a6e2c; font-size: ' + (fs + 3) + 'pt; margin: 12px 0 6px; }' +
+    ' h4 { color: #0a6e2c; font-size: ' + (fs + 1) + 'pt; margin: 10px 0 6px; }' +
+    ' h5 { color: #0a6e2c; font-size: ' + fs + 'pt; margin: 8px 0 4px; }' +
+    ' p { font-size: ' + (fs - 1) + 'pt; }' +
     ' table { width: 100%; border-collapse: collapse; font-size: ' + (fs - 1) + 'pt; margin: 8px 0; }' +
-    ' th { background: #0a6e2c; color: white; padding: 7px; text-align: left; }' +
+    ' th { background: #0a6e2c !important; color: white !important; padding: 7px; text-align: left; }' +
     ' td { padding: 6px 7px; border-bottom: 1px solid #ddd; }' +
     ' td.num { text-align: right; }' +
-    ' tfoot td { font-weight: bold; background: #e8f5e9; color: #0a6e2c; border-top: 2px solid #0a6e2c; }' +
-    ' .entity-block { background: #f9f9f9; border-radius: 8px; padding: 10px; margin-bottom: 12px; border-left: 4px solid #0a6e2c; page-break-inside: avoid; }' +
+    ' tfoot td { font-weight: bold; background: #e8f5e9 !important; color: #0a6e2c !important; border-top: 2px solid #0a6e2c; }' +
+    ' .entity-block { background: #f9f9f9 !important; border-radius: 8px; padding: 10px; margin-bottom: 12px; border-left: 4px solid #0a6e2c; page-break-inside: avoid; }' +
     ' .badge { display: inline-block; padding: 2px 6px; border-radius: 8px; font-size: ' + (fs - 3) + 'pt; }' +
-    ' .badge-ok { background: #c8e6c9; color: #1b5e20; }' +
-    ' .badge-progress { background: #ffe0b2; color: #e65100; }' +
-    ' .badge-archive { background: #e0e0e0; color: #424242; }' +
+    ' .badge-ok { background: #c8e6c9 !important; color: #1b5e20 !important; }' +
+    ' .badge-progress { background: #ffe0b2 !important; color: #e65100 !important; }' +
+    ' .badge-archive { background: #e0e0e0 !important; color: #424242 !important; }' +
     ' .rapport-header { text-align: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #0a6e2c; }' +
     ' hr { border: none; border-top: 2px solid #0a6e2c; margin: 10px 0; }' +
     ' .rn-section { margin: 10px 0; }' +
-    ' .rn-section-title { background: #0a6e2c; color: white; padding: 7px 10px; font-size: ' + fs + 'pt; font-weight: 700; border-radius: 4px; margin: 10px 0 6px; }' +
+    ' .rn-section-title { background: #0a6e2c !important; color: white !important; padding: 7px 10px; font-size: ' + fs + 'pt; font-weight: 700; border-radius: 4px; margin: 10px 0 6px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
     ' .rn-row { display: flex; justify-content: space-between; padding: 5px 8px; border-bottom: 1px dotted #ccc; font-size: ' + (fs - 1) + 'pt; }' +
     ' .rn-row strong { color: #0a6e2c; }' +
-    ' .rn-observation { background: #fffde7; padding: 10px; border-left: 4px solid #f9a825; margin-top: 10px; font-size: ' + (fs - 1) + 'pt; white-space: pre-wrap; }' +
-    ' .rn-total { background: #e8f5e9; padding: 8px 10px; border: 2px solid #0a6e2c; border-radius: 6px; text-align: center; font-size: ' + (fs + 1) + 'pt; font-weight: 700; color: #0a6e2c; margin: 10px 0; }';
+    ' .rn-observation { background: #fffde7 !important; padding: 10px; border-left: 4px solid #f9a825; margin-top: 10px; font-size: ' + (fs - 1) + 'pt; white-space: pre-wrap; }' +
+    ' .rn-total { background: #e8f5e9 !important; padding: 8px 10px; border: 2px solid #0a6e2c; border-radius: 6px; text-align: center; font-size: ' + (fs + 1) + 'pt; font-weight: 700; color: #0a6e2c !important; margin: 10px 0; }' +
+    ' .total-banque-final { background: #0a6e2c !important; color: white !important; padding: 16px; border-radius: 10px; margin-top: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; page-break-inside: avoid; }' +
+    ' .total-banque-final * { color: white !important; }' +
+    ' .total-banque-final .banque-title { font-size: ' + (fs + 1) + 'pt; font-weight: 700; margin-bottom: 10px; }' +
+    ' .total-banque-final .banque-table { width: 100%; font-size: ' + fs + 'pt; margin-bottom: 8px; }' +
+    ' .total-banque-final .banque-table td { padding: 4px 0 !important; border-bottom: none !important; background: transparent !important; }' +
+    ' .total-banque-final .banque-table td.num, .total-banque-final .banque-table strong { color: white !important; }' +
+    ' .total-banque-final .banque-montant { font-size: ' + (fs + 4) + 'pt; font-weight: 700; border-top: 2px solid rgba(255,255,255,0.4); padding-top: 10px; margin-top: 6px; text-align: center; }' +
+    ' div[style*="background:#fff3e0"] { font-size: inherit !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }';
 }
 
 function confirmerImpressionPdf() {
@@ -1838,7 +1848,7 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   setTimeout(function() { w.print(); }, 600);
 }
 
-// ========== CONSTRUCTION RELEVÉ FICHE PAR ENTITÉ (dans la page) ==========
+// ========== RELEVÉ FICHE PAR ENTITÉ (dans la page) ==========
 function construireReleveFicheEntite(entiteNom, mois, annee) {
   var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
   var resultats = [];
@@ -1895,9 +1905,9 @@ function construireReleveFicheEntite(entiteNom, mois, annee) {
     h += '</div>';
   });
 
-  h += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:16px">';
-  h += '<div style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL (toutes entités)</div>';
-  h += '<div style="font-size:16px;font-weight:700;margin-top:8px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div>';
+  h += '<div class="total-banque-final" style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:16px">';
+  h += '<div class="banque-title" style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL (toutes entités)</div>';
+  h += '<div class="banque-montant" style="font-size:16px;font-weight:700;margin-top:8px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div>';
   h += '</div>';
 
   return h;
@@ -1993,13 +2003,13 @@ function construireReleveGlobalEntites(mois, annee) {
     h += '</div>';
   });
 
-  h += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
-  h += '<div style="font-size:14px;font-weight:700;margin-bottom:10px">🌍 TOTAL GÉNÉRAL À LA BANQUE</div>';
-  h += '<table style="width:100%;color:white;font-size:13px;margin-bottom:8px">';
+  h += '<div class="total-banque-final" style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
+  h += '<div class="banque-title" style="font-size:14px;font-weight:700;margin-bottom:10px">🌍 TOTAL GÉNÉRAL À LA BANQUE</div>';
+  h += '<table class="banque-table" style="width:100%;color:white;font-size:13px;margin-bottom:8px">';
   h += '<tr><td style="padding:4px 0">Total soldes entités</td><td style="text-align:right;padding:4px 0"><strong>' + totalSoldeFC.toLocaleString() + ' FC / ' + totalSoldeUSD.toLocaleString() + ' $</strong></td></tr>';
   h += '<tr><td style="padding:4px 0">Total dépenses générales</td><td style="text-align:right;padding:4px 0"><strong>- ' + totalGenFC.toLocaleString() + ' FC / - ' + totalGenUSD.toLocaleString() + ' $</strong></td></tr>';
   h += '</table>';
-  h += '<div style="font-size:18px;font-weight:700;border-top:2px solid rgba(255,255,255,0.4);padding-top:10px;margin-top:6px;text-align:center">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
+  h += '<div class="banque-montant" style="font-size:18px;font-weight:700;border-top:2px solid rgba(255,255,255,0.4);padding-top:10px;margin-top:6px;text-align:center">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
   h += '</div>';
 
   return h;
