@@ -10,7 +10,6 @@
 </head>
 <body>
 
-<!-- SPLASH -->
 <div id="splashScreen" class="screen active">
   <div class="splash-content">
     <img src="logo.png" alt="EMM" class="splash-logo" onerror="this.style.display='none'; document.getElementById('splashFallback').style.display='flex';">
@@ -21,7 +20,6 @@
   </div>
 </div>
 
-<!-- CONNEXION -->
 <div id="loginScreen" class="screen">
   <div class="login-box">
     <img src="logo.png" alt="EMM" class="login-logo" onerror="this.style.display='none'; document.getElementById('loginFallback').style.display='flex';">
@@ -36,13 +34,9 @@
   </div>
 </div>
 
-<!-- ACCUEIL -->
 <div id="mainScreen" class="screen">
-
   <header class="app-header">
-    <button class="btn-hamburger" onclick="toggleMainMenu()" title="Menu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="btn-hamburger" onclick="toggleMainMenu()" title="Menu"><span></span><span></span><span></span></button>
     <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
     <div class="header-logo-fallback" style="display:none">EMM</div>
     <div><h1>EMM MONDIAL</h1><p id="userRoleLabel">Gestion des Membres</p></div>
@@ -61,7 +55,6 @@
     <button class="main-tab" onclick="switchMainTab('admin', this)">⚙️ Admin</button>
   </div>
 
-  <!-- ONGLET GÉNÉRAL -->
   <div id="tab-general" class="main-tab-content active">
     <div class="card"><h3>📢 Annonces</h3><div id="announcementsBox" class="announcements"><p>Aucune annonce.</p></div></div>
     <div class="card"><h3>👋 Bienvenue</h3><div id="welcomeBox"></div></div>
@@ -70,13 +63,7 @@
       <h3>🔍 Recherche dépouillement (Général)</h3>
       <div class="input-group"><label>Année</label><input type="text" id="gSearchAnnee" placeholder="Ex : 2026"></div>
       <div class="input-group"><label>Mois</label>
-        <select id="gSearchMois">
-          <option value="">-- Tous les mois --</option>
-          <option>Janvier</option><option>Février</option><option>Mars</option>
-          <option>Avril</option><option>Mai</option><option>Juin</option>
-          <option>Juillet</option><option>Août</option><option>Septembre</option>
-          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-        </select>
+        <select id="gSearchMois"><option value="">-- Tous les mois --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
       </div>
       <button class="btn-secondary" onclick="rechercherDepGeneral()">🔍 Rechercher</button>
       <button class="btn-secondary" onclick="reinitialiserRechercheGeneral()">🔄 Réinitialiser</button>
@@ -96,7 +83,6 @@
     </div>
   </div>
 
-  <!-- ONGLET FRÉQUENCE -->
   <div id="tab-frequence" class="main-tab-content">
     <div class="card">
       <h3>📊 Choix du rapport</h3>
@@ -113,12 +99,7 @@
       <p style="font-size:12px;color:#666;margin-bottom:12px">Remplissez les données du mois pour une entité puis cliquez sur <strong>Enregistrer</strong>.</p>
       <div class="input-group"><label>Entité concernée *</label><select id="rnEntite"></select></div>
       <div class="input-group"><label>Mois</label>
-        <select id="rnMois">
-          <option>Janvier</option><option>Février</option><option>Mars</option>
-          <option>Avril</option><option>Mai</option><option>Juin</option>
-          <option>Juillet</option><option>Août</option><option>Septembre</option>
-          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-        </select>
+        <select id="rnMois"><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
       </div>
       <div class="input-group"><label>Année</label><input type="number" id="rnAnnee" value="2026"></div>
       <h4>👥 Membres</h4>
@@ -173,22 +154,14 @@
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
         <div class="input-group" style="flex:1;min-width:110px;margin-bottom:0">
           <label style="font-size:11px">Filtre mois</label>
-          <select id="rnFiltreMois">
-            <option value="">Tous</option>
-            <option>Janvier</option><option>Février</option><option>Mars</option>
-            <option>Avril</option><option>Mai</option><option>Juin</option>
-            <option>Juillet</option><option>Août</option><option>Septembre</option>
-            <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-          </select>
+          <select id="rnFiltreMois"><option value="">Tous</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
         </div>
         <div class="input-group" style="flex:1;min-width:110px;margin-bottom:0">
           <label style="font-size:11px">Filtre année</label>
           <input type="text" id="rnFiltreAnnee" placeholder="Ex: 2026">
         </div>
       </div>
-      <div id="rapportNumResultatBox">
-        <p style="font-size:12px;color:#888">Cliquez sur <strong>📈 Global</strong> ou <strong>📋 Détaillé</strong> en haut du module.</p>
-      </div>
+      <div id="rapportNumResultatBox"><p style="font-size:12px;color:#888">Cliquez sur <strong>📈 Global</strong> ou <strong>📋 Détaillé</strong> en haut du module.</p></div>
     </div>
 
     <div class="card" id="rapportDiffusionSection">
@@ -205,17 +178,11 @@
     <div class="card">
       <h3>➕ Enregistrer une entité</h3>
       <div class="input-group"><label>Type d'entité</label>
-        <select id="jTypeEntite">
-          <option>Jorhei Center</option>
-          <option>Unité religieuse</option>
-          <option>Foyer de lumière</option>
-        </select>
+        <select id="jTypeEntite"><option>Jorhei Center</option><option>Unité religieuse</option><option>Foyer de lumière</option></select>
       </div>
       <div class="input-group"><label>Nom de l'entité</label><input type="text" id="jNomEntite" placeholder="Ex : KELE-KELE"></div>
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="jResponsable"></div>
-      <div class="input-group"><label>Province *</label>
-        <select id="jProvinceEntite"></select>
-      </div>
+      <div class="input-group"><label>Province *</label><select id="jProvinceEntite"></select></div>
       <button class="btn-primary" onclick="ajouterEntite()">Enregistrer</button>
       <button class="btn-secondary" onclick="reinitialiserFormEntite()">🔄 Réinitialiser</button>
     </div>
@@ -224,9 +191,7 @@
       <h3>🔍 Filtre des entités</h3>
       <div class="input-group">
         <select id="filtreEntites" onchange="afficherListeEntites()">
-          <option value="actif">Actives uniquement</option>
-          <option value="archive">Archivées uniquement</option>
-          <option value="tous">Toutes</option>
+          <option value="actif">Actives uniquement</option><option value="archive">Archivées uniquement</option><option value="tous">Toutes</option>
         </select>
       </div>
       <div class="input-group"><label>Recherche</label><input type="text" id="searchEntiteListe" placeholder="Nom entité..." oninput="afficherListeEntites()"></div>
@@ -249,9 +214,7 @@
       <h3>🔍 Filtre des participations</h3>
       <div class="input-group">
         <select id="filtreParticipations" onchange="afficherJournaliere()">
-          <option value="actif">Actives uniquement</option>
-          <option value="archive">Archivées uniquement</option>
-          <option value="tous">Toutes</option>
+          <option value="actif">Actives uniquement</option><option value="archive">Archivées uniquement</option><option value="tous">Toutes</option>
         </select>
       </div>
     </div>
@@ -262,22 +225,14 @@
       <h3>📆 Fiche mensuelle</h3>
       <div class="input-group"><label>Entité</label><select id="mEntite"></select></div>
       <div class="input-group"><label>Mois</label>
-        <select id="mMois">
-          <option>Janvier</option><option>Février</option><option>Mars</option>
-          <option>Avril</option><option>Mai</option><option>Juin</option>
-          <option>Juillet</option><option>Août</option><option>Septembre</option>
-          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-        </select>
+        <select id="mMois"><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
       </div>
       <div class="input-group"><label>Année</label><input type="number" id="mAnnee" value="2026"></div>
       <div class="input-group"><label>Responsable</label><input type="text" id="mResponsable"></div>
       <h4>Présentation</h4>
       <div class="input-group"><label>Nombre d'Encadreurs</label><input type="number" id="mEncadreurs" value="0"></div>
       <div class="input-group"><label>Jour réunion d'évaluation</label>
-        <select id="mJourReunion">
-          <option>Lundi</option><option>Mardi</option><option>Mercredi</option>
-          <option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option>
-        </select>
+        <select id="mJourReunion"><option>Lundi</option><option>Mardi</option><option>Mercredi</option><option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option></select>
       </div>
       <div class="input-group"><label>Membres actifs</label><input type="number" id="mMembresActifs" value="0"></div>
       <div class="input-group"><label>Sympathisants</label><input type="number" id="mSympathisants" value="0"></div>
@@ -326,27 +281,16 @@
       <div class="input-group"><label>Nom entité</label><input type="text" id="searchFreq" placeholder="Rechercher..."></div>
       <div class="input-group"><label>Année</label><input type="text" id="searchFreqAnnee" placeholder="Ex : 2026"></div>
       <div class="input-group"><label>Mois</label>
-        <select id="searchFreqMois">
-          <option value="">-- Tous --</option>
-          <option>Janvier</option><option>Février</option><option>Mars</option>
-          <option>Avril</option><option>Mai</option><option>Juin</option>
-          <option>Juillet</option><option>Août</option><option>Septembre</option>
-          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-        </select>
+        <select id="searchFreqMois"><option value="">-- Tous --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
       </div>
       <div class="input-group"><label>Statut</label>
-        <select id="searchFreqStatut">
-          <option value="actif">Actives uniquement</option>
-          <option value="archive">Archivées uniquement</option>
-          <option value="tous">Toutes</option>
-        </select>
+        <select id="searchFreqStatut"><option value="actif">Actives uniquement</option><option value="archive">Archivées uniquement</option><option value="tous">Toutes</option></select>
       </div>
       <button class="btn-secondary" onclick="rechercherFreqAvance()">🔍 Rechercher</button>
       <button class="btn-secondary" onclick="reinitialiserRechercheFreq()">🔄 Réinitialiser</button>
     </div>
   </div>
 
-  <!-- ONGLET FINANCE -->
   <div id="tab-finance" class="main-tab-content">
     <div class="card">
       <h3>➕ Ajouter un candidat</h3>
@@ -356,14 +300,9 @@
       </div>
       <div class="input-group"><label>Nom de l'entité</label><input type="text" id="cNomEntite" placeholder="Ex : BIANCKYA"></div>
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="cResponsable"></div>
-      <div class="input-group"><label>Province *</label>
-        <select id="cProvince"></select>
-      </div>
+      <div class="input-group"><label>Province *</label><select id="cProvince"></select></div>
       <div class="input-group"><label>Motif</label>
-        <select id="cMotif">
-          <option>Initiation</option><option>Ré-initiation</option><option>Photo sacrée</option>
-          <option>Shoku</option><option>Kannon</option><option>Goshintai familiale</option><option>Mitamaya</option>
-        </select>
+        <select id="cMotif"><option>Initiation</option><option>Ré-initiation</option><option>Photo sacrée</option><option>Shoku</option><option>Kannon</option><option>Goshintai familiale</option><option>Mitamaya</option></select>
       </div>
       <div class="input-group"><label>Montant prévu ($)</label><input type="number" id="cMontant" value="200"></div>
       <div class="input-group"><label>Taux (1$ = FC)</label><input type="number" id="cTaux" value="2300"></div>
@@ -423,6 +362,17 @@
       <div class="input-group"><label>Date</label><input type="date" id="vDate"></div>
       <div class="input-group">
         <label>✍️ Signature du candidat</label>
+        <div id="vSignatureEncreBar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f0f4f0;padding:8px 10px;border-radius:8px;border:1px dashed #0a6e2c;margin-bottom:8px">
+          <span style="font-size:11px;color:#0a6e2c;font-weight:700">✒️ Encre :</span>
+          <input type="color" id="vSignatureEncre" value="#111111" oninput="appliquerCouleurSignatureEncre(this.value)" onchange="appliquerCouleurSignatureEncre(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">
+          <button type="button" class="sig-encre-btn" data-encre="#111111" onclick="appliquerCouleurSignatureEncre('#111111')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#111111;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Noir"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#1976d2" onclick="appliquerCouleurSignatureEncre('#1976d2')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#1976d2;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Bleu"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#0a6e2c" onclick="appliquerCouleurSignatureEncre('#0a6e2c')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#0a6e2c;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Vert"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#d32f2f" onclick="appliquerCouleurSignatureEncre('#d32f2f')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#d32f2f;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Rouge"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#6a1b9a" onclick="appliquerCouleurSignatureEncre('#6a1b9a')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#6a1b9a;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Violet"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#e65100" onclick="appliquerCouleurSignatureEncre('#e65100')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#e65100;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Orange"></button>
+          <span style="font-size:10px;color:#888;font-style:italic;margin-left:auto">Couleur du tracé</span>
+        </div>
         <canvas id="vSignatureCanvas" style="border:2px dashed #0a6e2c;border-radius:8px;width:100%;height:180px;background:#fafafa;touch-action:none;display:block"></canvas>
         <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <button type="button" class="btn-mini gray" onclick="effacerSignature()">🧹 Effacer</button>
@@ -437,9 +387,7 @@
       <h3>🔍 Filtre versements</h3>
       <div class="input-group">
         <select id="filtreVersements" onchange="afficherVersements()">
-          <option value="actif">Actifs uniquement</option>
-          <option value="archive">Archivés uniquement</option>
-          <option value="tous">Tous</option>
+          <option value="actif">Actifs uniquement</option><option value="archive">Archivés uniquement</option><option value="tous">Tous</option>
         </select>
       </div>
     </div>
@@ -458,24 +406,15 @@
     </div>
   </div>
 
-  <!-- ONGLET DÉPOUILLEMENT -->
   <div id="tab-depouillement" class="main-tab-content">
     <div class="card">
       <h3>📅 Informations de la séance</h3>
       <div class="input-group"><label>Année</label><input type="number" id="dAnnee" value="2026"></div>
       <div class="input-group"><label>Mois</label>
-        <select id="dMois">
-          <option>Janvier</option><option>Février</option><option>Mars</option>
-          <option>Avril</option><option>Mai</option><option>Juin</option>
-          <option>Juillet</option><option>Août</option><option>Septembre</option>
-          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-        </select>
+        <select id="dMois"><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
       </div>
       <div class="input-group"><label>Phase</label>
-        <select id="dPhase">
-          <option value="1">1ère phase</option><option value="2">2ème phase</option>
-          <option value="3">3ème phase</option><option value="4">4ème phase</option>
-        </select>
+        <select id="dPhase"><option value="1">1ère phase</option><option value="2">2ème phase</option><option value="3">3ème phase</option><option value="4">4ème phase</option></select>
       </div>
       <div class="input-group"><label>Date de la séance</label><input type="date" id="dDate"></div>
       <button class="btn-primary" onclick="demarrerSeance()">🚀 Démarrer la séance</button>
@@ -500,10 +439,7 @@
       <h4>🎁 Offrandes spéciales</h4>
       <div class="input-group">
         <select id="dOffrandeCategorie">
-          <option value="init">Initiation</option><option value="sorei">Sorei Saichi</option>
-          <option value="kannon">Kannon</option><option value="photo">Photo sacrée</option>
-          <option value="shinrei">Shinrei Saichi</option><option value="gosh">Goshintai familiale</option>
-          <option value="mita">Mitamaya</option>
+          <option value="init">Initiation</option><option value="sorei">Sorei Saichi</option><option value="kannon">Kannon</option><option value="photo">Photo sacrée</option><option value="shinrei">Shinrei Saichi</option><option value="gosh">Goshintai familiale</option><option value="mita">Mitamaya</option>
         </select>
       </div>
       <div class="input-group"><label>Nom de la personne</label><input type="text" id="dOffrandeNom"></div>
@@ -542,25 +478,13 @@
       <div class="input-group"><label>Nom entité</label><input type="text" id="searchDepEntite" oninput="rechercherDepouillement()"></div>
       <div class="input-group"><label>Année</label><input type="text" id="searchDepAnnee"></div>
       <div class="input-group"><label>Mois</label>
-        <select id="searchDepMois">
-          <option value="">-- Tous --</option>
-          <option>Janvier</option><option>Février</option><option>Mars</option>
-          <option>Avril</option><option>Mai</option><option>Juin</option>
-          <option>Juillet</option><option>Août</option><option>Septembre</option>
-          <option>Octobre</option><option>Novembre</option><option>Décembre</option>
-        </select>
+        <select id="searchDepMois"><option value="">-- Tous --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
       </div>
       <div class="input-group"><label>Phase</label>
-        <select id="searchDepPhase">
-          <option value="">-- Toutes --</option>
-          <option value="1">1ère phase</option><option value="2">2ème phase</option>
-          <option value="3">3ème phase</option><option value="4">4ème phase</option>
-        </select>
+        <select id="searchDepPhase"><option value="">-- Toutes --</option><option value="1">1ère phase</option><option value="2">2ème phase</option><option value="3">3ème phase</option><option value="4">4ème phase</option></select>
       </div>
       <div class="input-group"><label>Statut</label>
-        <select id="searchDepStatut">
-          <option value="actif">Actifs</option><option value="archive">Archivés</option><option value="tous">Tous</option>
-        </select>
+        <select id="searchDepStatut"><option value="actif">Actifs</option><option value="archive">Archivés</option><option value="tous">Tous</option></select>
       </div>
       <button class="btn-secondary" onclick="rechercherDepouillement()">🔍 Rechercher</button>
       <button class="btn-secondary" onclick="reinitialiserRechercheDep()">🔄 Réinitialiser</button>
@@ -583,7 +507,6 @@
     </div>
   </div>
 
-  <!-- ONGLET PATRIMOINE -->
   <div id="tab-patrimoine" class="main-tab-content">
     <div class="card">
       <h3>🏛️ Gestion des Sites</h3>
@@ -592,9 +515,7 @@
       </div>
       <div class="input-group"><label>Nom du site</label><input type="text" id="pNomSite"></div>
       <div class="input-group"><label>Responsable</label><input type="text" id="pRespSite"></div>
-      <div class="input-group"><label>Province *</label>
-        <select id="pProvinceSite"></select>
-      </div>
+      <div class="input-group"><label>Province *</label><select id="pProvinceSite"></select></div>
       <button class="btn-primary" onclick="ajouterSitePatrimoine()">Ajouter le site</button>
       <button class="btn-secondary" onclick="reinitialiserFormSitePatrimoine()">🔄 Réinitialiser</button>
     </div>
@@ -614,9 +535,7 @@
       <div class="input-group"><label>Site associé</label><select id="pBienSite"></select></div>
       <div class="input-group"><label>Catégorie</label>
         <select id="pBienCategorie">
-          <option value="LIT">Liturgie</option><option value="SAL">Salle de culte</option>
-          <option value="BUR">Bureau administratif</option><option value="IMM">Immobilier</option>
-          <option value="AUT">Autres biens</option>
+          <option value="LIT">Liturgie</option><option value="SAL">Salle de culte</option><option value="BUR">Bureau administratif</option><option value="IMM">Immobilier</option><option value="AUT">Autres biens</option>
         </select>
       </div>
       <div class="input-group"><label>Désignation du bien</label><input type="text" id="pBienNom"></div>
@@ -667,19 +586,12 @@
     </div>
   </div>
 
-  <!-- ONGLET ARCHIVES -->
   <div id="tab-archives" class="main-tab-content">
     <div class="card">
       <h3>🔍 Filtrer les archives</h3>
-      <p style="font-size:12px;color:#666;margin-bottom:10px">
-        Les éléments archivés n'apparaissent <strong>pas</strong> dans les rapports PDF. Restaure-les ici pour les réintégrer.
-      </p>
-      <div class="input-group">
-        <label>Recherche</label>
-        <input type="text" id="archiveSearch" placeholder="Nom, entité, motif..." oninput="afficherArchives()">
-      </div>
-      <div class="input-group">
-        <label>Catégorie</label>
+      <p style="font-size:12px;color:#666;margin-bottom:10px">Les éléments archivés n'apparaissent <strong>pas</strong> dans les rapports PDF. Restaure-les ici pour les réintégrer.</p>
+      <div class="input-group"><label>Recherche</label><input type="text" id="archiveSearch" placeholder="Nom, entité, motif..." oninput="afficherArchives()"></div>
+      <div class="input-group"><label>Catégorie</label>
         <select id="archiveCategorie" onchange="afficherArchives()">
           <option value="">Toutes les catégories</option>
           <option value="entites">🏛️ Entités</option>
@@ -697,7 +609,6 @@
     <div id="archivesBox"></div>
   </div>
 
-  <!-- ONGLET ADMIN -->
   <div id="tab-admin" class="main-tab-content">
     <div class="card">
       <h3>👥 Gestion des utilisateurs</h3>
@@ -741,34 +652,24 @@
 
 </div>
 
-<!-- MODAL PROVINCE -->
 <div id="provinceModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🌍 Sélectionner la province</h3>
     <p style="font-size:12px;color:#666;margin-bottom:12px">Toutes les opérations seront liées à cette province.</p>
-    <div class="input-group">
-      <label>Province</label>
-      <select id="provinceSelect" style="font-size:14px;padding:12px"></select>
-    </div>
+    <div class="input-group"><label>Province</label><select id="provinceSelect" style="font-size:14px;padding:12px"></select></div>
     <div id="provinceInfo" style="background:#e8f5e9;padding:10px;border-radius:8px;font-size:12px;color:#0a6e2c;margin-bottom:12px;text-align:center"></div>
     <button class="btn-primary" onclick="confirmerProvince()">✅ Confirmer</button>
     <button class="btn-secondary" onclick="fermerModalProvince()">Annuler</button>
   </div>
 </div>
 
-<!-- MODAL OPTIONS PDF -->
 <div id="pdfOptionsModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🖨️ Options d'impression / PDF</h3>
-    <div class="input-group">
-      <label>Taille du papier</label>
-      <select id="pdfPaperSize">
-        <option value="A4">A4</option><option value="A5">A5</option>
-        <option value="Letter">Letter</option><option value="Legal">Legal</option><option value="A3">A3</option>
-      </select>
+    <div class="input-group"><label>Taille du papier</label>
+      <select id="pdfPaperSize"><option value="A4">A4</option><option value="A5">A5</option><option value="Letter">Letter</option><option value="Legal">Legal</option><option value="A3">A3</option></select>
     </div>
-    <div class="input-group">
-      <label>Police</label>
+    <div class="input-group"><label>Police</label>
       <select id="pdfFontFamily">
         <option value="Arial, sans-serif">Arial</option>
         <option value="'Times New Roman', serif">Times New Roman</option>
@@ -777,24 +678,13 @@
         <option value="Verdana, sans-serif">Verdana</option>
       </select>
     </div>
-    <div class="input-group">
-      <label>Taille de police</label>
+    <div class="input-group"><label>Taille de police</label>
       <select id="pdfFontSize">
-        <option value="9">9 pt</option><option value="10">10 pt</option>
-        <option value="11">11 pt</option><option value="12" selected>12 pt</option>
-        <option value="13">13 pt</option><option value="14">14 pt</option>
-        <option value="16">16 pt</option><option value="18">18 pt</option>
-        <option value="20">20 pt</option><option value="22">22 pt</option>
-        <option value="24">24 pt</option><option value="26">26 pt</option>
-        <option value="28">28 pt</option><option value="32">32 pt</option>
+        <option value="9">9 pt</option><option value="10">10 pt</option><option value="11">11 pt</option><option value="12" selected>12 pt</option><option value="13">13 pt</option><option value="14">14 pt</option><option value="16">16 pt</option><option value="18">18 pt</option><option value="20">20 pt</option><option value="22">22 pt</option><option value="24">24 pt</option><option value="26">26 pt</option><option value="28">28 pt</option><option value="32">32 pt</option>
       </select>
     </div>
-    <div class="input-group">
-      <label>Orientation</label>
-      <select id="pdfOrientation">
-        <option value="portrait">Portrait</option>
-        <option value="landscape">Paysage</option>
-      </select>
+    <div class="input-group"><label>Orientation</label>
+      <select id="pdfOrientation"><option value="portrait">Portrait</option><option value="landscape">Paysage</option></select>
     </div>
     <div class="input-group">
       <label>🎨 Couleur des cases de signature</label>
@@ -816,7 +706,6 @@
   </div>
 </div>
 
-<!-- Bandeau hors ligne -->
 <div id="offlineBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#e65100,#ff6d00);color:white;text-align:center;padding:8px;font-size:12px;font-weight:600;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.2);">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
 
 <button id="installBtn" class="install-btn" style="display:none" onclick="installApp()">📲 Installer</button>
