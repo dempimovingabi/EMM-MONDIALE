@@ -1,6 +1,6 @@
 // ============================================
-// BASE DE DONNÉES LOCALE — EMM MONDIAL v4
-// Cache mémoire + IndexedDB + fallback localStorage
+// BASE DE DONNÉES LOCALE — EMM MONDIAL v5
+// + Ajout provinceActive
 // ============================================
 
 const DB = {
@@ -210,6 +210,9 @@ function initDB() {
   if (!DB.get('patrimoineReparations')) DB.set('patrimoineReparations', []);
   if (!DB.get('rapportsNumeriques')) DB.set('rapportsNumeriques', []);
 
+  // Province active ('' = toutes)
+  if (!DB.get('provinceActive')) DB.set('provinceActive', '');
+
   ['entites','participations','fichesMensuelles','candidats','versements','depouillements','patrimoineSites','patrimoineBiens','rapportsNumeriques'].forEach(function(key) {
     var list = DB.get(key, []);
     var modifie = false;
@@ -218,4 +221,4 @@ function initDB() {
     });
     if (modifie) DB.set(key, list);
   });
-    }
+  }
