@@ -1,4 +1,4 @@
-<!DOhtml>    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -123,6 +123,8 @@
       <div class="input-group"><label>Année</label><input type="number" id="rnAnnee" value="2026"></div>
       <h4>👥 Membres</h4>
       <div class="input-group"><label>Membres baptisés</label><input type="number" id="rnBaptises" value="0"></div>
+      <div class="input-group"><label>Membres actifs</label><input type="number" id="rnActifs" value="0"></div>
+      <div class="input-group"><label>Membres inactifs</label><input type="number" id="rnInactifs" value="0"></div>
       <div class="input-group"><label>Initiés du mois</label><input type="number" id="rnInities" value="0"></div>
       <div class="input-group"><label>Membres entrés</label><input type="number" id="rnEntres" value="0"></div>
       <div class="input-group"><label>Membres sortis du pays</label><input type="number" id="rnSortis" value="0"></div>
@@ -139,7 +141,7 @@
       <div class="input-group"><label>Membres</label><input type="number" id="rnCulteMembres" value="0" oninput="recalculerTotauxRN()"></div>
       <div class="input-group"><label>Sympathisants</label><input type="number" id="rnCulteSymp" value="0" oninput="recalculerTotauxRN()"></div>
       <div class="input-group"><label>Nouveaux venus</label><input type="number" id="rnCulteNV" value="0" oninput="recalculerTotauxRN()"></div>
-      <div class="input-group"><label>Total (auto)</label><input type="number" id="rnCulteTotal" readonly style="background:#e8f5e9;font-weight:700"></div>
+      <div class="input-group"><label>TOTAL</label><input type="number" id="rnCulteTotal" readonly value="0" style="background:#e8f5e9;font-weight:700;color:#0a6e2c;font-size:16px;text-align:center"></div>
       <h4>🌱 Activités</h4>
       <div class="input-group"><label>Familles qui donnent le johrei</label><input type="number" id="rnJohrei" value="0"></div>
       <div class="input-group"><label>Élèves sanguetsu</label><input type="number" id="rnSanguetsu" value="0"></div>
@@ -842,4 +844,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-  </html>                                          
+      </html>
