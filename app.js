@@ -1,6 +1,6 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v27
-// Signature au doigt + couleur personnalisable
+// EMM MONDIAL — LOGIQUE PRINCIPALE v28
+// + Système de Provinces
 // ============================================
 
 var currentUser = null;
@@ -18,6 +18,177 @@ var CATEGORIES_OFFRANDES = {
   gosh: 'Goshintai familiale', mita: 'Mitamaya'
 };
 
+// ========== PROVINCES RDC ==========
+var PROVINCES_RDC = [
+  'Kinshasa', 'Kongo-Central', 'Kwango', 'Kwilu', 'Mai-Ndombe',
+  'Kasaï', 'Kasaï-Central', 'Kasaï-Oriental', 'Lomami', 'Sankuru',
+  'Maniema', 'Sud-Kivu', 'Nord-Kivu', 'Ituri', 'Haut-Uélé',
+  'Tshopo', 'Bas-Uélé', 'Nord-Ubangi', 'Mongala', 'Sud-Ubangi',
+  'Équateur', 'Tshuapa', 'Tanganyika', 'Haut-Lomami', 'Lualaba', 'Haut-Katanga'
+];
+
+function getProvinceActive() { return DB.get('provinceActive', '') || ''; }
+
+function setProvinceActive(p) {
+  DB.set('provinceActive', p || '');
+  rafraichirProvinceHeader();
+  refreshAll();
+  afficherDashboard();
+  afficherAnnonces();
+}
+
+function rafraichirProvinceHeader() {
+  var btn = document.getElementById('btnProvince');
+  if (!btn) return;
+  var p = getProvinceActive();
+  btn.textContent = p ? (p === '__non_assignee' ? '📭 Non assignées' : '🌍 ' + p) : '🌍 Toutes';
+}
+
+function peuplerProvinceSelects() {
+  var html = '<option value="">-- Toutes les provinces --</option>';
+  PROVINCES_RDC.forEach(function(p) { html += '<option value="' + p + '">' + p + '</option>'; });
+  html += '<option value="__non_assignee">📭 Non assignées (anciennes données)</option>';
+
+  ['jProvinceEntite', 'cProvince', 'pProvinceSite'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = html;
+    if (cur) sel.value = cur;
+  });
+
+  var psel = document.getElementById('provinceSelect');
+  if (psel) {
+    var cur2 = psel.value;
+    psel.innerHTML = html;
+    psel.value = getProvinceActive() || '';
+  }
+}
+
+function parProvince(list) {
+  var p = getProvinceActive();
+  if (!p) return list;
+  if (p === '__non_assignee') return list.filter(function(x) { return !x.province; });
+  return list.filter(function(x) { return x.province === p; });
+}
+
+function exigerProvince() {
+  var p = getProvinceActive();
+  if (!p) {
+    alert('⚠️ Sélectionnez d\'abord une province via le bouton 🌍 en haut à droite.');
+    ouvrirModalProvince();
+    return null;
+  }
+  if (p === '__non_assignee') {
+    alert('⚠️ Impossible de créer un élément en mode "Non assignées".\nChoisissez une vraie province.');
+    ouvrirModalProvince();
+    return null;
+  }
+  return p;
+}
+
+function ouvrirModalProvince() {
+  peuplerProvinceSelects();
+  var sel = document.getElementById('provinceSelect');
+  if (sel) sel.value = getProvinceActive() || '';
+  var info = document.getElementById('provinceInfo');
+  if (info) {
+    var p = getProvinceActive();
+    info.innerHTML = p ? (p === '__non_assignee' ? '📭 Non assignées' : '✅ ' + p) : '🌐 Toutes les provinces';
+  }
+  document.getElementById('provinceModal').style.display = 'flex';
+}
+
+function fermerModalProvince() {
+  document.getElementById('provinceModal').style.display = 'none';
+}
+
+function confirmerProvince() {
+  var sel = document.getElementById('provinceSelect');
+  if (!sel) return;
+  setProvinceActive(sel.value);
+  fermerModalProvince();
+  alert(sel.value ? '✅ Province : ' + (sel.value === '__non_assignee' ? 'Non assignées' : sel.value) : '🌐 Toutes les provinces');
+}
+
+// Filtre les entités par province
+function entitesProvince() {
+  return parProvince(DB.get('entites', []));
+}
+
+// Filtre les candidats par province
+function candidatsProvince() {
+  return parProvince(DB.get('candidats', []));
+}
+
+// Filtre les sites patrimoine par province
+function sitesPatrimoineProvince() {
+  return parProvince(DB.get('patrimoineSites', []));
+}
+
+// Filtre les versements via le candidat associé (qui porte la province)
+function versementsProvince() {
+  var p = getProvinceActive();
+  if (!p) return DB.get('versements', []);
+  var cands = parProvince(DB.get('candidats', []));
+  var ids = {};
+  cands.forEach(function(c) { ids[c.id] = true; });
+  return DB.get('versements', []).filter(function(v) { return ids[v.candId]; });
+}
+
+// Filtre les fiches mensuelles via l'entité associée
+function fichesProvince() {
+  var p = getProvinceActive();
+  if (!p) return DB.get('fichesMensuelles', []);
+  var ents = parProvince(DB.get('entites', []));
+  var ids = {};
+  ents.forEach(function(e) { ids[e.id] = true; });
+  return DB.get('fichesMensuelles', []).filter(function(f) { return ids[f.entiteId]; });
+}
+
+// Filtre les participations via l'entité associée
+function participationsProvince() {
+  var p = getProvinceActive();
+  if (!p) return DB.get('participations', []);
+  var ents = parProvince(DB.get('entites', []));
+  var ids = {};
+  ents.forEach(function(e) { ids[e.id] = true; });
+  return DB.get('participations', []).filter(function(x) { return ids[x.entiteId]; });
+}
+
+// Filtre les dépouillements via le nom d'entité (les dépouillements ont leurs propres entités)
+function depouillementsProvince() {
+  var p = getProvinceActive();
+  if (!p) return DB.get('depouillements', []);
+  var ents = parProvince(DB.get('entites', []));
+  var noms = {};
+  ents.forEach(function(e) { noms[e.nom] = true; });
+  return DB.get('depouillements', []).filter(function(d) {
+    return d.entites && d.entites.some(function(e) { return noms[e.nomEntite]; });
+  });
+}
+
+// Filtre les rapports numériques via l'entité
+function rapportsNumProvince() {
+  var p = getProvinceActive();
+  if (!p) return DB.get('rapportsNumeriques', []);
+  var ents = parProvince(DB.get('entites', []));
+  var ids = {};
+  ents.forEach(function(e) { ids[e.id] = true; });
+  return DB.get('rapportsNumeriques', []).filter(function(r) { return ids[r.entiteId]; });
+}
+
+// Filtre les biens patrimoine via le site
+function biensPatrimoineProvince() {
+  var p = getProvinceActive();
+  if (!p) return DB.get('patrimoineBiens', []);
+  var sites = parProvince(DB.get('patrimoineSites', []));
+  var ids = {};
+  sites.forEach(function(s) { ids[s.id] = true; });
+  return DB.get('patrimoineBiens', []).filter(function(b) { return ids[b.siteId]; });
+}
+
+// ========== SIGNATURE COULEUR ==========
 function getSignatureColor() { return DB.get('signatureColor', '#0a6e2c'); }
 
 function setSignatureColor(couleur) {
@@ -51,16 +222,13 @@ function appliquerCouleurSignature(couleur) {
 
 function changerCouleurSignature(couleur) { appliquerCouleurSignature(couleur); }
 
-// ========== SIGNATURE BLOCK — INITIALISATION DES CANVAS ==========
+// ========== SIGNATURE BLOCK — CANVAS ==========
 function initSignatureBlockCanvases() {
   document.querySelectorAll('canvas.sig-canvas').forEach(function(canvas) {
     if (canvas.dataset.init === '1') return;
     var ratio = window.devicePixelRatio || 1;
     var rect = canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      setTimeout(initSignatureBlockCanvases, 150);
-      return;
-    }
+    if (rect.width === 0 || rect.height === 0) { setTimeout(initSignatureBlockCanvases, 150); return; }
     canvas.dataset.init = '1';
     canvas.width = rect.width * ratio;
     canvas.height = rect.height * ratio;
@@ -144,7 +312,6 @@ function showSplash() {
   }, 2000);
 }
 
-// ========== NAVIGATION ==========
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
   var el = document.getElementById(id);
@@ -216,6 +383,7 @@ function appliquerSession() {
   refreshAll();
   afficherDashboard();
   afficherAnnonces();
+  rafraichirProvinceHeader();
 }
 
 // ========== UTILITAIRES ==========
@@ -243,7 +411,7 @@ function getEntiteNom(id) {
   return e ? e.type + ' - ' + e.nom : 'Inconnu';
 }
 
-// ========== MODAL PDF OPTIONS GLOBAL ==========
+// ========== MODAL PDF OPTIONS ==========
 var pdfContexteEnAttente = null;
 
 function ouvrirModalPdf(contexte) {
@@ -354,7 +522,7 @@ function confirmerImpressionPdf() {
   setTimeout(function() { w.print(); }, 800);
 }
 
-// ========== HELPER : CASES DE SIGNATURE AVEC CANVAS ==========
+// ========== HELPER : CASES SIGNATURE ==========
 function signatureBlockHTML() {
   var couleur = getSignatureColor();
   var presets = ['#0a6e2c','#000000','#1976d2','#d32f2f','#6a1b9a','#e65100','#1b5e20','#37474f'];
@@ -407,7 +575,7 @@ function signatureBlockHTML() {
 function rafraichirEntitesRN() {
   var sel = document.getElementById('rnEntite');
   if (!sel) return;
-  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; });
+  var entites = entitesProvince().filter(function(e) { return !e.archived; });
   var val = sel.value;
   var opts = '<option value="">-- Sélectionner une entité --</option>';
   entites.forEach(function(e) { opts += '<option value="' + e.id + '">' + e.type + ' - ' + e.nom + '</option>'; });
@@ -554,11 +722,10 @@ function reinitialiserRapportNumerique() {
   recalculerTotauxRN();
 }
 
-// ========== RAPPORT NUMÉRIQUE — GLOBAL / DÉTAILLÉ ==========
 function filtrerRapportsNum() {
   var fm = document.getElementById('rnFiltreMois') ? document.getElementById('rnFiltreMois').value : '';
   var fa = document.getElementById('rnFiltreAnnee') ? document.getElementById('rnFiltreAnnee').value.trim() : '';
-  return DB.get('rapportsNumeriques', []).filter(function(r) {
+  return rapportsNumProvince().filter(function(r) {
     return (!fm || r.mois === fm) && (!fa || String(r.annee) === fa);
   });
 }
@@ -797,17 +964,19 @@ function supprimerAnnonce(id) {
 
 // ========== MODULE I — ENTITÉS ==========
 function ajouterEntite() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var type = document.getElementById('jTypeEntite').value;
   var nom = document.getElementById('jNomEntite').value.trim().toUpperCase();
   var resp = document.getElementById('jResponsable').value.trim();
   if (!nom || !resp) return alert('Remplissez tous les champs');
   var entites = DB.get('entites', []);
-  if (entites.find(function(e) { return e.nom === nom && !e.archived; })) return alert('Cette entité existe déjà');
-  entites.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false });
+  if (entites.find(function(e) { return e.nom === nom && e.province === prov && !e.archived; })) return alert('Cette entité existe déjà dans cette province');
+  entites.push({ id: uid(), type: type, nom: nom, responsable: resp, province: prov, archived: false });
   DB.set('entites', entites);
   reinitialiserFormEntite();
   refreshAll();
-  alert('✅ Entité ajoutée : ' + nom);
+  alert('✅ Entité ajoutée : ' + nom + ' (' + prov + ')');
 }
 
 function reinitialiserFormEntite() {
@@ -817,13 +986,13 @@ function reinitialiserFormEntite() {
 }
 
 function rafraichirEntites() {
-  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; });
+  var entites = entitesProvince().filter(function(e) { return !e.archived; });
   ['jEntiteSelect','mEntite'].forEach(function(id) {
     var sel = document.getElementById(id);
     if (!sel) return;
     var val = sel.value;
     var opts = '';
-    entites.forEach(function(e) { opts += '<option value="' + e.id + '">' + e.type + ' - ' + e.nom + '</option>'; });
+    entites.forEach(function(e) { opts += '<option value="' + e.id + '">' + e.type + ' - ' + e.nom + (e.province ? ' (' + e.province + ')' : '') + '</option>'; });
     sel.innerHTML = opts;
     if (val) sel.value = val;
   });
@@ -832,7 +1001,8 @@ function rafraichirEntites() {
 function afficherListeEntites() {
   var filtre = document.getElementById('filtreEntites') ? document.getElementById('filtreEntites').value : 'actif';
   var search = (document.getElementById('searchEntiteListe') ? document.getElementById('searchEntiteListe').value : '').toUpperCase();
-  var entites = filtrerListe(DB.get('entites', []), filtre);
+  var entites = entitesProvince();
+  entites = filtrerListe(entites, filtre);
   if (search) entites = entites.filter(function(e) { return e.nom.indexOf(search) !== -1; });
   var box = document.getElementById('listeEntites');
   if (!box) return;
@@ -841,7 +1011,7 @@ function afficherListeEntites() {
   entites.forEach(function(e) {
     html += '<div class="item-list" style="padding:12px' + (e.archived ? ';opacity:0.7;background:#f0f0f0' : '') + '">';
     html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600;margin-bottom:4px">🏛️ ' + echapper(e.type) + ' - ' + echapper(e.nom) + (e.archived ? ' <span class="badge badge-archive">📦</span>' : '') + '</div>';
-    html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(e.responsable) + '</div>';
+    html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(e.responsable) + (e.province ? ' | 🌍 ' + echapper(e.province) : ' | 📭 Non assignée') + '</div>';
     html += '<button class="btn-mini orange" onclick="modifierEntite(\'' + e.id + '\')">✏️ Modifier</button> ';
     html += '<button class="btn-mini ' + (e.archived ? 'blue' : 'gray') + '" onclick="archiverEntite(\'' + e.id + '\')">' + (e.archived ? '↩️ Désarchiver' : '📦 Archiver') + '</button> ';
     html += '<button class="btn-mini danger" onclick="supprimerEntite(\'' + e.id + '\')">🗑️ Supprimer</button>';
@@ -857,12 +1027,14 @@ function modifierEntite(id) {
   var type = prompt('Type :', e.type); if (type === null) return;
   var nom = prompt('Nom :', e.nom); if (nom === null) return;
   var resp = prompt('Responsable :', e.responsable); if (resp === null) return;
+  var prov = prompt('Province :', e.province || ''); if (prov === null) return;
   var nn = nom.trim().toUpperCase();
   if (!nn) return alert('Nom vide');
-  if (list.find(function(x) { return x.id !== id && x.nom === nn && !x.archived; })) return alert('⚠️ Nom déjà utilisé');
+  if (list.find(function(x) { return x.id !== id && x.nom === nn && x.province === (prov.trim() || e.province) && !x.archived; })) return alert('⚠️ Nom déjà utilisé dans cette province');
   e.type = type.trim() || e.type;
   e.nom = nn;
   e.responsable = resp.trim();
+  if (prov.trim()) e.province = prov.trim();
   DB.set('entites', list);
   refreshAll();
   alert('✅ Modifiée');
@@ -922,7 +1094,7 @@ function reinitialiserFormParticipation() {
 
 function afficherJournaliere() {
   var filtre = document.getElementById('filtreParticipations') ? document.getElementById('filtreParticipations').value : 'actif';
-  var parts = filtrerListe(DB.get('participations', []), filtre);
+  var parts = filtrerListe(participationsProvince(), filtre);
   var box = document.getElementById('listeJournaliere');
   if (!box) return;
   if (!parts.length) { box.innerHTML = '<p>Aucune donnée.</p>'; return; }
@@ -1070,7 +1242,7 @@ function rechercherFreqAvance() {
   var annee = (document.getElementById('searchFreqAnnee').value || '').trim();
   var mois = document.getElementById('searchFreqMois').value;
   var statut = document.getElementById('searchFreqStatut').value;
-  var fiches = filtrerListe(DB.get('fichesMensuelles', []), statut);
+  var fiches = filtrerListe(fichesProvince(), statut);
   fiches = fiches.filter(function(f) {
     var nom = getEntiteNom(f.entiteId).toUpperCase();
     return (!q || nom.indexOf(q) !== -1) && (!annee || String(f.annee) === annee) && (!mois || f.mois === mois);
@@ -1090,8 +1262,8 @@ function reinitialiserRechercheFreq() {
 }
 
 function rapportFreqGlobal() {
-  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
-  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
+  var fiches = fichesProvince().filter(function(f) { return !f.archived; });
+  var parts = participationsProvince().filter(function(p) { return !p.archived; });
   var tm = 0, ts = 0, tn = 0;
   parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
   var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FRÉQUENCES</h3></div>';
@@ -1107,7 +1279,7 @@ function rapportFreqGlobal() {
 }
 
 function rapportFreqDetaille() {
-  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; });
+  var fiches = fichesProvince().filter(function(f) { return !f.archived; });
   if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active.</p>'; return; }
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FRÉQUENCES</h3></div>';
   fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
@@ -1137,7 +1309,7 @@ function previewPhotoCandidat(ev) {
   reader.readAsDataURL(file);
 }
 
-// ========== MODULE II — SIGNATURE (canvas du versement) ==========
+// ========== MODULE II — SIGNATURE ==========
 function initSignature() {
   var canvas = document.getElementById('vSignatureCanvas');
   if (!canvas) return;
@@ -1199,6 +1371,8 @@ function effacerSignature() {
 
 // ========== MODULE II — CANDIDATS ==========
 function ajouterCandidat() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var nom = document.getElementById('cNom').value.trim();
   var typeEntite = document.getElementById('cTypeEntite').value;
   var nomEntite = document.getElementById('cNomEntite').value.trim().toUpperCase();
@@ -1209,12 +1383,12 @@ function ajouterCandidat() {
   if (!nom) return alert('Entrez le nom');
   if (!nomEntite) return alert('Entrez l\'entité');
   var list = DB.get('candidats', []);
-  if (list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.statut === 'en_cours' && !c.archived; })) return alert('⚠️ Candidat déjà en cours');
-  list.push({ id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite, responsable: responsable, motif: motif, montantPrevu: montant, taux: taux, totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(), photo: photoCandidatTemp || null, archived: false });
+  if (list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.province === prov && c.statut === 'en_cours' && !c.archived; })) return alert('⚠️ Candidat déjà en cours dans cette province');
+  list.push({ id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite, responsable: responsable, motif: motif, montantPrevu: montant, taux: taux, totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(), photo: photoCandidatTemp || null, province: prov, archived: false });
   DB.set('candidats', list);
   reinitialiserFormCandidat();
   refreshAll();
-  alert('✅ Candidat ajouté : ' + nom);
+  alert('✅ Candidat ajouté : ' + nom + ' (' + prov + ')');
 }
 
 function reinitialiserFormCandidat() {
@@ -1230,7 +1404,7 @@ function reinitialiserFormCandidat() {
 function afficherCandidats() {
   var search = (document.getElementById('searchCand') ? document.getElementById('searchCand').value : '').toLowerCase();
   var filtre = document.getElementById('filtreCandidats') ? document.getElementById('filtreCandidats').value : 'actif';
-  var list = DB.get('candidats', []).slice();
+  var list = candidatsProvince().slice();
   if (filtre === 'en_cours') list = list.filter(function(c) { return c.statut === 'en_cours' && !c.archived; });
   else if (filtre === 'termine') list = list.filter(function(c) { return c.statut === 'termine' && !c.archived; });
   else if (filtre === 'archive') list = list.filter(function(c) { return c.archived === true; });
@@ -1240,7 +1414,7 @@ function afficherCandidats() {
   var box = document.getElementById('listeCandidats');
   if (!box) return;
   if (!list.length) { box.innerHTML = '<p>Aucun candidat.</p>'; return; }
-  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Motif</th><th>Statut</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
+  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Province</th><th>Motif</th><th>Statut</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
   list.forEach(function(c) {
     var badge = c.archived ? '<span class="badge badge-archive">📦</span>' : (c.statut === 'termine' ? '<span class="badge badge-ok">✅</span>' : '<span class="badge badge-progress">⏳</span>');
     html += '<tr' + (c.archived ? ' style="opacity:0.6"' : '') + '><td style="text-align:center">';
@@ -1248,6 +1422,7 @@ function afficherCandidats() {
     else html += '<div style="width:42px;height:42px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:16px">👤</div>';
     html += '</td><td>' + echapper(c.nom) + '</td>';
     html += '<td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td>';
+    html += '<td>' + (c.province ? '🌍 ' + echapper(c.province) : '📭') + '</td>';
     html += '<td>' + echapper(c.motif) + '</td><td>' + badge + '</td>';
     html += '<td class="num">' + c.totalVerse.toFixed(2) + '$</td>';
     html += '<td>';
@@ -1359,7 +1534,7 @@ function reinitialiserRechercheEntite() {
 function rafraichirCandidatsSelect() {
   var sel = document.getElementById('vCandidat');
   if (!sel) return;
-  var list = DB.get('candidats', []).filter(function(c) { return c.statut === 'en_cours' && !c.archived; });
+  var list = candidatsProvince().filter(function(c) { return c.statut === 'en_cours' && !c.archived; });
   list.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
   var val = sel.value;
   var opts = '';
@@ -1415,7 +1590,7 @@ function reinitialiserFormVersement() {
 
 function afficherVersements() {
   var filtre = document.getElementById('filtreVersements') ? document.getElementById('filtreVersements').value : 'actif';
-  var vers = filtrerListe(DB.get('versements', []), filtre);
+  var vers = filtrerListe(versementsProvince(), filtre);
   var box = document.getElementById('historiqueVersements');
   if (!box) return;
   if (!vers.length) { box.innerHTML = '<p>Aucun versement.</p>'; return; }
@@ -1524,6 +1699,7 @@ function imprimerRecu(vid) {
   if (c.photo) w.document.write('<div class="photo-box"><img src="' + c.photo + '"><p style="font-size:14px;font-weight:bold;margin-top:6px">' + echapper(c.nom) + '</p></div>');
   w.document.write('<table><tr><td class="label">Nom</td><td>' + echapper(c.nom) + '</td></tr>');
   w.document.write('<tr><td class="label">Entité</td><td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td></tr>');
+  w.document.write('<tr><td class="label">Province</td><td>' + echapper(c.province || '-') + '</td></tr>');
   w.document.write('<tr><td class="label">Motif</td><td>' + echapper(c.motif) + '</td></tr>');
   w.document.write('<tr><td class="label">Date</td><td>' + fmtDate(v.date) + '</td></tr>');
   w.document.write('<tr><td class="label">Taux</td><td>1$ = ' + v.taux + ' FC</td></tr></table>');
@@ -1542,7 +1718,7 @@ function rechercherParEntite() {
   var box = document.getElementById('resultatRechercheEntite');
   if (!box) return;
   if (!q && !type) { box.innerHTML = '<p style="color:#888;font-size:13px">Entrez un nom.</p>'; return; }
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).filter(function(c) {
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).filter(function(c) {
     return (!q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1)) && (!type || c.typeEntite === type);
   });
   if (!cands.length) { box.innerHTML = '<p style="color:#888;font-size:13px">Aucun candidat.</p>'; return; }
@@ -1590,6 +1766,7 @@ function afficherReleveVersement(candId) {
   w.document.write('<div class="info">');
   w.document.write('<p><strong>Nom :</strong> ' + echapper(c.nom) + '</p>');
   w.document.write('<p><strong>Entité :</strong> ' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</p>');
+  w.document.write('<p><strong>Province :</strong> ' + echapper(c.province || '-') + '</p>');
   w.document.write('<p><strong>Responsable :</strong> ' + echapper(c.responsable || '-') + '</p>');
   w.document.write('<p><strong>Motif :</strong> ' + echapper(c.motif) + '</p>');
   w.document.write('<p><strong>Statut :</strong> ' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</p></div>');
@@ -1614,7 +1791,7 @@ function relevéCompletEntite() {
   var q = (document.getElementById('searchEntiteFinance').value || '').trim().toUpperCase();
   var type = document.getElementById('searchEntiteType').value;
   if (!q && !type) return alert('Entrez d\'abord un nom');
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).filter(function(c) {
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).filter(function(c) {
     return (!q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1)) && (!type || c.typeEntite === type);
   });
   if (!cands.length) return alert('Aucun candidat');
@@ -1643,8 +1820,8 @@ function relevéCompletEntite() {
 }
 
 function rapportFinGlobal() {
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
-  var vers = DB.get('versements', []).filter(function(v) { return !v.archived; });
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; });
+  var vers = versementsProvince().filter(function(v) { return !v.archived; });
   var totalVerse = 0, totalPrevu = 0;
   cands.forEach(function(c) { totalVerse += (c.totalVerse || 0); totalPrevu += c.montantPrevu; });
   var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FINANCE</h3></div>';
@@ -1660,7 +1837,7 @@ function rapportFinGlobal() {
 }
 
 function rapportFinDetaille() {
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3></div>';
   if (!cands.length) html += '<p>Aucun candidat.</p>';
   else {
@@ -1904,7 +2081,7 @@ function rechercherDepouillement() {
   var phase = document.getElementById('searchDepPhase').value;
   var statut = document.getElementById('searchDepStatut').value;
   var entite = (document.getElementById('searchDepEntite').value || '').trim().toUpperCase();
-  var deps = filtrerListe(DB.get('depouillements', []), statut).filter(function(d) {
+  var deps = filtrerListe(depouillementsProvince(), statut).filter(function(d) {
     return (!annee || String(d.annee) === annee) && (!mois || d.mois === mois) && (!phase || String(d.phase) === phase) &&
            (!entite || d.entites.some(function(e) { return e.nomEntite.indexOf(entite) !== -1; }));
   });
@@ -1945,7 +2122,7 @@ function reinitialiserRechercheDep() {
 function rechercherDepGeneral() {
   var annee = (document.getElementById('gSearchAnnee').value || '').trim();
   var mois = document.getElementById('gSearchMois').value;
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; }).filter(function(d) {
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; }).filter(function(d) {
     return (!annee || String(d.annee) === annee) && (!mois || d.mois === mois);
   });
   var box = document.getElementById('resultatRechercheGeneral');
@@ -2062,7 +2239,7 @@ function imprimerReleveIndividuelCourant() {
 
 // ========== RELEVÉ FICHE PAR ENTITÉ ==========
 function construireReleveFicheEntite(entiteNom, mois, annee) {
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
   var resultats = [];
   deps.forEach(function(d) {
     d.entites.forEach(function(e) {
@@ -2153,7 +2330,7 @@ function imprimerReleveFicheCourant() {
 
 // ========== RELEVÉ FICHE GLOBALE DES ENTITÉS ==========
 function construireReleveGlobalEntites(mois, annee) {
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
   if (mois || annee) {
     deps = deps.filter(function(d) {
       return (!mois || d.mois === mois) && (!annee || String(d.annee) === annee);
@@ -2255,7 +2432,7 @@ function imprimerReleveGlobalCourant() {
 }
 
 function rapportDepGlobal() {
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
   var totalFC = 0, totalUSD = 0, soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0, totEnv = 0;
   deps.forEach(function(d) {
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalFC += s.totFC; totalUSD += s.totUSD; soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; totEnv += (e.enveloppes || 0); });
@@ -2273,7 +2450,7 @@ function rapportDepGlobal() {
 }
 
 function rapportDepDetaille() {
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif.</p>'; return; }
   var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — DÉPOUILLEMENT</h3></div>';
   deps.forEach(function(d) {
@@ -2295,9 +2472,8 @@ function rapportDepDetaille() {
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
-// ========== SOLDE À TRANSFÉRER ==========
 function soldeTransferer() {
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
   if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun.</p>'; return; }
   var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3><p>Détail complet par séance</p></div>';
   var totalSoldeFC = 0, totalSoldeUSD = 0, totalGenFC = 0, totalGenUSD = 0;
@@ -2357,18 +2533,20 @@ function soldeTransferer() {
 function afficherDashboard() {
   var box = document.getElementById('dashboardBox');
   if (!box) return;
-  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
-  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
+  var entites = entitesProvince().filter(function(e) { return !e.archived; }).length;
+  var parts = participationsProvince().filter(function(p) { return !p.archived; });
   var totPart = parts.reduce(function(a, p) { return a + p.m + p.s + p.n; }, 0);
-  var fiches = DB.get('fichesMensuelles', []).filter(function(f) { return !f.archived; }).length;
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
+  var fiches = fichesProvince().filter(function(f) { return !f.archived; }).length;
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; });
   var totalVerse = cands.reduce(function(a, c) { return a + (c.totalVerse || 0); }, 0);
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
   var soldeDepFC = 0, soldeDepUSD = 0;
   deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
-  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
-  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
-  var html = '<div class="table-wrapper"><table class="data-table"><tbody>';
+  var sitesP = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }).length;
+  var biensP = biensPatrimoineProvince().filter(function(b) { return !b.archived; }).length;
+  var provinceLabel = getProvinceActive() || 'Toutes';
+  var html = '<p style="text-align:center;font-size:12px;color:#0a6e2c;font-weight:600;margin-bottom:10px">🌍 Province : ' + echapper(provinceLabel === '__non_assignee' ? 'Non assignées' : provinceLabel) + '</p>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
   html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
   html += '<tr><td>Total présences</td><td class="num">' + totPart + '</td></tr>';
@@ -2389,10 +2567,11 @@ function afficherDashboard() {
 
 function rapportGeneralConsolide() {
   var box = document.getElementById('rapportGeneralBox');
-  var html = '<div class="rapport-header"><h3>🌍 RAPPORT GÉNÉRAL CONSOLIDÉ</h3><p>EMM MONDIAL — Tous Modules</p></div>';
+  var provinceLabel = getProvinceActive() || 'Toutes les provinces';
+  var html = '<div class="rapport-header"><h3>🌍 RAPPORT GÉNÉRAL CONSOLIDÉ</h3><p>Province : ' + echapper(provinceLabel === '__non_assignee' ? 'Non assignées' : provinceLabel) + '</p></div>';
   html += '<p style="text-align:center;font-size:12px;color:#666;margin-bottom:14px">Généré le ' + new Date().toLocaleString('fr-FR') + '</p>';
-  var entites = DB.get('entites', []).filter(function(e) { return !e.archived; }).length;
-  var parts = DB.get('participations', []).filter(function(p) { return !p.archived; });
+  var entites = entitesProvince().filter(function(e) { return !e.archived; }).length;
+  var parts = participationsProvince().filter(function(p) { return !p.archived; });
   var tm = 0, ts = 0, tn = 0;
   parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
   html += '<h4>📈 MODULE I — FRÉQUENCES</h4><div class="table-wrapper"><table class="data-table"><tbody>';
@@ -2400,7 +2579,7 @@ function rapportGeneralConsolide() {
   html += '<tr><td>Membres</td><td class="num">' + tm + '</td></tr>';
   html += '<tr><td>Sympathisants</td><td class="num">' + ts + '</td></tr>';
   html += '<tr><td>Nouveaux venus</td><td class="num">' + tn + '</td></tr></tbody></table></div>';
-  var cands = DB.get('candidats', []).filter(function(c) { return !c.archived; });
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; });
   var totalVerse = 0, totalPrevu = 0;
   cands.forEach(function(c) { totalVerse += c.totalVerse || 0; totalPrevu += c.montantPrevu; });
   html += '<h4>💰 MODULE II — FINANCE</h4><div class="table-wrapper"><table class="data-table"><tbody>';
@@ -2408,7 +2587,7 @@ function rapportGeneralConsolide() {
   html += '<tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr>';
   html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr>';
   html += '<tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr></tbody></table></div>';
-  var deps = DB.get('depouillements', []).filter(function(d) { return !d.archived; });
+  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
   var soldeFC = 0, soldeUSD = 0, genFC = 0, genUSD = 0;
   deps.forEach(function(d) {
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
@@ -2421,8 +2600,8 @@ function rapportGeneralConsolide() {
   html += '<tr><td>Dépenses FC</td><td class="num">- ' + genFC.toLocaleString() + ' FC</td></tr>';
   html += '<tr><td>Dépenses USD</td><td class="num">- ' + genUSD.toLocaleString() + ' $</td></tr>';
   html += '</tbody><tfoot><tr><td>À TRANSFÉRER</td><td class="num">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</td></tr></tfoot></table></div>';
-  var sitesP = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; }).length;
-  var biensP = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; }).length;
+  var sitesP = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }).length;
+  var biensP = biensPatrimoineProvince().filter(function(b) { return !b.archived; }).length;
   html += '<h4>🏛️ MODULE IV — PATRIMOINE</h4><div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Sites</td><td class="num">' + sitesP + '</td></tr>';
   html += '<tr><td>Biens</td><td class="num">' + biensP + '</td></tr></tbody></table></div>';
@@ -2615,6 +2794,8 @@ function installApp() {
 
 // ========== REFRESH ==========
 function refreshAll() {
+  rafraichirProvinceHeader();
+  peuplerProvinceSelects();
   rafraichirEntites();
   rafraichirEntitesRN();
   afficherListeEntites();
@@ -2635,17 +2816,19 @@ var CATEGORIES_PATRIMOINE = {
 };
 
 function ajouterSitePatrimoine() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var type = document.getElementById('pTypeSite').value;
   var nom = document.getElementById('pNomSite').value.trim();
   var resp = document.getElementById('pRespSite').value.trim();
   if (!nom) return alert('Entrez le nom');
   var list = DB.get('patrimoineSites', []);
-  if (list.find(function(s) { return s.nom.toLowerCase() === nom.toLowerCase() && !s.archived; })) return alert('Ce site existe déjà');
-  list.push({ id: uid(), type: type, nom: nom, responsable: resp, archived: false, dateCreation: new Date().toISOString() });
+  if (list.find(function(s) { return s.nom.toLowerCase() === nom.toLowerCase() && s.province === prov && !s.archived; })) return alert('Ce site existe déjà dans cette province');
+  list.push({ id: uid(), type: type, nom: nom, responsable: resp, province: prov, archived: false, dateCreation: new Date().toISOString() });
   DB.set('patrimoineSites', list);
   reinitialiserFormSitePatrimoine();
   refreshPatrimoineSites();
-  alert('✅ Site ajouté');
+  alert('✅ Site ajouté : ' + nom + ' (' + prov + ')');
 }
 
 function reinitialiserFormSitePatrimoine() {
@@ -2655,12 +2838,12 @@ function reinitialiserFormSitePatrimoine() {
 }
 
 function refreshPatrimoineSites() {
-  var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
+  var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
   var sel = document.getElementById('pBienSite');
   if (sel) sel.innerHTML = sites.map(function(s) { return '<option value="' + s.id + '">' + s.type + ' - ' + s.nom + '</option>'; }).join('');
   var selRep = document.getElementById('pRepBien');
   if (selRep) {
-    var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
+    var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; });
     selRep.innerHTML = biens.map(function(b) { return '<option value="' + b.id + '">' + b.code + ' - ' + b.nom + '</option>'; }).join('');
   }
   afficherSitesPatrimoine();
@@ -2670,7 +2853,7 @@ function refreshPatrimoineSites() {
 
 function afficherSitesPatrimoine() {
   var filtre = document.getElementById('pFiltreSites') ? document.getElementById('pFiltreSites').value : 'actif';
-  var sites = filtrerListe(DB.get('patrimoineSites', []), filtre);
+  var sites = filtrerListe(sitesPatrimoineProvince(), filtre);
   var box = document.getElementById('pListeSites');
   if (!box) return;
   if (!sites.length) { box.innerHTML = '<p>Aucun site.</p>'; return; }
@@ -2678,7 +2861,7 @@ function afficherSitesPatrimoine() {
   sites.forEach(function(s) {
     html += '<div class="item-list" style="padding:12px' + (s.archived ? ';opacity:0.7;background:#f0f0f0' : '') + '">';
     html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600">🏛️ ' + echapper(s.type) + ' - ' + echapper(s.nom) + (s.archived ? ' <span class="badge badge-archive">📦</span>' : '') + '</div>';
-    html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(s.responsable || '-') + '</div>';
+    html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(s.responsable || '-') + (s.province ? ' | 🌍 ' + echapper(s.province) : ' | 📭') + '</div>';
     html += '<button class="btn-mini orange" onclick="modifierSitePatrimoine(\'' + s.id + '\')">✏️</button> ';
     html += '<button class="btn-mini ' + (s.archived ? 'blue' : 'gray') + '" onclick="archiverSitePatrimoine(\'' + s.id + '\')">' + (s.archived ? '↩️' : '📦') + '</button> ';
     html += '<button class="btn-mini blue" onclick="relevePatrimoineSite(\'' + s.id + '\')">📄</button> ';
@@ -2772,7 +2955,7 @@ function reinitialiserFormBienPatrimoine() {
 function afficherBiensPatrimoine() {
   var filtre = document.getElementById('pFiltreBiens') ? document.getElementById('pFiltreBiens').value : 'actif';
   var search = (document.getElementById('pSearchBien') ? document.getElementById('pSearchBien').value : '').toLowerCase();
-  var biens = filtrerListe(DB.get('patrimoineBiens', []), filtre);
+  var biens = filtrerListe(biensPatrimoineProvince(), filtre);
   if (search) biens = biens.filter(function(b) { return b.nom.toLowerCase().indexOf(search) !== -1 || b.code.toLowerCase().indexOf(search) !== -1; });
   var box = document.getElementById('pListeBiens');
   if (!box) return;
@@ -2851,8 +3034,8 @@ function afficherReparations() {
 }
 
 function rapportPatrimoineGlobal() {
-  var sites = DB.get('patrimoineSites', []).filter(function(s) { return !s.archived; });
-  var biens = DB.get('patrimoineBiens', []).filter(function(b) { return !b.archived; });
+  var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
+  var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; });
   var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3></div>';
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
@@ -2867,7 +3050,7 @@ function relevePatrimoineSite(siteId) {
   var w = window.open('', '_blank');
   w.document.write('<html><head><meta charset="UTF-8"><title>Relevé Patrimoine</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#0a6e2c;color:white;padding:8px}td{padding:6px;border-bottom:1px solid #ddd}h1{text-align:center;color:#0a6e2c}</style></head><body>');
   w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1>');
-  w.document.write('<h2>Relevé Patrimoine : ' + echapper(site.nom) + '</h2>');
+  w.document.write('<h2>Relevé Patrimoine : ' + echapper(site.nom) + ' (' + echapper(site.province || 'Non assignée') + ')</h2>');
   w.document.write('<table><thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>État</th></tr></thead><tbody>');
   biens.forEach(function(b) { w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>'); });
   w.document.write('</tbody></table></body></html>');
@@ -2879,13 +3062,13 @@ function relevePatrimoineSite(siteId) {
 function _typesArchives() {
   return [
     { key: 'entites', label: 'Entités', icon: '🏛️',
-      nom: function(x) { return (x.type || '') + ' - ' + (x.nom || '') + ' | Resp : ' + (x.responsable || '-'); } },
+      nom: function(x) { return (x.type || '') + ' - ' + (x.nom || '') + ' | Resp : ' + (x.responsable || '-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
     { key: 'participations', label: 'Participations', icon: '📝',
       nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + fmtDate(x.date) + ' (M:' + (x.m||0) + ' S:' + (x.s||0) + ' NV:' + (x.n||0) + ')'; } },
     { key: 'fichesMensuelles', label: 'Fiches mensuelles', icon: '📆',
       nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + (x.mois||'') + ' ' + (x.annee||'') + ' | Resp : ' + (x.responsable||'-'); } },
     { key: 'candidats', label: 'Candidats', icon: '👤',
-      nom: function(x) { return (x.nom||'') + ' — ' + (x.motif||'') + ' (' + (x.typeEntite||'') + ' ' + (x.nomEntite||'') + ') | Versé : ' + (x.totalVerse||0).toFixed(2) + '$'; } },
+      nom: function(x) { return (x.nom||'') + ' — ' + (x.motif||'') + ' (' + (x.typeEntite||'') + ' ' + (x.nomEntite||'') + ')' + (x.province ? ' | 🌍 ' + x.province : '') + ' | Versé : ' + (x.totalVerse||0).toFixed(2) + '$'; } },
     { key: 'versements', label: 'Versements', icon: '💵',
       nom: function(x) {
         var c = DB.get('candidats', []).find(function(z) { return z.id === x.candId; });
@@ -2896,7 +3079,7 @@ function _typesArchives() {
     { key: 'annonces', label: 'Annonces', icon: '📢',
       nom: function(x) { return fmtDate(x.date) + ' — ' + (x.texte || '').substring(0, 80) + ((x.texte||'').length > 80 ? '...' : ''); } },
     { key: 'patrimoineSites', label: 'Sites patrimoine', icon: '🏛️',
-      nom: function(x) { return (x.type||'') + ' - ' + (x.nom||'') + ' | Resp : ' + (x.responsable||'-'); } },
+      nom: function(x) { return (x.type||'') + ' - ' + (x.nom||'') + ' | Resp : ' + (x.responsable||'-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
     { key: 'patrimoineBiens', label: 'Biens patrimoine', icon: '📦',
       nom: function(x) { return (x.code||'') + ' — ' + (x.nom||'') + ' (' + (x.qte||1) + 'x, ' + (x.etat||'') + ')'; } }
   ];
@@ -2913,7 +3096,7 @@ function afficherArchives() {
 
   types.forEach(function(t) {
     if (catFiltre && catFiltre !== t.key) return;
-    var list = DB.get(t.key, []).filter(function(x) { return x.archived === true; });
+    var list = parProvince(DB.get(t.key, [])).filter(function(x) { return x.archived === true; });
     if (recherche) {
       list = list.filter(function(x) {
         var n = (t.nom(x) || '').toLowerCase();
@@ -3038,6 +3221,8 @@ window.addEventListener('load', async function() {
   } catch(e) {
     console.error('❌ Erreur init DB:', e);
   }
+  rafraichirProvinceHeader();
+  peuplerProvinceSelects();
   showSplash();
   setTimeout(initSignature, 500);
   setTimeout(initSignature, 1500);
