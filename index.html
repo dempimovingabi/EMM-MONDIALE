@@ -28,13 +28,10 @@
     <h1>ÉGLISE MESSIANIQUE MONDIALE</h1>
     <h2>EMM MONDIAL</h2>
     <p class="subtitle">Espace Église / Entité</p>
-    
     <div class="input-group"><label>Email</label><input type="email" id="loginEmail" placeholder="Entrez votre email" autocomplete="email"></div>
-    <div class="input-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="Entrez votre mot de passe" autocomplete="current-password" onkeypress="if(event.key==='Enter')login()"></div>
-    
+    <div class="input-group"><label>Mot de passe</label><input type="password" id="loginPassword" placeholder="Entrez votre mot de passe" onkeypress="if(event.key==='Enter')login()"></div>
     <button class="btn-primary" onclick="login()">Se connecter</button>
     <button class="btn-secondary" style="margin-top:10px; font-size:12px;" onclick="creerCompte()">Créer un compte église</button>
-    
     <p id="loginError" class="error-msg"></p>
   </div>
 </div>
@@ -50,7 +47,7 @@
     
     <button id="btnPremium" onclick="ouvrirModalPremium()" style="background:#ffc107;color:#000;border:none;padding:6px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;margin-right:5px;display:none;">⭐ Premium</button>
     
-    <div id="saveIndicator" style="background:rgba(255,255,255,0.2);color:white;padding:5px 10px;border-radius:12px;font-size:11px;opacity:0.35;transition:opacity 0.3s;white-space:nowrap;flex-shrink:0;" title="Sauvegarde">💾</div>
+    <div id="saveIndicator" style="background:rgba(255,255,255,0.2);color:white;padding:5px 10px;border-radius:12px;font-size:11px;opacity:0.35;transition:opacity 0.3s;white-space:nowrap;flex-shrink:0;">💾</div>
     <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
   </header>
 
@@ -64,7 +61,7 @@
     <button class="main-tab" onclick="switchMainTab('admin', this)">⚙️ Admin</button>
   </div>
 
-  <!-- ONGLET GÉNÉRAL -->
+  <!-- ==================== ONGLET GÉNÉRAL ==================== -->
   <div id="tab-general" class="main-tab-content active">
     <div class="card"><h3>📢 Annonces</h3><div id="announcementsBox" class="announcements"><p>Aucune annonce.</p></div></div>
     <div class="card"><h3>👋 Bienvenue</h3><div id="welcomeBox"></div></div>
@@ -84,6 +81,8 @@
       <button class="btn-primary" onclick="rapportGeneralConsolide()">📊 Générer</button>
       <button class="btn-secondary" onclick="imprimerGeneral()">🖨️ Imprimer (Premium)</button>
       <button class="btn-secondary" onclick="exporterWordGeneral()">📄 Word (Premium)</button>
+      <button class="btn-secondary" onclick="exporterPDFGeneral()">📕 PDF (Premium)</button>
+      <button class="btn-secondary" onclick="partagerGeneral()">📤 Envoyer</button>
       <div id="rapportGeneralBox"></div>
     </div>
     <div class="card" style="text-align:center">
@@ -91,7 +90,7 @@
     </div>
   </div>
 
-  <!-- ONGLET FRÉQUENCE -->
+  <!-- ==================== ONGLET FRÉQUENCE ==================== -->
   <div id="tab-frequence" class="main-tab-content">
     <div class="card">
       <h3>📊 Choix du rapport</h3>
@@ -178,6 +177,7 @@
       <button class="btn-secondary" onclick="rapportFreqDetaille()">📋 Détaillé</button>
       <button class="btn-secondary" onclick="imprimerRapportFreq()">🖨️ Imprimer (Premium)</button>
       <button class="btn-secondary" onclick="exporterWordFreq()">📄 Word (Premium)</button>
+      <button class="btn-secondary" onclick="exporterPDFFreq()">📕 PDF (Premium)</button>
       <div id="rapportFreqBox"></div>
     </div>
 
@@ -190,33 +190,227 @@
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="jResponsable"></div>
       <div class="input-group"><label>Province *</label><select id="jProvinceEntite"></select></div>
       <button class="btn-primary" onclick="ajouterEntite()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormEntite()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Filtre des entités</h3>
+      <div class="input-group">
+        <select id="filtreEntites" onchange="afficherListeEntites()">
+          <option value="actif">Actives uniquement</option><option value="archive">Archivées uniquement</option><option value="tous">Toutes</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Recherche</label><input type="text" id="searchEntiteListe" placeholder="Nom entité..." oninput="afficherListeEntites()"></div>
     </div>
 
     <div class="card"><h3>📋 Liste des entités</h3><div id="listeEntites"></div></div>
+
+    <div class="card">
+      <h3>📝 Participation journalière</h3>
+      <div class="input-group"><label>Entité</label><select id="jEntiteSelect"></select></div>
+      <div class="input-group"><label>Date</label><input type="date" id="jDate"></div>
+      <div class="input-group"><label>Membres</label><input type="number" id="jMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="jSympathisants" value="0"></div>
+      <div class="input-group"><label>Nouveaux venus</label><input type="number" id="jNouveaux" value="0"></div>
+      <button class="btn-primary" onclick="enregistrerParticipation()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormParticipation()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Filtre des participations</h3>
+      <div class="input-group">
+        <select id="filtreParticipations" onchange="afficherJournaliere()">
+          <option value="actif">Actives uniquement</option><option value="archive">Archivées uniquement</option><option value="tous">Toutes</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card"><h3>📋 Relevé de pointage journalier</h3><div id="listeJournaliere"></div></div>
+
+    <div class="card">
+      <h3>📆 Fiche mensuelle</h3>
+      <div class="input-group"><label>Entité</label><select id="mEntite"></select></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="mMois"><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
+      </div>
+      <div class="input-group"><label>Année</label><input type="number" id="mAnnee" value="2026"></div>
+      <div class="input-group"><label>Responsable</label><input type="text" id="mResponsable"></div>
+      <h4>Présentation</h4>
+      <div class="input-group"><label>Nombre d'Encadreurs</label><input type="number" id="mEncadreurs" value="0"></div>
+      <div class="input-group"><label>Jour réunion d'évaluation</label>
+        <select id="mJourReunion"><option>Lundi</option><option>Mardi</option><option>Mercredi</option><option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option></select>
+      </div>
+      <div class="input-group"><label>Membres actifs</label><input type="number" id="mMembresActifs" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mSympathisants" value="0"></div>
+      <h4>Fréquentation culte mensuel</h4>
+      <div class="input-group"><label>Membres</label><input type="number" id="mFMembres" value="0"></div>
+      <div class="input-group"><label>Sympathisants</label><input type="number" id="mFSympathisants" value="0"></div>
+      <div class="input-group"><label>Nouveaux venus</label><input type="number" id="mFNouveaux" value="0"></div>
+      <h4>Activités</h4>
+      <div class="input-group"><label>Foyers Lumière</label><input type="number" id="mFoyersLumiere" value="0"></div>
+      <div class="input-group"><label>Avec Goshintai</label><input type="number" id="mAvecGoshintai" value="0"></div>
+      <div class="input-group"><label>Sans Goshintai</label><input type="number" id="mSansGoshintai" value="0"></div>
+      <div class="input-group"><label>Foyers sympathisants</label><input type="number" id="mFoyersSymp" value="0"></div>
+      <div class="input-group"><label>Fleurs distribuées</label><input type="number" id="mFleurs" value="0"></div>
+      <div class="input-group"><label>Potagers</label><input type="number" id="mPotagers" value="0"></div>
+      <div class="input-group"><label>Total potagers</label><input type="number" id="mTotalPotagers" value="0"></div>
+      <div class="input-group"><label>Maisons ouvertes</label><input type="number" id="mMaisonsOuvertes" value="0"></div>
+      <div class="input-group"><label>Témoignages</label><input type="number" id="mTemoignages" value="0"></div>
+      <h4>Confirmation</h4>
+      <div class="input-group"><label>Candidats Goshintai</label><input type="number" id="mCandGoshintai" value="0"></div>
+      <div class="input-group"><label>Confirmés initiation</label><input type="number" id="mConfInit" value="0"></div>
+      <div class="input-group"><label>Confirmés ré-initiation</label><input type="number" id="mConfReinit" value="0"></div>
+      <div class="input-group"><label>Confirmés Shoku</label><input type="number" id="mConfShoku" value="0"></div>
+      <div class="input-group"><label>Confirmés Kannon</label><input type="number" id="mConfKannon" value="0"></div>
+      <div class="input-group"><label>Confirmés Mitamaya</label><input type="number" id="mConfMitamaya" value="0"></div>
+      <h4>Assistance religieuse</h4>
+      <div class="input-group"><label>Maisons membres</label><input type="number" id="mAssistMembres" value="0"></div>
+      <div class="input-group"><label>Maisons sympathisants</label><input type="number" id="mAssistSymp" value="0"></div>
+      <div class="input-group"><label>Concessions</label><input type="number" id="mConcessions" value="0"></div>
+      <div class="input-group"><label>Terrains</label><input type="number" id="mTerrains" value="0"></div>
+      <div class="input-group"><label>Campagnes</label><input type="number" id="mCampagnes" value="0"></div>
+      <h4>Formation</h4>
+      <div class="input-group"><label>Cours enseignements</label><input type="number" id="mCoursEns" value="0"></div>
+      <div class="input-group"><label>Thèmes</label><textarea id="mThemes" rows="3"></textarea></div>
+      <div class="input-group"><label>Cours fleurs</label><input type="number" id="mCoursFleurs" value="0"></div>
+      <h4>Grâces reçues</h4><textarea id="mGraces" rows="3"></textarea>
+      <h4>Points à améliorer</h4><textarea id="mPoints" rows="3"></textarea>
+      <h4>Solutions proposées</h4><textarea id="mSolutions" rows="3"></textarea>
+      <h4>Objectifs</h4><textarea id="mObjectifs" rows="3"></textarea>
+      <h4>Actions</h4><textarea id="mActions" rows="3"></textarea>
+      <button class="btn-primary" onclick="enregistrerFicheMensuelle()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormFiche()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche fiche mensuelle</h3>
+      <div class="input-group"><label>Nom entité</label><input type="text" id="searchFreq" placeholder="Rechercher..."></div>
+      <div class="input-group"><label>Année</label><input type="text" id="searchFreqAnnee" placeholder="Ex : 2026"></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="searchFreqMois"><option value="">-- Tous --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
+      </div>
+      <div class="input-group"><label>Statut</label>
+        <select id="searchFreqStatut"><option value="actif">Actives uniquement</option><option value="archive">Archivées uniquement</option><option value="tous">Toutes</option></select>
+      </div>
+      <button class="btn-secondary" onclick="rechercherFreqAvance()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheFreq()">🔄 Réinitialiser</button>
+    </div>
   </div>
 
-  <!-- ONGLET FINANCE -->
+  <!-- ==================== ONGLET FINANCE ==================== -->
   <div id="tab-finance" class="main-tab-content">
     <div class="card">
       <h3>➕ Ajouter un candidat</h3>
-      <div class="input-group"><label>Nom complet</label><input type="text" id="cNom"></div>
+      <div class="input-group"><label>Nom complet</label><input type="text" id="cNom" placeholder="Ex : TSHIBOLA Hortense"></div>
+      <div class="input-group"><label>Type d'entité</label>
+        <select id="cTypeEntite"><option>Jorhei Center</option><option>Unité religieuse</option><option>Foyer de lumière</option></select>
+      </div>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="cNomEntite" placeholder="Ex : BIANCKYA"></div>
+      <div class="input-group"><label>Nom du responsable</label><input type="text" id="cResponsable"></div>
       <div class="input-group"><label>Province *</label><select id="cProvince"></select></div>
       <div class="input-group"><label>Motif</label>
-        <select id="cMotif"><option>Initiation</option><option>Ré-initiation</option><option>Photo sacrée</option><option>Shoku</option></select>
+        <select id="cMotif"><option>Initiation</option><option>Ré-initiation</option><option>Photo sacrée</option><option>Shoku</option><option>Kannon</option><option>Goshintai familiale</option><option>Mitamaya</option></select>
       </div>
       <div class="input-group"><label>Montant prévu ($)</label><input type="number" id="cMontant" value="200"></div>
+      <div class="input-group"><label>Taux (1$ = FC)</label><input type="number" id="cTaux" value="2300"></div>
+      <div class="input-group">
+        <label>📷 Photo passeport du candidat</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <button type="button" class="btn-mini blue" onclick="document.getElementById('cPhotoCamera').click()" style="flex:1;padding:10px">📸 Caméra</button>
+          <button type="button" class="btn-mini orange" onclick="document.getElementById('cPhotoGallery').click()" style="flex:1;padding:10px">🖼️ Galerie</button>
+        </div>
+        <input type="file" id="cPhotoCamera" accept="image/*" capture="user" onchange="previewPhotoCandidat(event)" style="display:none">
+        <input type="file" id="cPhotoGallery" accept="image/*" onchange="previewPhotoCandidat(event)" style="display:none">
+        <div id="cPhotoPreview" style="margin-top:10px;text-align:center"></div>
+      </div>
       <button class="btn-primary" onclick="ajouterCandidat()">Enregistrer le candidat</button>
+      <button class="btn-secondary" onclick="reinitialiserFormCandidat()">🔄 Réinitialiser</button>
     </div>
-    <div class="card"><h3>📋 Liste des candidats</h3><div id="listeCandidats"></div></div>
+
     <div class="card">
-      <h3>📊 Rapports Finance</h3>
+      <h3>🔍 Recherche par entité</h3>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="searchEntiteFinance" placeholder="Ex : BIANCKYA" oninput="rechercherParEntite()"></div>
+      <div class="input-group"><label>Type (optionnel)</label>
+        <select id="searchEntiteType" onchange="rechercherParEntite()">
+          <option value="">-- Tous --</option><option>Jorhei Center</option><option>Unité religieuse</option><option>Foyer de lumière</option>
+        </select>
+      </div>
+      <button class="btn-secondary" onclick="relevéCompletEntite()">🖨️ Relevé complet (Premium)</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheEntite()">🔄 Réinitialiser</button>
+      <div id="resultatRechercheEntite"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche candidat</h3>
+      <input type="text" id="searchCand" placeholder="Rechercher un candidat..." oninput="afficherCandidats()">
+      <div class="input-group" style="margin-top:8px">
+        <label>Statut</label>
+        <select id="filtreCandidats" onchange="afficherCandidats()">
+          <option value="actif">Actifs (en cours + terminés)</option>
+          <option value="en_cours">En cours uniquement</option>
+          <option value="termine">Terminés uniquement</option>
+          <option value="archive">Archivés uniquement</option>
+          <option value="tous">Tous</option>
+        </select>
+      </div>
+      <button class="btn-secondary" onclick="reinitialiserRechercheCand()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card"><h3>📋 Liste des candidats</h3><div id="listeCandidats"></div></div>
+
+    <div class="card">
+      <h3>💵 Nouveau versement</h3>
+      <div class="input-group"><label>Candidat</label><select id="vCandidat"></select></div>
+      <div class="input-group"><label>Monnaie</label>
+        <select id="vMonnaie"><option value="USD">USD ($)</option><option value="FC">FC</option></select>
+      </div>
+      <div class="input-group"><label>Montant</label><input type="number" id="vMontant" value="0"></div>
+      <div class="input-group"><label>Taux</label><input type="number" id="vTaux" value="2300"></div>
+      <div class="input-group"><label>Date</label><input type="date" id="vDate"></div>
+      <div class="input-group">
+        <label>✍️ Signature du candidat</label>
+        <div id="vSignatureEncreBar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f0f4f0;padding:8px 10px;border-radius:8px;border:1px dashed #0a6e2c;margin-bottom:8px">
+          <span style="font-size:11px;color:#0a6e2c;font-weight:700">✒️ Encre :</span>
+          <input type="color" id="vSignatureEncre" value="#111111" oninput="appliquerCouleurSignatureEncre(this.value)" onchange="appliquerCouleurSignatureEncre(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">
+          <button type="button" class="sig-encre-btn" data-encre="#111111" onclick="appliquerCouleurSignatureEncre('#111111')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#111111;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Noir"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#1976d2" onclick="appliquerCouleurSignatureEncre('#1976d2')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#1976d2;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Bleu"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#0a6e2c" onclick="appliquerCouleurSignatureEncre('#0a6e2c')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#0a6e2c;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Vert"></button>
+          <button type="button" class="sig-encre-btn" data-encre="#d32f2f" onclick="appliquerCouleurSignatureEncre('#d32f2f')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:#d32f2f;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Rouge"></button>
+          <span style="font-size:10px;color:#888;font-style:italic;margin-left:auto">Couleur du tracé</span>
+        </div>
+        <canvas id="vSignatureCanvas" style="border:2px dashed #0a6e2c;border-radius:8px;width:100%;height:180px;background:#fafafa;touch-action:none;display:block"></canvas>
+        <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button type="button" class="btn-mini gray" onclick="effacerSignature()">🧹 Effacer</button>
+          <span id="vSignatureStatus" style="font-size:12px;color:#888">Aucune signature</span>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="enregistrerVersement()">Enregistrer</button>
+      <button class="btn-secondary" onclick="reinitialiserFormVersement()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Filtre versements</h3>
+      <div class="input-group">
+        <select id="filtreVersements" onchange="afficherVersements()">
+          <option value="actif">Actifs uniquement</option><option value="archive">Archivés uniquement</option><option value="tous">Tous</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card"><h3>📜 Historique des versements</h3><div id="historiqueVersements"></div></div>
+
+    <div class="card">
+      <h3>📊 Rapports Module II</h3>
       <button class="btn-primary" onclick="rapportFinGlobal()">📊 Global</button>
+      <button class="btn-secondary" onclick="rapportFinDetaille()">📋 Détaillé</button>
       <button class="btn-secondary" onclick="imprimerRapportFin()">🖨️ Imprimer (Premium)</button>
+      <button class="btn-secondary" onclick="exporterWordFin()">📄 Word (Premium)</button>
+      <button class="btn-secondary" onclick="exporterPDFFin()">📕 PDF (Premium)</button>
       <div id="rapportFinBox"></div>
     </div>
   </div>
 
-  <!-- ONGLET DÉPOUILLEMENT -->
+  <!-- ==================== ONGLET DÉPOUILLEMENT ==================== -->
   <div id="tab-depouillement" class="main-tab-content">
     <div class="card">
       <h3>📅 Informations de la séance</h3>
@@ -224,53 +418,260 @@
       <div class="input-group"><label>Mois</label>
         <select id="dMois"><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
       </div>
+      <div class="input-group"><label>Phase</label>
+        <select id="dPhase"><option value="1">1ère phase</option><option value="2">2ème phase</option><option value="3">3ème phase</option><option value="4">4ème phase</option></select>
+      </div>
       <div class="input-group"><label>Date de la séance</label><input type="date" id="dDate"></div>
       <button class="btn-primary" onclick="demarrerSeance()">🚀 Démarrer la séance</button>
+      <button class="btn-secondary" onclick="reinitialiserSeance()">🔄 Réinitialiser la séance</button>
       <div id="seanceStatus" style="margin-top:10px"></div>
     </div>
+
+    <div class="card" id="cardEntiteActive" style="display:none">
+      <h3>🏛️ Enregistrement entité par entité</h3>
+      <div class="input-group"><label>Type d'entité</label>
+        <select id="dTypeEntite"><option>Jorhei Center</option><option>Unité religieuse</option><option>Foyer de lumière</option></select>
+      </div>
+      <div class="input-group"><label>Nom de l'entité</label><input type="text" id="dNomEntite"></div>
+      <div class="input-group"><label>Nom du responsable</label><input type="text" id="dResponsable"></div>
+      <div class="input-group"><label>Nombre d'enveloppes</label><input type="number" id="dEnveloppes" value="0"></div>
+      <h4>🏗️ Offrandes de construction</h4>
+      <div class="input-group"><label>FC</label><input type="number" id="dConstrFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dConstrUSD" value="0"></div>
+      <h4>⛪ Offrandes normales</h4>
+      <div class="input-group"><label>FC</label><input type="number" id="dNormFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dNormUSD" value="0"></div>
+      <h4>🎁 Offrandes spéciales</h4>
+      <div class="input-group">
+        <select id="dOffrandeCategorie">
+          <option value="init">Initiation</option><option value="sorei">Sorei Saichi</option><option value="kannon">Kannon</option><option value="photo">Photo sacrée</option><option value="shinrei">Shinrei Saichi</option><option value="gosh">Goshintai familiale</option><option value="mita">Mitamaya</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Nom de la personne</label><input type="text" id="dOffrandeNom"></div>
+      <div class="input-group"><label>Montant FC</label><input type="number" id="dOffrandeFC" value="0"></div>
+      <div class="input-group"><label>Montant USD</label><input type="number" id="dOffrandeUSD" value="0"></div>
+      <button class="btn-primary" onclick="ajouterOffrandeUnifiee()">➕ Ajouter cette offrande</button>
+      <div id="affichageOffrandes" style="margin-top:14px"></div>
+      <h4>🚌 Transport</h4>
+      <div class="input-group"><label>FC</label><input type="number" id="dTransFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dTransUSD" value="0"></div>
+      <button class="btn-primary" onclick="enregistrerEntiteSeance()" style="background:linear-gradient(135deg,#e65100,#ff6d00)">💾 Enregistrer cette entité</button>
+      <button class="btn-secondary" onclick="reinitialiserFormEntiteSeance()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card" id="cardEntitesSeance" style="display:none">
+      <h3>📋 Entités de la séance en cours</h3>
+      <div id="listeEntitesSeance"></div>
+      <button class="btn-secondary" onclick="passerAuxDepenses()">➡️ Passer aux dépenses</button>
+    </div>
+
+    <div class="card" id="cardDepensesSeance" style="display:none">
+      <h3>💸 Dépenses générales de la séance</h3>
+      <div class="input-group"><label>FC</label><input type="number" id="dgFC" value="0"></div>
+      <div class="input-group"><label>USD</label><input type="number" id="dgUSD" value="0"></div>
+      <div class="input-group"><label>Motif</label><textarea id="dgMotif" rows="2"></textarea></div>
+      <button class="btn-primary" onclick="ajouterDepenseSeance()">➕ Ajouter</button>
+      <button class="btn-secondary" onclick="reinitialiserFormDepenseSeance()">🔄 Réinitialiser</button>
+      <div id="listeDepensesSeance"></div>
+      <button class="btn-primary" onclick="calculerTotauxSeance()" style="background:linear-gradient(135deg,#1976d2,#1565c0)">🧮 Calculer les totaux</button>
+      <div id="depResultatSeance"></div>
+      <button class="btn-primary" onclick="enregistrerDepouillementSeance()" style="background:linear-gradient(135deg,#0a6e2c,#0d8a37);margin-top:10px">💾 Enregistrer le dépouillement</button>
+    </div>
+
     <div class="card">
-      <h3>📊 Rapports Dépouillement</h3>
+      <h3>🔍 Recherche dépouillement</h3>
+      <div class="input-group"><label>Nom entité</label><input type="text" id="searchDepEntite" oninput="rechercherDepouillement()"></div>
+      <div class="input-group"><label>Année</label><input type="text" id="searchDepAnnee"></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="searchDepMois"><option value="">-- Tous --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
+      </div>
+      <div class="input-group"><label>Phase</label>
+        <select id="searchDepPhase"><option value="">-- Toutes --</option><option value="1">1ère phase</option><option value="2">2ème phase</option><option value="3">3ème phase</option><option value="4">4ème phase</option></select>
+      </div>
+      <div class="input-group"><label>Statut</label>
+        <select id="searchDepStatut"><option value="actif">Actifs</option><option value="archive">Archivés</option><option value="tous">Tous</option></select>
+      </div>
+      <button class="btn-secondary" onclick="rechercherDepouillement()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheDep()">🔄 Réinitialiser</button>
+      <button class="btn-primary" onclick="genererReleveEntiteFiltre()" style="background:linear-gradient(135deg,#1976d2,#1565c0)">📄 Relevé fiche par entité (Premium)</button>
+      <button class="btn-primary" onclick="genererReleveGlobalEntites()" style="background:linear-gradient(135deg,#6a1b9a,#8e24aa)">📊 Relevé fiche globale des entités (Premium)</button>
+      <div id="resultatRechercheDep"></div>
+      <div id="releveFicheBox" style="margin-top:15px"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Rapports Module III</h3>
       <button class="btn-primary" onclick="rapportDepGlobal()">📊 Global</button>
+      <button class="btn-secondary" onclick="rapportDepDetaille()">📋 Détaillé</button>
+      <button class="btn-secondary" onclick="soldeTransferer()">🏦 Solde à transférer</button>
       <button class="btn-secondary" onclick="imprimerRapportDep()">🖨️ Imprimer (Premium)</button>
+      <button class="btn-secondary" onclick="exporterWordDep()">📄 Word (Premium)</button>
+      <button class="btn-secondary" onclick="exporterPDFDep()">📕 PDF (Premium)</button>
       <div id="rapportDepBox"></div>
     </div>
   </div>
 
-  <!-- ONGLET PATRIMOINE (Simplifié) -->
+  <!-- ==================== ONGLET PATRIMOINE ==================== -->
   <div id="tab-patrimoine" class="main-tab-content">
-    <div class="card"><h3>🏛️ Gestion des Sites</h3><p>Module patrimoine prêt.</p></div>
+    <div class="card">
+      <h3>🏛️ Gestion des Sites</h3>
+      <div class="input-group"><label>Type de site</label>
+        <select id="pTypeSite"><option>Jorhei Center</option><option>Unité religieuse</option><option>Foyer de lumière</option></select>
+      </div>
+      <div class="input-group"><label>Nom du site</label><input type="text" id="pNomSite"></div>
+      <div class="input-group"><label>Responsable</label><input type="text" id="pRespSite"></div>
+      <div class="input-group"><label>Province *</label><select id="pProvinceSite"></select></div>
+      <button class="btn-primary" onclick="ajouterSitePatrimoine()">Ajouter le site</button>
+      <button class="btn-secondary" onclick="reinitialiserFormSitePatrimoine()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Liste des sites</h3>
+      <div class="input-group">
+        <select id="pFiltreSites" onchange="afficherSitesPatrimoine()">
+          <option value="actif">Actifs</option><option value="archive">Archivés</option><option value="tous">Tous</option>
+        </select>
+      </div>
+      <div id="pListeSites"></div>
+    </div>
+
+    <div class="card">
+      <h3>➕ Enregistrer un bien</h3>
+      <div class="input-group"><label>Site associé</label><select id="pBienSite"></select></div>
+      <div class="input-group"><label>Catégorie</label>
+        <select id="pBienCategorie">
+          <option value="LIT">Liturgie</option><option value="SAL">Salle de culte</option>
+          <option value="BUR">Bureau administratif</option><option value="IMM">Immobilier</option>
+          <option value="AUT">Autres biens</option>
+        </select>
+      </div>
+      <div class="input-group"><label>Désignation du bien</label><input type="text" id="pBienNom"></div>
+      <div class="input-group"><label>Quantité</label><input type="number" id="pBienQte" value="1"></div>
+      <div class="input-group"><label>État</label>
+        <select id="pBienEtat"><option>Neuf</option><option>Bon</option><option>Passable</option><option>Mauvais</option></select>
+      </div>
+      <div class="input-group">
+        <label>📷 Photo du bien</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <button type="button" class="btn-mini blue" onclick="document.getElementById('pPhotoCamera').click()" style="flex:1;padding:10px">📸 Caméra</button>
+          <button type="button" class="btn-mini orange" onclick="document.getElementById('pPhotoGallery').click()" style="flex:1;padding:10px">🖼️ Galerie</button>
+        </div>
+        <input type="file" id="pPhotoCamera" accept="image/*" capture="user" onchange="previewPhotoBien(event)" style="display:none">
+        <input type="file" id="pPhotoGallery" accept="image/*" onchange="previewPhotoBien(event)" style="display:none">
+        <div id="pPhotoPreview" style="margin-top:10px;text-align:center"></div>
+      </div>
+      <button class="btn-primary" onclick="ajouterBienPatrimoine()">Enregistrer le bien</button>
+      <button class="btn-secondary" onclick="reinitialiserFormBienPatrimoine()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche de biens</h3>
+      <div class="input-group"><input type="text" id="pSearchBien" placeholder="Rechercher..." oninput="afficherBiensPatrimoine()"></div>
+      <div class="input-group">
+        <select id="pFiltreBiens" onchange="afficherBiensPatrimoine()">
+          <option value="actif">Actifs</option><option value="archive">Archivés</option><option value="tous">Tous</option>
+        </select>
+      </div>
+      <div id="pListeBiens"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔧 Réparations & Entretien</h3>
+      <div class="input-group"><label>Bien concerné</label><select id="pRepBien"></select></div>
+      <div class="input-group"><label>Description</label><textarea id="pRepDesc" rows="2"></textarea></div>
+      <div class="input-group"><label>Coût (FC)</label><input type="number" id="pRepCout" value="0"></div>
+      <div class="input-group"><label>Date</label><input type="date" id="pRepDate"></div>
+      <button class="btn-primary" onclick="ajouterReparation()">Enregistrer</button>
+      <div id="pListeReparations" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Rapports Patrimoine</h3>
+      <button class="btn-primary" onclick="rapportPatrimoineGlobal()">📊 Global</button>
+      <button class="btn-secondary" onclick="imprimerPatrimoine()">🖨️ Imprimer (Premium)</button>
+      <div id="pRapportBox" style="margin-top:10px"></div>
+    </div>
   </div>
 
-  <!-- ONGLET ARCHIVES (Simplifié) -->
+  <!-- ==================== ONGLET ARCHIVES ==================== -->
   <div id="tab-archives" class="main-tab-content">
-    <div class="card"><h3>📦 Archives</h3><div id="archivesBox"></div></div>
+    <div class="card">
+      <h3>🔍 Filtrer les archives</h3>
+      <p style="font-size:12px;color:#666;margin-bottom:10px">Les éléments archivés n'apparaissent <strong>pas</strong> dans les rapports PDF. Restaure-les ici pour les réintégrer.</p>
+      <div class="input-group"><label>Recherche</label><input type="text" id="archiveSearch" placeholder="Nom, entité, motif..." oninput="afficherArchives()"></div>
+      <div class="input-group"><label>Catégorie</label>
+        <select id="archiveCategorie" onchange="afficherArchives()">
+          <option value="">Toutes les catégories</option>
+          <option value="entites">🏛️ Entités</option>
+          <option value="participations">📝 Participations journalières</option>
+          <option value="fichesMensuelles">📆 Fiches mensuelles</option>
+          <option value="candidats">👤 Candidats</option>
+          <option value="versements">💵 Versements</option>
+          <option value="depouillements">🧾 Dépouillements</option>
+          <option value="annonces">📢 Annonces</option>
+          <option value="patrimoineSites">🏛️ Sites patrimoine</option>
+          <option value="patrimoineBiens">📦 Biens patrimoine</option>
+        </select>
+      </div>
+    </div>
+    <div id="archivesBox"></div>
   </div>
 
-  <!-- ONGLET ADMIN -->
+  <!-- ==================== ONGLET ADMIN ==================== -->
   <div id="tab-admin" class="main-tab-content">
     <div class="card">
-      <h3>👤 Mon compte</h3>
-      <div id="monCompteBox"></div>
+      <h3>👥 Gestion des utilisateurs</h3>
+      <div class="input-group"><label>Nom</label><input type="text" id="uNom"></div>
+      <div class="input-group"><label>Mot de passe</label><input type="text" id="uPass"></div>
+      <div class="input-group"><label>Rôle</label>
+        <select id="uRole"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select>
+      </div>
+      <button class="btn-primary" onclick="ajouterUtilisateur()">Ajouter</button>
+      <button class="btn-secondary" onclick="reinitialiserFormUtilisateur()">🔄 Réinitialiser</button>
+      <h4>Liste des utilisateurs</h4>
+      <div id="listeUtilisateurs"></div>
     </div>
+
     <div class="card">
-      <h3>💾 Sauvegarde</h3>
-      <button class="btn-secondary" onclick="exporterDonnees()">📤 Exporter JSON</button>
+      <h3>📢 Publier une annonce</h3>
+      <textarea id="annonceText" rows="3"></textarea>
+      <button class="btn-primary" onclick="publierAnnonce()">Publier</button>
+      <button class="btn-secondary" onclick="reinitialiserFormAnnonce()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>💾 Sauvegarde / Restauration</h3>
+      <button class="btn-secondary" onclick="exporterDonnees()">📤 Exporter</button>
+      <div class="input-group"><label>Collez ici un JSON</label><textarea id="importText" rows="4"></textarea></div>
+      <button class="btn-primary" onclick="restaurerTexte()">🔄 Restaurer</button>
+      <div class="input-group" style="margin-top:10px"><label>Ou fichier .json</label><input type="file" id="importFile" accept=".json,.txt" onchange="importerDonnees(event)"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Diagnostic stockage</h3>
+      <button class="btn-secondary" onclick="afficherDiagnosticStockage()">Afficher l'état du stockage</button>
+      <div id="diagnosticStockage" style="margin-top:10px;font-size:13px"></div>
+    </div>
+
+    <div class="card">
+      <h3>🗑️ Danger</h3>
+      <button class="btn-secondary" style="background:#ffebee;color:#c62828;border-color:#c62828" onclick="toutEffacer()">⚠️ Tout effacer</button>
     </div>
   </div>
 
 </div>
 
-<!-- MODAL PROVINCE -->
 <div id="provinceModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🌍 Sélectionner la province</h3>
+    <p style="font-size:12px;color:#666;margin-bottom:12px">Toutes les opérations seront liées à cette province.</p>
     <div class="input-group"><label>Province</label><select id="provinceSelect" style="font-size:14px;padding:12px"></select></div>
+    <div id="provinceInfo" style="background:#e8f5e9;padding:10px;border-radius:8px;font-size:12px;color:#0a6e2c;margin-bottom:12px;text-align:center"></div>
     <button class="btn-primary" onclick="confirmerProvince()">✅ Confirmer</button>
     <button class="btn-secondary" onclick="fermerModalProvince()">Annuler</button>
   </div>
 </div>
 
-<!-- MODAL PREMIUM -->
 <div id="premiumModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>⭐ Abonnement Premium</h3>
@@ -289,16 +690,43 @@
   </div>
 </div>
 
-<!-- MODAL OPTIONS PDF -->
 <div id="pdfOptionsModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
-    <h3>🖨️ Options d'impression</h3>
+    <h3>🖨️ Options d'impression / PDF</h3>
+    <div class="input-group"><label>Taille du papier</label>
+      <select id="pdfPaperSize"><option value="A4">A4</option><option value="A5">A5</option><option value="Letter">Letter</option><option value="Legal">Legal</option><option value="A3">A3</option></select>
+    </div>
+    <div class="input-group"><label>Police</label>
+      <select id="pdfFontFamily">
+        <option value="Arial, sans-serif">Arial</option>
+        <option value="'Times New Roman', serif">Times New Roman</option>
+        <option value="'Courier New', monospace">Courier New</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="Verdana, sans-serif">Verdana</option>
+      </select>
+    </div>
+    <div class="input-group"><label>Taille de police</label>
+      <select id="pdfFontSize">
+        <option value="9">9 pt</option><option value="10">10 pt</option><option value="11">11 pt</option><option value="12" selected>12 pt</option><option value="13">13 pt</option><option value="14">14 pt</option><option value="16">16 pt</option><option value="18">18 pt</option><option value="20">20 pt</option><option value="22">22 pt</option><option value="24">24 pt</option><option value="26">26 pt</option><option value="28">28 pt</option><option value="32">32 pt</option>
+      </select>
+    </div>
+    <div class="input-group"><label>Orientation</label>
+      <select id="pdfOrientation"><option value="portrait">Portrait</option><option value="landscape">Paysage</option></select>
+    </div>
+    <div class="input-group">
+      <label>🎨 Couleur des cases de signature</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f9f9f9;padding:8px 12px;border-radius:8px;border:1px solid #ddd">
+        <input type="color" id="pdfSignatureColor" value="#0a6e2c" oninput="appliquerCouleurSignature(this.value)" onchange="appliquerCouleurSignature(this.value)" style="width:52px;height:36px;padding:2px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:white;flex-shrink:0">
+        <input type="text" id="pdfSignatureColorText" value="#0a6e2c" maxlength="7" onchange="appliquerCouleurSignature(this.value)" style="width:90px;padding:8px;border:2px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;text-align:center;background:white">
+      </div>
+    </div>
     <button class="btn-primary" onclick="confirmerImpressionPdf()">🖨️ Générer / Imprimer</button>
     <button class="btn-secondary" onclick="fermerModalPdf()">Annuler</button>
   </div>
 </div>
 
-<!-- SCRIPTS FIREBASE -->
+<div id="offlineBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#e65100,#ff6d00);color:white;text-align:center;padding:8px;font-size:12px;font-weight:600;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.2);">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
+
 <script src="db.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -306,4 +734,4 @@
 <script src="firebase-config.js"></script>
 <script src="app.js"></script>
 </body>
-                                                                      </html>
+  </html>
