@@ -1,6 +1,6 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v30
-// + Membres actifs / inactifs + TOTAL culte
+// EMM MONDIAL — LOGIQUE PRINCIPALE v31
+// + Couleur d'encre de la signature (Finance + Dépouillement)
 // ============================================
 
 var currentUser = null;
@@ -18,7 +18,6 @@ var CATEGORIES_OFFRANDES = {
   gosh: 'Goshintai familiale', mita: 'Mitamaya'
 };
 
-// ========== PROVINCES RDC ==========
 var PROVINCES_RDC = [
   'Kinshasa', 'Kongo-Central', 'Kwango', 'Kwilu', 'Mai-Ndombe',
   'Kasaï', 'Kasaï-Central', 'Kasaï-Oriental', 'Lomami', 'Sankuru',
@@ -48,7 +47,6 @@ function peuplerProvinceSelects() {
   var html = '<option value="">-- Toutes les provinces --</option>';
   PROVINCES_RDC.forEach(function(p) { html += '<option value="' + p + '">' + p + '</option>'; });
   html += '<option value="__non_assignee">📭 Non assignées (anciennes données)</option>';
-
   ['jProvinceEntite', 'cProvince', 'pProvinceSite'].forEach(function(id) {
     var sel = document.getElementById(id);
     if (!sel) return;
@@ -56,7 +54,6 @@ function peuplerProvinceSelects() {
     sel.innerHTML = html;
     if (cur) sel.value = cur;
   });
-
   var psel = document.getElementById('provinceSelect');
   if (psel) {
     var cur2 = psel.value;
@@ -99,9 +96,7 @@ function ouvrirModalProvince() {
   document.getElementById('provinceModal').style.display = 'flex';
 }
 
-function fermerModalProvince() {
-  document.getElementById('provinceModal').style.display = 'none';
-}
+function fermerModalProvince() { document.getElementById('provinceModal').style.display = 'none'; }
 
 function confirmerProvince() {
   var sel = document.getElementById('provinceSelect');
@@ -111,7 +106,6 @@ function confirmerProvince() {
   alert(sel.value ? '✅ Province : ' + (sel.value === '__non_assignee' ? 'Non assignées' : sel.value) : '🌐 Toutes les provinces');
 }
 
-// ========== FILTRES PAR PROVINCE ==========
 function filtrerParProvinceListe(list, extraMatch) {
   var p = getProvinceActive();
   if (!p) return list;
@@ -125,17 +119,9 @@ function filtrerParProvinceListe(list, extraMatch) {
   });
 }
 
-function entitesProvince() {
-  return filtrerParProvinceListe(DB.get('entites', []));
-}
-
-function candidatsProvince() {
-  return filtrerParProvinceListe(DB.get('candidats', []));
-}
-
-function sitesPatrimoineProvince() {
-  return filtrerParProvinceListe(DB.get('patrimoineSites', []));
-}
+function entitesProvince() { return filtrerParProvinceListe(DB.get('entites', [])); }
+function candidatsProvince() { return filtrerParProvinceListe(DB.get('candidats', [])); }
+function sitesPatrimoineProvince() { return filtrerParProvinceListe(DB.get('patrimoineSites', [])); }
 
 function versementsProvince() {
   var p = getProvinceActive();
@@ -215,7 +201,7 @@ function biensPatrimoineProvince() {
   });
 }
 
-// ========== SIGNATURE COULEUR ==========
+// ========== COULEUR DES CASES DE SIGNATURE ==========
 function getSignatureColor() { return DB.get('signatureColor', '#0a6e2c'); }
 
 function setSignatureColor(couleur) {
@@ -249,6 +235,78 @@ function appliquerCouleurSignature(couleur) {
 
 function changerCouleurSignature(couleur) { appliquerCouleurSignature(couleur); }
 
+// ========== COULEUR D'ENCRE DE LA SIGNATURE (le tracé lui-même) ==========
+function getSignatureEncreColor() {
+  var c = DB.get('signatureEncreColor', '#111111');
+  if (!c || !/^#[0-9A-Fa-f]{6}$/.test(c)) return '#111111';
+  return c;
+}
+
+function setSignatureEncreColor(c) {
+  if (!c || !/^#[0-9A-Fa-f]{6}$/.test(c)) return;
+  DB.set('signatureEncreColor', c);
+  var fin = document.getElementById('vSignatureEncre');
+  if (fin && document.activeElement !== fin) fin.value = c;
+  document.querySelectorAll('.sig-encre-picker input[type="color"]').forEach(function(inp) {
+    if (document.activeElement !== inp) inp.value = c;
+  });
+  document.querySelectorAll('.sig-encre-btn').forEach(function(btn) {
+    var bc = btn.getAttribute('data-encre');
+    if (bc) btn.style.boxShadow = bc.toLowerCase() === c.toLowerCase() ? '0 0 0 2px #333' : '0 0 0 1px #ddd';
+  });
+  if (signatureCtx) { signatureCtx.strokeStyle = c; signatureCtx.fillStyle = c; }
+  document.querySelectorAll('canvas.sig-canvas').forEach(function(canvas) {
+    if (canvas.dataset.init === '1') {
+      var ctx = canvas.getContext('2d');
+      ctx.strokeStyle = c;
+      ctx.fillStyle = c;
+    }
+  });
+}
+
+function appliquerCouleurSignatureEncre(c) {
+  if (!c) return;
+  var v = String(c).trim();
+  if (v[0] !== '#') v = '#' + v;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(v)) return;
+  setSignatureEncreColor(v);
+}
+
+function syncSignatureEncrePickers() {
+  var c = getSignatureEncreColor();
+  var fin = document.getElementById('vSignatureEncre');
+  if (fin && document.activeElement !== fin) fin.value = c;
+  document.querySelectorAll('.sig-encre-picker input[type="color"]').forEach(function(inp) {
+    if (document.activeElement !== inp) inp.value = c;
+  });
+  document.querySelectorAll('.sig-encre-btn').forEach(function(btn) {
+    var bc = btn.getAttribute('data-encre');
+    if (bc) btn.style.boxShadow = bc.toLowerCase() === c.toLowerCase() ? '0 0 0 2px #333' : '0 0 0 1px #ddd';
+  });
+}
+
+function _barreEncreHTML(presetsHtml, extClass) {
+  return '<div class="' + (extClass || '') + ' sig-encre-picker" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f0f4f0;padding:8px 10px;border-radius:8px;border:1px dashed #0a6e2c;margin-bottom:8px">' +
+    '<span style="font-size:11px;color:#0a6e2c;font-weight:700">✒️ Encre :</span>' +
+    '<input type="color" value="' + getSignatureEncreColor() + '" oninput="appliquerCouleurSignatureEncre(this.value)" onchange="appliquerCouleurSignatureEncre(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">' +
+    presetsHtml +
+    '<span style="font-size:10px;color:#888;font-style:italic;margin-left:auto">Couleur du tracé</span>' +
+  '</div>';
+}
+
+function _presetsEncreHTML() {
+  var presets = ['#111111','#1976d2','#0a6e2c','#d32f2f','#6a1b9a','#e65100'];
+  var cur = getSignatureEncreColor();
+  var html = '';
+  presets.forEach(function(c) {
+    var sel = c.toLowerCase() === cur.toLowerCase();
+    html += '<button type="button" class="sig-encre-btn" data-encre="' + c + '" onclick="appliquerCouleurSignatureEncre(\'' + c + '\')" ' +
+      'style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:' + c + ';cursor:pointer;padding:0;' +
+      (sel ? 'box-shadow:0 0 0 2px #333;' : 'box-shadow:0 0 0 1px #ddd;') + '" title="' + c + '"></button>';
+  });
+  return html;
+}
+
 // ========== SIGNATURE BLOCK — CANVAS ==========
 function initSignatureBlockCanvases() {
   document.querySelectorAll('canvas.sig-canvas').forEach(function(canvas) {
@@ -265,7 +323,8 @@ function initSignatureBlockCanvases() {
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#111';
+    ctx.strokeStyle = getSignatureEncreColor();
+    ctx.fillStyle = getSignatureEncreColor();
     var drawing = false, lastX = 0, lastY = 0;
     function getPos(e) {
       var r = canvas.getBoundingClientRect();
@@ -274,12 +333,15 @@ function initSignatureBlockCanvases() {
     }
     function start(e) {
       e.preventDefault(); drawing = true;
+      ctx.strokeStyle = getSignatureEncreColor();
+      ctx.fillStyle = getSignatureEncreColor();
       var p = getPos(e); lastX = p.x; lastY = p.y;
       ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2); ctx.fill();
     }
     function move(e) {
       if (!drawing) return;
       e.preventDefault();
+      ctx.strokeStyle = getSignatureEncreColor();
       var p = getPos(e);
       ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
       lastX = p.x; lastY = p.y;
@@ -370,10 +432,11 @@ function switchMainTab(name, btn) {
     setTimeout(initSignature, 100);
     setTimeout(initSignature, 400);
     setTimeout(initSignature, 800);
+    setTimeout(syncSignatureEncrePickers, 150);
+    setTimeout(syncSignatureEncrePickers, 500);
   }
-  if (name === 'frequence') {
-    setTimeout(recalculerTotauxRN, 100);
-  }
+  if (name === 'frequence') setTimeout(recalculerTotauxRN, 100);
+  if (name === 'depouillement') setTimeout(syncSignatureEncrePickers, 150);
   if (name === 'patrimoine') refreshPatrimoineSites();
   if (name === 'archives') afficherArchives();
 }
@@ -517,7 +580,7 @@ function cssImpression(options) {
     ' .signature-block { page-break-inside: avoid !important; margin-top: 40px !important; }' +
     ' .signature-block table { width: 100% !important; margin: 0 !important; border-collapse: separate !important; }' +
     ' .signature-block td { border: none !important; padding: 0 !important; background: transparent !important; vertical-align: top !important; }' +
-    ' .signature-color-picker { display: none !important; }' +
+    ' .signature-color-picker, .sig-encre-picker { display: none !important; }' +
     ' .sig-canvas { display: none !important; }' +
     ' .signature-box img { display: block !important; }' +
     ' .signature-box { border: 2px solid ' + sigColor + ' !important; border-radius: 8px !important; padding: 8px !important; background: #f9f9f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
@@ -553,21 +616,32 @@ function confirmerImpressionPdf() {
   setTimeout(function() { w.print(); }, 800);
 }
 
-// ========== HELPER : CASES SIGNATURE ==========
+// ========== HELPER : CASES SIGNATURE (avec encre personnalisable) ==========
 function signatureBlockHTML() {
   var couleur = getSignatureColor();
-  var presets = ['#0a6e2c','#000000','#1976d2','#d32f2f','#6a1b9a','#e65100','#1b5e20','#37474f'];
+  var couleurEncre = getSignatureEncreColor();
+  var presetsCases = ['#0a6e2c','#000000','#1976d2','#d32f2f','#6a1b9a','#e65100','#1b5e20','#37474f'];
   var presetsHtml = '';
-  presets.forEach(function(c) {
+  presetsCases.forEach(function(c) {
     var sel = (c.toLowerCase() === couleur.toLowerCase());
     presetsHtml += '<button type="button" data-color="' + c + '" onclick="appliquerCouleurSignature(\'' + c + '\')" ' +
       'style="width:30px;height:30px;border-radius:50%;border:2px solid white;background:' + c + ';cursor:pointer;padding:0;' +
       (sel ? 'box-shadow:0 0 0 2px #333;' : 'box-shadow:0 0 0 1px #ddd;') + '" ' +
       'title="' + c + '"></button>';
   });
+
+  var presetsEncre = ['#111111','#1976d2','#0a6e2c','#d32f2f','#6a1b9a','#e65100'];
+  var presetsEncreHtml = '';
+  presetsEncre.forEach(function(c) {
+    var sel = c.toLowerCase() === couleurEncre.toLowerCase();
+    presetsEncreHtml += '<button type="button" class="sig-encre-btn" data-encre="' + c + '" onclick="appliquerCouleurSignatureEncre(\'' + c + '\')" ' +
+      'style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:' + c + ';cursor:pointer;padding:0;' +
+      (sel ? 'box-shadow:0 0 0 2px #333;' : 'box-shadow:0 0 0 1px #ddd;') + '" title="' + c + '"></button>';
+  });
+
   return '<div class="signature-block" style="margin-top:40px;page-break-inside:avoid">' +
     '<div class="signature-color-picker" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:10px;background:#f0f4f0;border-radius:8px;border:2px dashed #0a6e2c">' +
-      '<div style="font-size:11px;color:#0a6e2c;font-weight:700;text-align:center;margin-bottom:2px">🎨 Couleur de la signature</div>' +
+      '<div style="font-size:11px;color:#0a6e2c;font-weight:700;text-align:center;margin-bottom:2px">🎨 Couleur de la CASE de signature</div>' +
       '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">' + presetsHtml + '</div>' +
       '<div style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:4px">' +
         '<label style="font-size:11px;color:#555">Perso :</label>' +
@@ -575,7 +649,11 @@ function signatureBlockHTML() {
         '<input type="text" value="' + couleur + '" onchange="appliquerCouleurSignature(this.value)" maxlength="7" style="width:90px;padding:6px 8px;border:2px solid #ddd;border-radius:6px;font-size:12px;font-family:monospace;text-align:center">' +
         '<button type="button" onclick="appliquerCouleurSignature(\'#0a6e2c\')" style="padding:6px 10px;border:1px solid #0a6e2c;border-radius:6px;background:#e8f5e9;color:#0a6e2c;cursor:pointer;font-size:11px;font-weight:600">↺ Reset</button>' +
       '</div>' +
-      '<div style="font-size:10px;color:#888;text-align:center;font-style:italic">Choisis une couleur ci-dessus ou tape un code hexadécimal</div>' +
+    '</div>' +
+    '<div class="sig-encre-picker" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff8e1;padding:10px;border-radius:8px;border:2px dashed #e65100;margin-bottom:12px">' +
+      '<div style="font-size:11px;color:#e65100;font-weight:700;width:100%;text-align:center;margin-bottom:2px">✒️ Couleur de l\'ENCRE de la signature (le tracé)</div>' +
+      '<input type="color" value="' + couleurEncre + '" oninput="appliquerCouleurSignatureEncre(this.value)" onchange="appliquerCouleurSignatureEncre(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">' +
+      '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;flex:1">' + presetsEncreHtml + '</div>' +
     '</div>' +
     '<table style="width:100%;border:none;border-collapse:separate"><tr>' +
       '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
@@ -631,45 +709,21 @@ function collecterRapportNumerique() {
   var entiteId = document.getElementById('rnEntite').value;
   var entProv = (DB.get('entites', []).find(function(e) { return e.id === entiteId; }) || {}).province || getProvinceActive();
   return {
-    id: uid(),
-    province: entProv,
-    entiteId: entiteId,
+    id: uid(), province: entProv, entiteId: entiteId,
     mois: document.getElementById('rnMois').value,
     annee: document.getElementById('rnAnnee').value,
-    membresBaptises: n('rnBaptises'),
-    membresActifs: n('rnActifs'),
-    membresInactifs: n('rnInactifs'),
-    inities: n('rnInities'),
-    entres: n('rnEntres'),
-    sortis: n('rnSortis'),
-    recuperes: n('rnRecuperes'),
-    decedes: n('rnDecedes'),
-    freqMembres: n('rnFreqMembres'),
-    freqSymp: n('rnFreqSymp'),
-    freqNV: n('rnFreqNV'),
-    acheminees: n('rnAcheminees'),
-    achemineesRestees: n('rnAchemineesRestees'),
-    nvRestes: n('rnNVRestes'),
-    culteMembres: n('rnCulteMembres'),
-    culteSymp: n('rnCulteSymp'),
-    culteNV: n('rnCulteNV'),
-    culteTotal: n('rnCulteTotal'),
-    johrei: n('rnJohrei'),
-    sanguetsu: n('rnSanguetsu'),
-    fleurs: n('rnFleurs'),
-    champsUnite: n('rnChampsUnite'),
-    champsFloral: n('rnChampsFloral'),
-    agriculteurs: n('rnAgriculteurs'),
-    anciensPotagers: n('rnAnciensPotagers'),
-    nouveauxPotagers: n('rnNouveauxPotagers'),
-    autels: n('rnAutels'),
-    mitamaya: n('rnMitamaya'),
-    soreiSaishi: n('rnSoreiSaishi'),
-    shinreiSaichi: n('rnShinreiSaichi'),
-    assistMembres: n('rnAssistMembres'),
-    assistSymp: n('rnAssistSymp'),
-    netMembres: n('rnNetMembres'),
-    netSymp: n('rnNetSymp'),
+    membresBaptises: n('rnBaptises'), membresActifs: n('rnActifs'), membresInactifs: n('rnInactifs'),
+    inities: n('rnInities'), entres: n('rnEntres'), sortis: n('rnSortis'),
+    recuperes: n('rnRecuperes'), decedes: n('rnDecedes'),
+    freqMembres: n('rnFreqMembres'), freqSymp: n('rnFreqSymp'), freqNV: n('rnFreqNV'),
+    acheminees: n('rnAcheminees'), achemineesRestees: n('rnAchemineesRestees'), nvRestes: n('rnNVRestes'),
+    culteMembres: n('rnCulteMembres'), culteSymp: n('rnCulteSymp'), culteNV: n('rnCulteNV'), culteTotal: n('rnCulteTotal'),
+    johrei: n('rnJohrei'), sanguetsu: n('rnSanguetsu'), fleurs: n('rnFleurs'),
+    champsUnite: n('rnChampsUnite'), champsFloral: n('rnChampsFloral'), agriculteurs: n('rnAgriculteurs'),
+    anciensPotagers: n('rnAnciensPotagers'), nouveauxPotagers: n('rnNouveauxPotagers'),
+    autels: n('rnAutels'), mitamaya: n('rnMitamaya'), soreiSaishi: n('rnSoreiSaishi'), shinreiSaichi: n('rnShinreiSaichi'),
+    assistMembres: n('rnAssistMembres'), assistSymp: n('rnAssistSymp'),
+    netMembres: n('rnNetMembres'), netSymp: n('rnNetSymp'),
     observation: document.getElementById('rnObservation').value.trim(),
     dateCreation: new Date().toISOString()
   };
@@ -900,9 +954,7 @@ function modifierRapportNum(id) {
   var r = list.find(function(x) { return x.id === id; });
   if (!r) return;
   var champs = [
-    ['membresBaptises','Membres baptisés'],
-    ['membresActifs','Membres actifs'],
-    ['membresInactifs','Membres inactifs'],
+    ['membresBaptises','Membres baptisés'],['membresActifs','Membres actifs'],['membresInactifs','Membres inactifs'],
     ['inities','Initiés'],['entres','Entrés'],['sortis','Sortis'],
     ['recuperes','Récupérés'],['decedes','Décédés'],
     ['freqMembres','Fréq membres'],['freqSymp','Fréq symp'],['freqNV','Fréq NV'],
@@ -1101,12 +1153,8 @@ function archiverEntite(id) {
   var list = DB.get('entites', []);
   var e = list.find(function(x) { return x.id === id; });
   if (!e) return;
-  if (!e.archived) {
-    if (!confirm('📦 Archiver "' + e.nom + '" ?')) return;
-    e.archived = true;
-  } else {
-    e.archived = false;
-  }
+  if (!e.archived) { if (!confirm('📦 Archiver "' + e.nom + '" ?')) return; e.archived = true; }
+  else { e.archived = false; }
   DB.set('entites', list);
   refreshAll();
   alert(e.archived ? '📦 Archivée' : '↩️ Restaurée');
@@ -1215,8 +1263,7 @@ function enregistrerFicheMensuelle() {
   if (!prov) return;
   var numericIds = ['mEncadreurs','mMembresActifs','mSympathisants','mFMembres','mFSympathisants','mFNouveaux','mFoyersLumiere','mAvecGoshintai','mSansGoshintai','mFoyersSymp','mFleurs','mPotagers','mTotalPotagers','mMaisonsOuvertes','mTemoignages','mCandGoshintai','mConfInit','mConfReinit','mConfShoku','mConfKannon','mConfMitamaya','mAssistMembres','mAssistSymp','mConcessions','mTerrains','mCampagnes','mCoursEns','mCoursFleurs'];
   var f = {
-    id: uid(),
-    province: prov,
+    id: uid(), province: prov,
     entiteId: document.getElementById('mEntite').value,
     mois: document.getElementById('mMois').value,
     annee: document.getElementById('mAnnee').value,
@@ -1228,8 +1275,7 @@ function enregistrerFicheMensuelle() {
     solutions: document.getElementById('mSolutions').value,
     objectifs: document.getElementById('mObjectifs').value,
     actions: document.getElementById('mActions').value,
-    archived: false,
-    dateCreation: new Date().toISOString()
+    archived: false, dateCreation: new Date().toISOString()
   };
   numericIds.forEach(function(id) { var el = document.getElementById(id); f[id] = el ? (parseInt(el.value) || 0) : 0; });
   if (!f.entiteId) return alert('⚠️ Enregistrez d\'abord une entité');
@@ -1376,7 +1422,7 @@ function previewPhotoCandidat(ev) {
   reader.readAsDataURL(file);
 }
 
-// ========== MODULE II — SIGNATURE ==========
+// ========== MODULE II — SIGNATURE (Finance) ==========
 function initSignature() {
   var canvas = document.getElementById('vSignatureCanvas');
   if (!canvas) return;
@@ -1392,7 +1438,8 @@ function initSignature() {
   signatureCtx.lineWidth = 3;
   signatureCtx.lineCap = 'round';
   signatureCtx.lineJoin = 'round';
-  signatureCtx.strokeStyle = '#111';
+  signatureCtx.strokeStyle = getSignatureEncreColor();
+  signatureCtx.fillStyle = getSignatureEncreColor();
   if (canvas.dataset.listeners === '1') return;
   canvas.dataset.listeners = '1';
   var drawing = false, lastX = 0, lastY = 0;
@@ -1403,6 +1450,8 @@ function initSignature() {
   }
   function start(e) {
     e.preventDefault(); drawing = true;
+    signatureCtx.strokeStyle = getSignatureEncreColor();
+    signatureCtx.fillStyle = getSignatureEncreColor();
     var p = getPos(e); lastX = p.x; lastY = p.y;
     signatureCtx.beginPath(); signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); signatureCtx.fill();
     signatureVide = false;
@@ -1412,6 +1461,7 @@ function initSignature() {
   function move(e) {
     if (!drawing) return;
     e.preventDefault();
+    signatureCtx.strokeStyle = getSignatureEncreColor();
     var p = getPos(e);
     signatureCtx.beginPath(); signatureCtx.moveTo(lastX, lastY); signatureCtx.lineTo(p.x, p.y); signatureCtx.stroke();
     lastX = p.x; lastY = p.y;
@@ -1566,12 +1616,8 @@ function archiverCandidat(cid) {
   var list = DB.get('candidats', []);
   var c = list.find(function(x) { return x.id === cid; });
   if (!c) return;
-  if (!c.archived) {
-    if (!confirm('📦 Archiver "' + c.nom + '" ?\n\nIl n\'apparaîtra plus dans les rapports PDF.\nTu pourras le restaurer depuis 📦 Archives.')) return;
-    c.archived = true;
-  } else {
-    c.archived = false;
-  }
+  if (!c.archived) { if (!confirm('📦 Archiver "' + c.nom + '" ?\n\nIl n\'apparaîtra plus dans les rapports PDF.\nTu pourras le restaurer depuis 📦 Archives.')) return; c.archived = true; }
+  else { c.archived = false; }
   DB.set('candidats', list);
   refreshAll();
   alert(c.archived ? '📦 Archivé — récupérable dans 📦 Archives' : '↩️ Restauré');
@@ -1618,6 +1664,7 @@ function verserRapide(cid) {
   switchMainTab('finance', document.querySelectorAll('.main-tab')[2]);
   setTimeout(function() {
     initSignature();
+    syncSignatureEncrePickers();
     var v = document.getElementById('vMontant');
     if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 500);
@@ -1655,6 +1702,7 @@ function reinitialiserFormVersement() {
   var m = document.getElementById('vMontant'); if (m) m.value = 0;
   var d = document.getElementById('vDate'); if (d) d.value = new Date().toISOString().slice(0, 10);
   effacerSignature();
+  syncSignatureEncrePickers();
 }
 
 function afficherVersements() {
@@ -2198,9 +2246,7 @@ function reinitialiserRechercheDep() {
   ['searchDepMois','searchDepPhase','searchDepStatut'].forEach(function(id) { var el = document.getElementById(id); if (el) el.selectedIndex = 0; });
   document.getElementById('resultatRechercheDep').innerHTML = '';
   var rb = document.getElementById('releveFicheBox'); if (rb) rb.innerHTML = '';
-  _releveFicheHTML = '';
-  _releveGlobalHTML = '';
-  _releveIndividuelHTML = '';
+  _releveFicheHTML = ''; _releveGlobalHTML = ''; _releveIndividuelHTML = '';
 }
 
 function rechercherDepGeneral() {
@@ -2278,10 +2324,8 @@ function construireReleveIndividuel(entiteNom, mois, annee, phase) {
   });
   if (!e || !d) return null;
   var s = sumEntiteDep(e);
-
   var h = '<div class="rapport-header"><h3>📄 RELEVÉ INDIVIDUEL D\'ENTITÉ</h3>';
   h += '<p style="font-size:12px;color:#666">' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + ' — ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</p></div>';
-
   h += '<div class="entity-block">';
   h += '<h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
   h += '<div style="background:#fff3e0;padding:8px 10px;border-radius:6px;margin-bottom:8px;border-left:4px solid #e65100;font-size:13px"><strong>📩 Enveloppes :</strong> ' + (e.enveloppes || 0) + '</div>';
@@ -2300,7 +2344,6 @@ function construireReleveIndividuel(entiteNom, mois, annee, phase) {
   h += '<tr><td>Transport</td><td class="num">- ' + (e.transFC || 0).toLocaleString() + ' FC</td><td class="num">- ' + (e.transUSD || 0).toLocaleString() + ' $</td></tr>';
   h += '<tr style="background:#e8f5e9"><td>SOLDE</td><td class="num">' + s.soldeFC.toLocaleString() + ' FC</td><td class="num">' + s.soldeUSD.toLocaleString() + ' $</td></tr>';
   h += '</tfoot></table></div></div>';
-
   h += signatureBlockHTML();
   return h;
 }
@@ -2314,7 +2357,7 @@ function releveEntiteIndividuelle(entiteNom, mois, annee, phase) {
   box.innerHTML = '<div class="card">' + html +
     '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#1976d2,#1565c0)" onclick="imprimerReleveIndividuelCourant()">🖨️ Imprimer / PDF</button>' +
     '</div>';
-  setTimeout(function() { initSignatureBlockCanvases(); }, 50);
+  setTimeout(function() { initSignatureBlockCanvases(); syncSignatureEncrePickers(); }, 50);
   setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
 
@@ -2336,18 +2379,15 @@ function construireReleveFicheEntite(entiteNom, mois, annee) {
     });
   });
   if (!resultats.length) return null;
-
   var filtres = [];
   if (entiteNom) filtres.push('Entité : ' + entiteNom);
   if (mois) filtres.push('Mois : ' + mois);
   if (annee) filtres.push('Année : ' + annee);
   var provLabel = getProvinceActive() || 'Toutes';
   filtres.unshift('🌍 ' + (provLabel === '__non_assignee' ? 'Non assignées' : provLabel));
-
   var h = '<div class="rapport-header"><h3>📋 RELEVÉ FICHE PAR ENTITÉ</h3>';
   if (filtres.length) h += '<p style="font-size:12px;color:#666">' + filtres.join(' — ') + '</p>';
   h += '</div>';
-
   var parEntite = {};
   resultats.forEach(function(r) {
     var k = r.entite.typeEntite + ' - ' + r.entite.nomEntite;
@@ -2355,10 +2395,8 @@ function construireReleveFicheEntite(entiteNom, mois, annee) {
     parEntite[k].push(r);
   });
   var totFC = 0, totUSD = 0;
-
   Object.keys(parEntite).forEach(function(key) {
-    h += '<div class="entity-block">';
-    h += '<h4>🏛️ ' + echapper(key) + '</h4>';
+    h += '<div class="entity-block"><h4>🏛️ ' + echapper(key) + '</h4>';
     parEntite[key].forEach(function(r) {
       var s = sumEntiteDep(r.entite);
       totFC += s.soldeFC; totUSD += s.soldeUSD;
@@ -2382,12 +2420,10 @@ function construireReleveFicheEntite(entiteNom, mois, annee) {
     });
     h += '</div>';
   });
-
   h += '<div class="total-banque-final" style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:16px">';
   h += '<div class="banque-title" style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL (toutes entités)</div>';
   h += '<div class="banque-montant" style="font-size:16px;font-weight:700;margin-top:8px">' + totFC.toLocaleString() + ' FC / ' + totUSD.toLocaleString() + ' $</div>';
   h += '</div>';
-
   h += signatureBlockHTML();
   return h;
 }
@@ -2407,7 +2443,7 @@ function genererReleveEntiteFiltre() {
   box.innerHTML = '<div class="card">' + html +
     '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#1976d2,#1565c0)" onclick="imprimerReleveFicheCourant()">🖨️ Imprimer / PDF</button>' +
     '</div>';
-  setTimeout(function() { initSignatureBlockCanvases(); }, 50);
+  setTimeout(function() { initSignatureBlockCanvases(); syncSignatureEncrePickers(); }, 50);
   setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
 
@@ -2420,35 +2456,24 @@ function imprimerReleveFicheCourant() {
 // ========== RELEVÉ FICHE GLOBALE DES ENTITÉS ==========
 function construireReleveGlobalEntites(mois, annee) {
   var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
-  if (mois || annee) {
-    deps = deps.filter(function(d) {
-      return (!mois || d.mois === mois) && (!annee || String(d.annee) === annee);
-    });
-  }
+  if (mois || annee) deps = deps.filter(function(d) { return (!mois || d.mois === mois) && (!annee || String(d.annee) === annee); });
   if (!deps.length) return null;
-
   var provLabel = getProvinceActive() || 'Toutes';
   var filtres = [];
   filtres.push('🌍 ' + (provLabel === '__non_assignee' ? 'Non assignées' : provLabel));
   if (mois) filtres.push('Mois : ' + mois);
   if (annee) filtres.push('Année : ' + annee);
-
   var h = '<div class="rapport-header"><h3>📊 RELEVÉ FICHE GLOBALE DES ENTITÉS</h3>';
   h += '<p style="font-size:12px;color:#666">' + deps.length + ' séance(s) — ' + filtres.join(' — ') + '</p></div>';
-
   var totalSoldeFC = 0, totalSoldeUSD = 0;
   var totalGenFC = 0, totalGenUSD = 0;
-
   deps.forEach(function(d) {
     h += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:16px 0 8px;border-left:5px solid #0a6e2c">';
     h += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</div>';
-    h += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div>';
-    h += '</div>';
-
+    h += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div></div>';
     var soldeFC = 0, soldeUSD = 0;
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; });
     totalSoldeFC += soldeFC; totalSoldeUSD += soldeUSD;
-
     h += '<div class="table-wrapper"><table class="data-table">';
     h += '<thead><tr><th>Entité</th><th>Responsable</th><th>Enveloppes</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
     d.entites.forEach(function(e) {
@@ -2461,7 +2486,6 @@ function construireReleveGlobalEntites(mois, annee) {
     });
     h += '</tbody><tfoot><tr><td colspan="2">TOTAL SOLDES ENTITÉS</td><td class="num"></td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot>';
     h += '</table></div>';
-
     var genFC = 0, genUSD = 0;
     if (d.depensesGenerales && d.depensesGenerales.length) {
       h += '<h5 style="color:#c62828;font-size:13px;margin:12px 0 6px">💸 Dépenses générales</h5>';
@@ -2477,13 +2501,11 @@ function construireReleveGlobalEntites(mois, annee) {
       h += '<p style="font-size:12px;color:#888;margin:8px 0">Aucune dépense générale pour cette séance.</p>';
     }
     totalGenFC += genFC; totalGenUSD += genUSD;
-
     h += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100">';
     h += '<div style="font-size:13px;color:#e65100;font-weight:700">💰 SOLDE À TRANSFÉRER (cette séance)</div>';
     h += '<div style="font-size:15px;color:#0a6e2c;font-weight:700;margin-top:4px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div>';
     h += '</div>';
   });
-
   h += '<div class="total-banque-final" style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
   h += '<div class="banque-title" style="font-size:14px;font-weight:700;margin-bottom:10px">🌍 TOTAL GÉNÉRAL À LA BANQUE</div>';
   h += '<table class="banque-table" style="width:100%;color:white;font-size:13px;margin-bottom:8px">';
@@ -2492,7 +2514,6 @@ function construireReleveGlobalEntites(mois, annee) {
   h += '</table>';
   h += '<div class="banque-montant" style="font-size:18px;font-weight:700;border-top:2px solid rgba(255,255,255,0.4);padding-top:10px;margin-top:6px;text-align:center">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
   h += '</div>';
-
   h += signatureBlockHTML();
   return h;
 }
@@ -2510,7 +2531,7 @@ function genererReleveGlobalEntites() {
   box.innerHTML = '<div class="card">' + html +
     '<button class="btn-primary" style="margin-top:12px;background:linear-gradient(135deg,#6a1b9a,#8e24aa)" onclick="imprimerReleveGlobalCourant()">🖨️ Imprimer / PDF</button>' +
     '</div>';
-  setTimeout(function() { initSignatureBlockCanvases(); }, 50);
+  setTimeout(function() { initSignatureBlockCanvases(); syncSignatureEncrePickers(); }, 50);
   setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
 
@@ -2575,11 +2596,9 @@ function soldeTransferer() {
     var genFC = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.fc; }, 0);
     var genUSD = (d.depensesGenerales || []).reduce(function(a, x) { return a + x.usd; }, 0);
     totalSoldeFC += soldeFC; totalSoldeUSD += soldeUSD; totalGenFC += genFC; totalGenUSD += genUSD;
-
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c">';
     html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</div>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div></div>';
-
     html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
@@ -2588,7 +2607,6 @@ function soldeTransferer() {
       html += '<td class="num">' + s.soldeUSD.toLocaleString() + '</td></tr>';
     });
     html += '</tbody><tfoot><tr><td>TOTAL SOLDES ENTITÉS</td><td class="num">' + soldeFC.toLocaleString() + ' FC</td><td class="num">' + soldeUSD.toLocaleString() + ' $</td></tr></tfoot></table></div>';
-
     if (d.depensesGenerales && d.depensesGenerales.length) {
       html += '<h5 style="color:#c62828;font-size:13px;margin:14px 0 6px">💸 Dépenses générales (' + d.depensesGenerales.length + ')</h5>';
       html += '<div class="table-wrapper"><table class="data-table">';
@@ -2604,20 +2622,17 @@ function soldeTransferer() {
     } else {
       html += '<p style="font-size:12px;color:#888;margin:8px 0">Aucune dépense générale pour cette séance.</p>';
     }
-
     html += '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e65100">';
     html += '<div style="font-size:14px;color:#e65100;font-weight:700">💰 SOLDE À TRANSFÉRER (cette séance)</div>';
     html += '<div style="font-size:16px;color:#0a6e2c;font-weight:700;margin-top:6px">' + (soldeFC - genFC).toLocaleString() + ' FC / ' + (soldeUSD - genUSD).toLocaleString() + ' $</div>';
     html += '</div>';
   });
-
   html += '<div style="background:#0a6e2c;color:white;padding:16px;border-radius:10px;margin-top:20px">';
   html += '<div style="font-size:14px;font-weight:700">🌍 TOTAL GÉNÉRAL (toutes séances actives)</div>';
   html += '<div style="font-size:13px;margin:8px 0 4px">Total soldes entités : <strong>' + totalSoldeFC.toLocaleString() + ' FC / ' + totalSoldeUSD.toLocaleString() + ' $</strong></div>';
   html += '<div style="font-size:13px;margin:4px 0">Total dépenses générales : <strong>- ' + totalGenFC.toLocaleString() + ' FC / - ' + totalGenUSD.toLocaleString() + ' $</strong></div>';
   html += '<div style="font-size:16px;font-weight:700;margin-top:10px;border-top:1px solid rgba(255,255,255,0.3);padding-top:10px">💰 À LA BANQUE : ' + (totalSoldeFC - totalGenFC).toLocaleString() + ' FC / ' + (totalSoldeUSD - totalGenUSD).toLocaleString() + ' $</div>';
   html += '</div>';
-
   document.getElementById('rapportDepBox').innerHTML = html;
 }
 
@@ -2710,7 +2725,6 @@ function exporterPDFFreq() { ouvrirModalPdf({ type: 'box', boxId: 'rapportFreqBo
 function exporterPDFFin() { ouvrirModalPdf({ type: 'box', boxId: 'rapportFinBox', titre: 'Rapport Finance' }); }
 function exporterPDFDep() { ouvrirModalPdf({ type: 'box', boxId: 'rapportDepBox', titre: 'Rapport Dépouillement' }); }
 function exporterPDFGeneral() { ouvrirModalPdf({ type: 'box', boxId: 'rapportGeneralBox', titre: 'Rapport Général' }); }
-
 function exporterWordFreq() { exporterWordBox('rapportFreqBox','Frequence'); }
 function exporterWordFin() { exporterWordBox('rapportFinBox','Finance'); }
 function exporterWordDep() { exporterWordBox('rapportDepBox','Depouillement'); }
@@ -2898,14 +2912,13 @@ function refreshAll() {
   afficherUtilisateurs();
   refreshPatrimoineSites();
   recalculerTotauxRN();
+  syncSignatureEncrePickers();
   if (typeof rechercherParEntite === 'function') rechercherParEntite();
 }
 
 // ========== MODULE IV — PATRIMOINE ==========
 var photoBienTemp = null;
-var CATEGORIES_PATRIMOINE = {
-  LIT: 'Liturgie', SAL: 'Salle de culte', BUR: 'Bureau administratif', IMM: 'Immobilier', AUT: 'Autres biens'
-};
+var CATEGORIES_PATRIMOINE = { LIT: 'Liturgie', SAL: 'Salle de culte', BUR: 'Bureau administratif', IMM: 'Immobilier', AUT: 'Autres biens' };
 
 function ajouterSitePatrimoine() {
   var prov = exigerProvince();
@@ -3156,27 +3169,15 @@ function relevePatrimoineSite(siteId) {
 // ========== ARCHIVES CENTRALISÉES ==========
 function _typesArchives() {
   return [
-    { key: 'entites', label: 'Entités', icon: '🏛️',
-      nom: function(x) { return (x.type || '') + ' - ' + (x.nom || '') + ' | Resp : ' + (x.responsable || '-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
-    { key: 'participations', label: 'Participations', icon: '📝',
-      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + fmtDate(x.date) + ' (M:' + (x.m||0) + ' S:' + (x.s||0) + ' NV:' + (x.n||0) + ')' + (x.province ? ' | 🌍 ' + x.province : ''); } },
-    { key: 'fichesMensuelles', label: 'Fiches mensuelles', icon: '📆',
-      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + (x.mois||'') + ' ' + (x.annee||'') + ' | Resp : ' + (x.responsable||'-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
-    { key: 'candidats', label: 'Candidats', icon: '👤',
-      nom: function(x) { return (x.nom||'') + ' — ' + (x.motif||'') + ' (' + (x.typeEntite||'') + ' ' + (x.nomEntite||'') + ')' + (x.province ? ' | 🌍 ' + x.province : '') + ' | Versé : ' + (x.totalVerse||0).toFixed(2) + '$'; } },
-    { key: 'versements', label: 'Versements', icon: '💵',
-      nom: function(x) {
-        var c = DB.get('candidats', []).find(function(z) { return z.id === x.candId; });
-        return (c ? c.nom : 'Candidat supprimé') + ' — ' + fmtDate(x.date) + ' — ' + (x.montantUSD||0).toFixed(2) + '$ (' + (x.montantOrigine||0) + ' ' + (x.monnaie||'') + ')' + (x.province ? ' | 🌍 ' + x.province : '');
-      } },
-    { key: 'depouillements', label: 'Dépouillements', icon: '🧾',
-      nom: function(x) { return (x.mois||'') + ' ' + (x.annee||'') + ' — Phase ' + (x.phase||'') + ' (' + (x.entites ? x.entites.length : 0) + ' entités)' + (x.province ? ' | 🌍 ' + x.province : ''); } },
-    { key: 'annonces', label: 'Annonces', icon: '📢',
-      nom: function(x) { return fmtDate(x.date) + ' — ' + (x.texte || '').substring(0, 80) + ((x.texte||'').length > 80 ? '...' : ''); } },
-    { key: 'patrimoineSites', label: 'Sites patrimoine', icon: '🏛️',
-      nom: function(x) { return (x.type||'') + ' - ' + (x.nom||'') + ' | Resp : ' + (x.responsable||'-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
-    { key: 'patrimoineBiens', label: 'Biens patrimoine', icon: '📦',
-      nom: function(x) { return (x.code||'') + ' — ' + (x.nom||'') + ' (' + (x.qte||1) + 'x, ' + (x.etat||'') + ')' + (x.province ? ' | 🌍 ' + x.province : ''); } }
+    { key: 'entites', label: 'Entités', icon: '🏛️', nom: function(x) { return (x.type || '') + ' - ' + (x.nom || '') + ' | Resp : ' + (x.responsable || '-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
+    { key: 'participations', label: 'Participations', icon: '📝', nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + fmtDate(x.date) + ' (M:' + (x.m||0) + ' S:' + (x.s||0) + ' NV:' + (x.n||0) + ')' + (x.province ? ' | 🌍 ' + x.province : ''); } },
+    { key: 'fichesMensuelles', label: 'Fiches mensuelles', icon: '📆', nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + (x.mois||'') + ' ' + (x.annee||'') + ' | Resp : ' + (x.responsable||'-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
+    { key: 'candidats', label: 'Candidats', icon: '👤', nom: function(x) { return (x.nom||'') + ' — ' + (x.motif||'') + ' (' + (x.typeEntite||'') + ' ' + (x.nomEntite||'') + ')' + (x.province ? ' | 🌍 ' + x.province : '') + ' | Versé : ' + (x.totalVerse||0).toFixed(2) + '$'; } },
+    { key: 'versements', label: 'Versements', icon: '💵', nom: function(x) { var c = DB.get('candidats', []).find(function(z) { return z.id === x.candId; }); return (c ? c.nom : 'Candidat supprimé') + ' — ' + fmtDate(x.date) + ' — ' + (x.montantUSD||0).toFixed(2) + '$ (' + (x.montantOrigine||0) + ' ' + (x.monnaie||'') + ')' + (x.province ? ' | 🌍 ' + x.province : ''); } },
+    { key: 'depouillements', label: 'Dépouillements', icon: '🧾', nom: function(x) { return (x.mois||'') + ' ' + (x.annee||'') + ' — Phase ' + (x.phase||'') + ' (' + (x.entites ? x.entites.length : 0) + ' entités)' + (x.province ? ' | 🌍 ' + x.province : ''); } },
+    { key: 'annonces', label: 'Annonces', icon: '📢', nom: function(x) { return fmtDate(x.date) + ' — ' + (x.texte || '').substring(0, 80) + ((x.texte||'').length > 80 ? '...' : ''); } },
+    { key: 'patrimoineSites', label: 'Sites patrimoine', icon: '🏛️', nom: function(x) { return (x.type||'') + ' - ' + (x.nom||'') + ' | Resp : ' + (x.responsable||'-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
+    { key: 'patrimoineBiens', label: 'Biens patrimoine', icon: '📦', nom: function(x) { return (x.code||'') + ' — ' + (x.nom||'') + ' (' + (x.qte||1) + 'x, ' + (x.etat||'') + ')' + (x.province ? ' | 🌍 ' + x.province : ''); } }
   ];
 }
 
@@ -3188,19 +3189,12 @@ function afficherArchives() {
   var types = _typesArchives();
   var totalGeneral = 0;
   var blocs = '';
-
   types.forEach(function(t) {
     if (catFiltre && catFiltre !== t.key) return;
     var list = parProvince(DB.get(t.key, [])).filter(function(x) { return x.archived === true; });
-    if (recherche) {
-      list = list.filter(function(x) {
-        var n = (t.nom(x) || '').toLowerCase();
-        return n.indexOf(recherche) !== -1;
-      });
-    }
+    if (recherche) list = list.filter(function(x) { var n = (t.nom(x) || '').toLowerCase(); return n.indexOf(recherche) !== -1; });
     totalGeneral += list.length;
     if (!list.length) return;
-
     blocs += '<div class="card" style="margin-bottom:12px">';
     blocs += '<h3>' + t.icon + ' ' + t.label + ' <span class="badge badge-archive">' + list.length + ' archivé(s)</span></h3>';
     blocs += '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">';
@@ -3219,20 +3213,15 @@ function afficherArchives() {
     });
     blocs += '</tbody></table></div></div>';
   });
-
   if (!totalGeneral) {
-    var msgVide = catFiltre || recherche
-      ? '📭 Aucun élément archivé ne correspond à ces filtres.'
-      : '📭 Aucun élément archivé pour le moment. Les éléments que vous archivez apparaîtront ici.';
+    var msgVide = catFiltre || recherche ? '📭 Aucun élément archivé ne correspond à ces filtres.' : '📭 Aucun élément archivé pour le moment. Les éléments que vous archivez apparaîtront ici.';
     box.innerHTML = '<div class="card"><p style="text-align:center;padding:24px;color:#888;font-size:14px">' + msgVide + '</p></div>';
     return;
   }
-
   var intro = '<div class="card" style="background:#fffde7;border-left:4px solid #f9a825">';
   intro += '<h3 style="color:#e65100">📦 Archives — ' + totalGeneral + ' élément(s)</h3>';
   intro += '<p style="font-size:12px;color:#666;margin-top:6px">Les éléments archivés sont exclus des rapports PDF. Restaure-les pour les réintégrer dans les rapports et listes actives.</p>';
   intro += '</div>';
-
   box.innerHTML = intro + blocs;
 }
 
@@ -3263,18 +3252,12 @@ function supprimerDefinitifArchive(type, id) {
   if (!confirm('⚠️ Supprimer DÉFINITIVEMENT cet élément ?\n\nCette action est irréversible.')) return;
   var list = DB.get(type, []).filter(function(x) { return x.id !== id; });
   DB.set(type, list);
-
-  if (type === 'candidats') {
-    DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== id; }));
-  }
+  if (type === 'candidats') DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== id; }));
   if (type === 'entites') {
     DB.set('participations', DB.get('participations', []).filter(function(p) { return p.entiteId !== id; }));
     DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(f) { return f.entiteId !== id; }));
   }
-  if (type === 'patrimoineSites') {
-    DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; }));
-  }
-
+  if (type === 'patrimoineSites') DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; }));
   afficherArchives();
   refreshAll();
   alert('✅ Supprimé définitivement');
@@ -3286,7 +3269,6 @@ function purgerTouteCategorie(type) {
   if (!archives.length) return alert('Aucune archive dans cette catégorie');
   if (!confirm('⚠️ Supprimer DÉFINITIVEMENT ' + archives.length + ' élément(s) archivé(s) de cette catégorie ?\n\nAction irréversible.')) return;
   DB.set(type, list.filter(function(x) { return x.archived !== true; }));
-
   if (type === 'candidats') {
     var idsCands = archives.map(function(x) { return x.id; });
     DB.set('versements', DB.get('versements', []).filter(function(v) { return idsCands.indexOf(v.candId) === -1; }));
@@ -3300,7 +3282,6 @@ function purgerTouteCategorie(type) {
     var idsSites = archives.map(function(x) { return x.id; });
     DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return idsSites.indexOf(b.siteId) === -1; }));
   }
-
   afficherArchives();
   refreshAll();
   alert('✅ Purge effectuée');
@@ -3318,6 +3299,7 @@ window.addEventListener('load', async function() {
   }
   rafraichirProvinceHeader();
   peuplerProvinceSelects();
+  syncSignatureEncrePickers();
   showSplash();
   setTimeout(initSignature, 500);
   setTimeout(initSignature, 1500);
