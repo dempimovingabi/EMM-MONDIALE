@@ -1,6 +1,6 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v28
-// + Système de Provinces
+// EMM MONDIAL — LOGIQUE PRINCIPALE v29
+// + Province : enregistrement ET recherche par province active
 // ============================================
 
 var currentUser = null;
@@ -111,81 +111,111 @@ function confirmerProvince() {
   alert(sel.value ? '✅ Province : ' + (sel.value === '__non_assignee' ? 'Non assignées' : sel.value) : '🌐 Toutes les provinces');
 }
 
-// Filtre les entités par province
+// ========== FILTRES PAR PROVINCE (corrigés) ==========
+// Règle commune : si pas de province active → tout ; si "__non_assignee" → sans province ;
+// sinon → fiches qui ont province === active (retour immédiat après enregistrement).
+
+function filtrerParProvinceListe(list, extraMatch) {
+  var p = getProvinceActive();
+  if (!p) return list;
+  if (p === '__non_assignee') {
+    return list.filter(function(x) { return !x.province && (!extraMatch || extraMatch(x)); });
+  }
+  return list.filter(function(x) {
+    if (x.province === p) return true;
+    if (x.province) return false;
+    return extraMatch ? extraMatch(x) : false;
+  });
+}
+
 function entitesProvince() {
-  return parProvince(DB.get('entites', []));
+  return filtrerParProvinceListe(DB.get('entites', []));
 }
 
-// Filtre les candidats par province
 function candidatsProvince() {
-  return parProvince(DB.get('candidats', []));
+  return filtrerParProvinceListe(DB.get('candidats', []));
 }
 
-// Filtre les sites patrimoine par province
 function sitesPatrimoineProvince() {
-  return parProvince(DB.get('patrimoineSites', []));
+  return filtrerParProvinceListe(DB.get('patrimoineSites', []));
 }
 
-// Filtre les versements via le candidat associé (qui porte la province)
 function versementsProvince() {
   var p = getProvinceActive();
   if (!p) return DB.get('versements', []);
-  var cands = parProvince(DB.get('candidats', []));
+  var cands = candidatsProvince();
   var ids = {};
   cands.forEach(function(c) { ids[c.id] = true; });
-  return DB.get('versements', []).filter(function(v) { return ids[v.candId]; });
+  return DB.get('versements', []).filter(function(v) {
+    if (v.province === p) return true;
+    if (v.province) return false;
+    return ids[v.candId];
+  });
 }
 
-// Filtre les fiches mensuelles via l'entité associée
 function fichesProvince() {
   var p = getProvinceActive();
   if (!p) return DB.get('fichesMensuelles', []);
-  var ents = parProvince(DB.get('entites', []));
+  var ents = entitesProvince();
   var ids = {};
   ents.forEach(function(e) { ids[e.id] = true; });
-  return DB.get('fichesMensuelles', []).filter(function(f) { return ids[f.entiteId]; });
+  return DB.get('fichesMensuelles', []).filter(function(f) {
+    if (f.province === p) return true;
+    if (f.province) return false;
+    return ids[f.entiteId];
+  });
 }
 
-// Filtre les participations via l'entité associée
 function participationsProvince() {
   var p = getProvinceActive();
   if (!p) return DB.get('participations', []);
-  var ents = parProvince(DB.get('entites', []));
+  var ents = entitesProvince();
   var ids = {};
   ents.forEach(function(e) { ids[e.id] = true; });
-  return DB.get('participations', []).filter(function(x) { return ids[x.entiteId]; });
+  return DB.get('participations', []).filter(function(x) {
+    if (x.province === p) return true;
+    if (x.province) return false;
+    return ids[x.entiteId];
+  });
 }
 
-// Filtre les dépouillements via le nom d'entité (les dépouillements ont leurs propres entités)
 function depouillementsProvince() {
   var p = getProvinceActive();
   if (!p) return DB.get('depouillements', []);
-  var ents = parProvince(DB.get('entites', []));
+  var ents = entitesProvince();
   var noms = {};
   ents.forEach(function(e) { noms[e.nom] = true; });
   return DB.get('depouillements', []).filter(function(d) {
+    if (d.province === p) return true;
+    if (d.province) return false;
     return d.entites && d.entites.some(function(e) { return noms[e.nomEntite]; });
   });
 }
 
-// Filtre les rapports numériques via l'entité
 function rapportsNumProvince() {
   var p = getProvinceActive();
   if (!p) return DB.get('rapportsNumeriques', []);
-  var ents = parProvince(DB.get('entites', []));
+  var ents = entitesProvince();
   var ids = {};
   ents.forEach(function(e) { ids[e.id] = true; });
-  return DB.get('rapportsNumeriques', []).filter(function(r) { return ids[r.entiteId]; });
+  return DB.get('rapportsNumeriques', []).filter(function(r) {
+    if (r.province === p) return true;
+    if (r.province) return false;
+    return ids[r.entiteId];
+  });
 }
 
-// Filtre les biens patrimoine via le site
 function biensPatrimoineProvince() {
   var p = getProvinceActive();
   if (!p) return DB.get('patrimoineBiens', []);
-  var sites = parProvince(DB.get('patrimoineSites', []));
+  var sites = sitesPatrimoineProvince();
   var ids = {};
   sites.forEach(function(s) { ids[s.id] = true; });
-  return DB.get('patrimoineBiens', []).filter(function(b) { return ids[b.siteId]; });
+  return DB.get('patrimoineBiens', []).filter(function(b) {
+    if (b.province === p) return true;
+    if (b.province) return false;
+    return ids[b.siteId];
+  });
 }
 
 // ========== SIGNATURE COULEUR ==========
@@ -336,7 +366,8 @@ function switchMainTab(name, btn) {
   document.querySelectorAll('.main-tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.main-tab-content').forEach(function(c) { c.classList.remove('active'); });
   if (btn) btn.classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
+  var tab = document.getElementById('tab-' + name);
+  if (tab) tab.classList.add('active');
   if (name === 'general') afficherDashboard();
   if (name === 'finance') {
     setTimeout(initSignature, 100);
@@ -592,9 +623,12 @@ function recalculerTotauxRN() {
 
 function collecterRapportNumerique() {
   var n = function(id) { return parseInt(document.getElementById(id).value) || 0; };
+  var entiteId = document.getElementById('rnEntite').value;
+  var entProv = (DB.get('entites', []).find(function(e) { return e.id === entiteId; }) || {}).province || getProvinceActive();
   return {
     id: uid(),
-    entiteId: document.getElementById('rnEntite').value,
+    province: entProv,
+    entiteId: entiteId,
     mois: document.getElementById('rnMois').value,
     annee: document.getElementById('rnAnnee').value,
     membresBaptises: n('rnBaptises'),
@@ -638,7 +672,7 @@ function construireHtmlRapportNumerique(d) {
   var entiteNom = getEntiteNom(d.entiteId);
   var h = '';
   h += '<h2 style="text-align:center;border:none;font-size:16pt;margin-bottom:6px">RAPPORT NUMÉRIQUE DU MOIS DE ' + d.mois.toUpperCase() + ' ' + d.annee + '</h2>';
-  h += '<p style="text-align:center;font-size:12pt;color:#555;margin-bottom:14px">' + echapper(entiteNom) + '</p>';
+  h += '<p style="text-align:center;font-size:12pt;color:#555;margin-bottom:14px">' + echapper(entiteNom) + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</p>';
   h += '<div class="rn-section"><div class="rn-section-title">MEMBRES : ' + d.membresBaptises + '</div>';
   h += '<div class="rn-row"><span>- Membres baptisés</span><strong>' + d.membresBaptises + '</strong></div>';
   h += '<div class="rn-row"><span>- Initiés du mois</span><strong>' + d.inities + '</strong></div>';
@@ -700,12 +734,14 @@ function enregistrerRapportNumerique() {
   if (existant) {
     if (!confirm('⚠️ Un rapport existe déjà pour cette entité (' + d.mois + ' ' + d.annee + ').\n\nLe remplacer ?')) return;
     d.id = existant.id;
+    d.province = existant.province || d.province;
     list[list.indexOf(existant)] = d;
   } else {
     list.push(d);
   }
   DB.set('rapportsNumeriques', list);
-  alert('✅ Rapport numérique enregistré pour ' + getEntiteNom(d.entiteId));
+  refreshAll();
+  alert('✅ Rapport numérique enregistré (' + d.province + ')');
 }
 
 function reinitialiserRapportNumerique() {
@@ -752,7 +788,8 @@ function afficherRapportNumeriqueGlobal() {
   var t = sommerRapportsNum(list);
   var entitesSet = {};
   list.forEach(function(r) { entitesSet[r.entiteId] = true; });
-  var h = '<div class="rapport-header"><h3>📈 RAPPORT NUMÉRIQUE GLOBAL</h3><p>' + list.length + ' rapport(s) — ' + Object.keys(entitesSet).length + ' entité(s)</p></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var h = '<div class="rapport-header"><h3>📈 RAPPORT NUMÉRIQUE GLOBAL</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + ' — ' + list.length + ' rapport(s) — ' + Object.keys(entitesSet).length + ' entité(s)</p></div>';
   h += '<div class="table-wrapper"><table class="data-table"><tbody>';
   h += '<tr><th colspan="2">MEMBRES</th></tr>';
   h += '<tr><td>Membres baptisés</td><td class="num">' + t.membresBaptises + '</td></tr>';
@@ -802,7 +839,8 @@ function afficherRapportNumeriqueDetaille() {
   if (!box) return;
   scrollToSection('rapportNumResultatSection');
   if (!list.length) { box.innerHTML = '<p style="color:#888;font-size:13px">Aucun rapport enregistré.</p>'; return; }
-  var h = '<div class="rapport-header"><h3>📋 RAPPORT NUMÉRIQUE DÉTAILLÉ</h3><p>Relevé de chaque entité</p></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var h = '<div class="rapport-header"><h3>📋 RAPPORT NUMÉRIQUE DÉTAILLÉ</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + ' — Relevé de chaque entité</p></div>';
   var parEntite = {};
   list.forEach(function(r) { if (!parEntite[r.entiteId]) parEntite[r.entiteId] = []; parEntite[r.entiteId].push(r); });
   Object.keys(parEntite).forEach(function(eid) {
@@ -1030,11 +1068,12 @@ function modifierEntite(id) {
   var prov = prompt('Province :', e.province || ''); if (prov === null) return;
   var nn = nom.trim().toUpperCase();
   if (!nn) return alert('Nom vide');
-  if (list.find(function(x) { return x.id !== id && x.nom === nn && x.province === (prov.trim() || e.province) && !x.archived; })) return alert('⚠️ Nom déjà utilisé dans cette province');
+  var provFinale = prov.trim() || e.province;
+  if (list.find(function(x) { return x.id !== id && x.nom === nn && x.province === provFinale && !x.archived; })) return alert('⚠️ Nom déjà utilisé dans cette province');
   e.type = type.trim() || e.type;
   e.nom = nn;
   e.responsable = resp.trim();
-  if (prov.trim()) e.province = prov.trim();
+  if (provFinale) e.province = provFinale;
   DB.set('entites', list);
   refreshAll();
   alert('✅ Modifiée');
@@ -1070,6 +1109,8 @@ function supprimerEntite(id) {
 
 // ========== MODULE I — JOURNALIÈRE ==========
 function enregistrerParticipation() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var entiteId = document.getElementById('jEntiteSelect').value;
   var date = document.getElementById('jDate').value;
   var m = parseInt(document.getElementById('jMembres').value) || 0;
@@ -1078,11 +1119,11 @@ function enregistrerParticipation() {
   if (!entiteId) return alert('⚠️ Enregistrez d\'abord une entité');
   if (!date) return alert('Choisissez une date');
   var list = DB.get('participations', []);
-  list.push({ id: uid(), entiteId: entiteId, date: date, m: m, s: s, n: n, createdAt: new Date().toISOString(), auteur: currentUser ? currentUser.nom : '', archived: false });
+  list.push({ id: uid(), entiteId: entiteId, date: date, m: m, s: s, n: n, province: prov, createdAt: new Date().toISOString(), auteur: currentUser ? currentUser.nom : '', archived: false });
   DB.set('participations', list);
   reinitialiserFormParticipation();
   afficherJournaliere();
-  alert('✅ Enregistrée');
+  alert('✅ Enregistrée (' + prov + ')');
 }
 
 function reinitialiserFormParticipation() {
@@ -1152,9 +1193,12 @@ function supprimerParticipation(id) {
 
 // ========== MODULE I — FICHE MENSUELLE ==========
 function enregistrerFicheMensuelle() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var numericIds = ['mEncadreurs','mMembresActifs','mSympathisants','mFMembres','mFSympathisants','mFNouveaux','mFoyersLumiere','mAvecGoshintai','mSansGoshintai','mFoyersSymp','mFleurs','mPotagers','mTotalPotagers','mMaisonsOuvertes','mTemoignages','mCandGoshintai','mConfInit','mConfReinit','mConfShoku','mConfKannon','mConfMitamaya','mAssistMembres','mAssistSymp','mConcessions','mTerrains','mCampagnes','mCoursEns','mCoursFleurs'];
   var f = {
     id: uid(),
+    province: prov,
     entiteId: document.getElementById('mEntite').value,
     mois: document.getElementById('mMois').value,
     annee: document.getElementById('mAnnee').value,
@@ -1174,7 +1218,8 @@ function enregistrerFicheMensuelle() {
   var list = DB.get('fichesMensuelles', []);
   list.push(f);
   DB.set('fichesMensuelles', list);
-  alert('✅ Fiche enregistrée');
+  alert('✅ Fiche enregistrée (' + prov + ')');
+  rechercherFreqAvance();
 }
 
 function reinitialiserFormFiche() {
@@ -1187,6 +1232,7 @@ function reinitialiserFormFiche() {
 function tableFicheMensuelle(f) {
   var h = '<div class="entity-block"' + (f.archived ? ' style="opacity:0.7;background:#f0f0f0"' : '') + '>';
   h += '<h4>📍 ' + echapper(getEntiteNom(f.entiteId)) + ' — ' + echapper(f.mois) + ' ' + echapper(f.annee);
+  if (f.province) h += ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(f.province) + '</span>';
   if (f.archived) h += ' <span class="badge badge-archive">📦</span>';
   h += '</h4>';
   h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
@@ -1247,7 +1293,8 @@ function rechercherFreqAvance() {
     var nom = getEntiteNom(f.entiteId).toUpperCase();
     return (!q || nom.indexOf(q) !== -1) && (!annee || String(f.annee) === annee) && (!mois || f.mois === mois);
   });
-  var html = '<h3>Résultats (' + fiches.length + ')</h3>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<h3>Résultats (' + fiches.length + ') — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</h3>';
   if (!fiches.length) html += '<p>Aucun résultat.</p>';
   else fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
   document.getElementById('rapportFreqBox').innerHTML = html;
@@ -1266,7 +1313,8 @@ function rapportFreqGlobal() {
   var parts = participationsProvince().filter(function(p) { return !p.archived; });
   var tm = 0, ts = 0, tn = 0;
   parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
-  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FRÉQUENCES</h3></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FRÉQUENCES</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Fiches mensuelles</td><td class="num">' + fiches.length + '</td></tr>';
   html += '<tr><td>Participations</td><td class="num">' + parts.length + '</td></tr>';
@@ -1280,8 +1328,9 @@ function rapportFreqGlobal() {
 
 function rapportFreqDetaille() {
   var fiches = fichesProvince().filter(function(f) { return !f.archived; });
-  if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active.</p>'; return; }
-  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FRÉQUENCES</h3></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p>'; return; }
+  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FRÉQUENCES</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   fiches.forEach(function(f) { html += tableFicheMensuelle(f); });
   document.getElementById('rapportFreqBox').innerHTML = html;
 }
@@ -1557,6 +1606,8 @@ function verserRapide(cid) {
 }
 
 function enregistrerVersement() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var candId = document.getElementById('vCandidat').value;
   var monnaie = document.getElementById('vMonnaie').value;
   var montant = parseFloat(document.getElementById('vMontant').value) || 0;
@@ -1568,7 +1619,7 @@ function enregistrerVersement() {
   var montantUSD = monnaie === 'FC' ? (montant / taux) : montant;
   var signatureData = signatureCanvas.toDataURL('image/png');
   var vers = DB.get('versements', []);
-  vers.push({ id: uid(), candId: candId, monnaie: monnaie, montantOrigine: montant, montantUSD: montantUSD, taux: taux, date: date, dateCreation: new Date().toISOString(), signature: signatureData, archived: false });
+  vers.push({ id: uid(), candId: candId, monnaie: monnaie, montantOrigine: montant, montantUSD: montantUSD, taux: taux, date: date, province: prov, dateCreation: new Date().toISOString(), signature: signatureData, archived: false });
   DB.set('versements', vers);
   var cands = DB.get('candidats', []);
   var c = cands.find(function(x) { return x.id === candId; });
@@ -1579,7 +1630,7 @@ function enregistrerVersement() {
   DB.set('candidats', cands);
   reinitialiserFormVersement();
   refreshAll();
-  alert('✅ Versement : ' + montantUSD.toFixed(2) + '$');
+  alert('✅ Versement : ' + montantUSD.toFixed(2) + '$ (' + prov + ')');
 }
 
 function reinitialiserFormVersement() {
@@ -1699,7 +1750,7 @@ function imprimerRecu(vid) {
   if (c.photo) w.document.write('<div class="photo-box"><img src="' + c.photo + '"><p style="font-size:14px;font-weight:bold;margin-top:6px">' + echapper(c.nom) + '</p></div>');
   w.document.write('<table><tr><td class="label">Nom</td><td>' + echapper(c.nom) + '</td></tr>');
   w.document.write('<tr><td class="label">Entité</td><td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td></tr>');
-  w.document.write('<tr><td class="label">Province</td><td>' + echapper(c.province || '-') + '</td></tr>');
+  w.document.write('<tr><td class="label">Province</td><td>' + echapper(c.province || v.province || '-') + '</td></tr>');
   w.document.write('<tr><td class="label">Motif</td><td>' + echapper(c.motif) + '</td></tr>');
   w.document.write('<tr><td class="label">Date</td><td>' + fmtDate(v.date) + '</td></tr>');
   w.document.write('<tr><td class="label">Taux</td><td>1$ = ' + v.taux + ' FC</td></tr></table>');
@@ -1824,7 +1875,8 @@ function rapportFinGlobal() {
   var vers = versementsProvince().filter(function(v) { return !v.archived; });
   var totalVerse = 0, totalPrevu = 0;
   cands.forEach(function(c) { totalVerse += (c.totalVerse || 0); totalPrevu += c.montantPrevu; });
-  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FINANCE</h3></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
   html += '<tr><td>Terminés</td><td class="num">' + cands.filter(function(c) { return c.statut === 'termine'; }).length + '</td></tr>';
@@ -1838,13 +1890,14 @@ function rapportFinGlobal() {
 
 function rapportFinDetaille() {
   var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
-  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   if (!cands.length) html += '<p>Aucun candidat.</p>';
   else {
     cands.forEach(function(c) {
       html += '<div class="entity-block"><h4>';
       if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">';
-      html += '👤 ' + echapper(c.nom) + '</h4>';
+      html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div>';
       html += '<div class="table-wrapper"><table class="data-table"><tbody>';
       html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr>';
@@ -1859,18 +1912,20 @@ function rapportFinDetaille() {
 
 // ========== MODULE III — SÉANCE ==========
 function demarrerSeance() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var annee = document.getElementById('dAnnee').value;
   var mois = document.getElementById('dMois').value;
   var phase = document.getElementById('dPhase').value;
   var date = document.getElementById('dDate').value;
   if (!annee || !mois || !date) return alert('⚠️ Remplissez tous les champs');
-  seanceActive = { id: uid(), annee: annee, mois: mois, phase: phase, date: date, entites: [], depensesGenerales: [], archived: false, dateCreation: new Date().toISOString() };
-  document.getElementById('seanceStatus').innerHTML = '<p style="color:#0a6e2c;font-weight:600">✅ Séance ' + mois + ' ' + annee + ' — Phase ' + phase + ' démarrée</p>';
+  seanceActive = { id: uid(), annee: annee, mois: mois, phase: phase, date: date, province: prov, entites: [], depensesGenerales: [], archived: false, dateCreation: new Date().toISOString() };
+  document.getElementById('seanceStatus').innerHTML = '<p style="color:#0a6e2c;font-weight:600">✅ Séance ' + mois + ' ' + annee + ' — Phase ' + phase + ' — 🌍 ' + prov + '</p>';
   document.getElementById('cardEntiteActive').style.display = 'block';
   document.getElementById('cardEntitesSeance').style.display = 'block';
   document.getElementById('cardDepensesSeance').style.display = 'none';
   afficherEntitesSeance();
-  alert('✅ Séance démarrée');
+  alert('✅ Séance démarrée (' + prov + ')');
 }
 
 function reinitialiserSeance() {
@@ -2062,6 +2117,10 @@ function sumEntiteDep(e) {
 function enregistrerDepouillementSeance() {
   if (!seanceActive) return alert('⚠️ Séance non démarrée');
   if (!seanceActive.entites.length) return alert('⚠️ Enregistrez une entité');
+  var prov = seanceActive.province || exigerProvince();
+  if (!prov) return;
+  seanceActive.province = prov;
+  seanceActive.entites.forEach(function(e) { if (!e.province) e.province = prov; });
   var deps = DB.get('depouillements', []);
   deps.push(JSON.parse(JSON.stringify(seanceActive)));
   DB.set('depouillements', deps);
@@ -2071,7 +2130,12 @@ function enregistrerDepouillementSeance() {
   document.getElementById('cardEntitesSeance').style.display = 'none';
   document.getElementById('cardDepensesSeance').style.display = 'none';
   document.getElementById('depResultatSeance').innerHTML = '';
-  alert('✅ Dépouillement enregistré');
+  tempOffrandes = { init: [], sorei: [], kannon: [], photo: [], shinrei: [], gosh: [], mita: [] };
+  afficherOffrandes();
+  reinitialiserFormEntiteSeance();
+  reinitialiserFormDepenseSeance();
+  refreshAll();
+  alert('✅ Dépouillement enregistré (' + prov + ')\n\nVous pouvez le retrouver dans la recherche.');
 }
 
 // ========== RECHERCHE DÉPOUILLEMENT ==========
@@ -2086,11 +2150,13 @@ function rechercherDepouillement() {
            (!entite || d.entites.some(function(e) { return e.nomEntite.indexOf(entite) !== -1; }));
   });
   var box = document.getElementById('resultatRechercheDep');
-  if (!deps.length) { box.innerHTML = '<p style="color:#888">Aucun résultat.</p>'; return; }
-  var html = '<h4>Résultats (' + deps.length + ')</h4>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  if (!deps.length) { box.innerHTML = '<p style="color:#888">Aucun résultat — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p>'; return; }
+  var html = '<h4>Résultats (' + deps.length + ') — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</h4>';
   deps.forEach(function(d) {
     html += '<div class="entity-block"' + (d.archived ? ' style="opacity:0.75;background:#f0f0f0"' : '') + '>';
     html += '<h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + ' (' + fmtDate(d.date) + ')';
+    if (d.province) html += ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(d.province) + '</span>';
     if (d.archived) html += ' <span class="badge badge-archive">📦</span>';
     html += '</h4>';
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
@@ -2126,12 +2192,15 @@ function rechercherDepGeneral() {
     return (!annee || String(d.annee) === annee) && (!mois || d.mois === mois);
   });
   var box = document.getElementById('resultatRechercheGeneral');
-  if (!deps.length) { box.innerHTML = '<p style="color:#888">Aucun résultat.</p>'; return; }
-  var html = '<h4>Résultats (' + deps.length + ')</h4>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  if (!deps.length) { box.innerHTML = '<p style="color:#888">Aucun résultat — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p>'; return; }
+  var html = '<h4>Résultats (' + deps.length + ') — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</h4>';
   deps.forEach(function(d) {
     var totalFC = 0, totalUSD = 0;
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalFC += s.totFC; totalUSD += s.totUSD; });
-    html += '<div class="entity-block"><h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</h4>';
+    html += '<div class="entity-block"><h4>📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase;
+    if (d.province) html += ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(d.province) + '</span>';
+    html += '</h4>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div>';
     html += '<div style="font-size:13px;margin-top:6px">Total : <strong>' + totalFC.toLocaleString() + ' FC</strong> / <strong>' + totalUSD.toLocaleString() + ' $</strong></div>';
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
@@ -2193,7 +2262,7 @@ function construireReleveIndividuel(entiteNom, mois, annee, phase) {
   var s = sumEntiteDep(e);
 
   var h = '<div class="rapport-header"><h3>📄 RELEVÉ INDIVIDUEL D\'ENTITÉ</h3>';
-  h += '<p style="font-size:12px;color:#666">' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + ' — ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</p></div>';
+  h += '<p style="font-size:12px;color:#666">' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + ' — ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</p></div>';
 
   h += '<div class="entity-block">';
   h += '<h4>🏛️ ' + echapper(e.typeEntite) + ' - ' + echapper(e.nomEntite) + '</h4>';
@@ -2254,6 +2323,8 @@ function construireReleveFicheEntite(entiteNom, mois, annee) {
   if (entiteNom) filtres.push('Entité : ' + entiteNom);
   if (mois) filtres.push('Mois : ' + mois);
   if (annee) filtres.push('Année : ' + annee);
+  var provLabel = getProvinceActive() || 'Toutes';
+  filtres.unshift('🌍 ' + (provLabel === '__non_assignee' ? 'Non assignées' : provLabel));
 
   var h = '<div class="rapport-header"><h3>📋 RELEVÉ FICHE PAR ENTITÉ</h3>';
   if (filtres.length) h += '<p style="font-size:12px;color:#666">' + filtres.join(' — ') + '</p>';
@@ -2338,21 +2409,21 @@ function construireReleveGlobalEntites(mois, annee) {
   }
   if (!deps.length) return null;
 
+  var provLabel = getProvinceActive() || 'Toutes';
   var filtres = [];
+  filtres.push('🌍 ' + (provLabel === '__non_assignee' ? 'Non assignées' : provLabel));
   if (mois) filtres.push('Mois : ' + mois);
   if (annee) filtres.push('Année : ' + annee);
 
   var h = '<div class="rapport-header"><h3>📊 RELEVÉ FICHE GLOBALE DES ENTITÉS</h3>';
-  h += '<p style="font-size:12px;color:#666">' + deps.length + ' séance(s)';
-  if (filtres.length) h += ' — ' + filtres.join(' — ');
-  h += '</p></div>';
+  h += '<p style="font-size:12px;color:#666">' + deps.length + ' séance(s) — ' + filtres.join(' — ') + '</p></div>';
 
   var totalSoldeFC = 0, totalSoldeUSD = 0;
   var totalGenFC = 0, totalGenUSD = 0;
 
   deps.forEach(function(d) {
     h += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:16px 0 8px;border-left:5px solid #0a6e2c">';
-    h += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    h += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</div>';
     h += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div>';
     h += '</div>';
 
@@ -2438,7 +2509,8 @@ function rapportDepGlobal() {
     d.entites.forEach(function(e) { var s = sumEntiteDep(e); totalFC += s.totFC; totalUSD += s.totUSD; soldeFC += s.soldeFC; soldeUSD += s.soldeUSD; totEnv += (e.enveloppes || 0); });
     d.depensesGenerales.forEach(function(x) { genFC += x.fc; genUSD += x.usd; });
   });
-  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — DÉPOUILLEMENT</h3></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — DÉPOUILLEMENT</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Rubrique</th><th>FC</th><th>USD</th></tr></thead><tbody>';
   html += '<tr><td>Séances</td><td colspan="2" class="num">' + deps.length + '</td></tr>';
   html += '<tr><td>Enveloppes totales</td><td colspan="2" class="num">' + totEnv + '</td></tr>';
@@ -2451,11 +2523,12 @@ function rapportDepGlobal() {
 
 function rapportDepDetaille() {
   var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
-  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif.</p>'; return; }
-  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — DÉPOUILLEMENT</h3></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun dépouillement actif — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p>'; return; }
+  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — DÉPOUILLEMENT</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   deps.forEach(function(d) {
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:16px 0 10px;border-left:5px solid #0a6e2c">';
-    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</div>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + ' | Entités : ' + d.entites.length + '</div></div>';
     d.entites.forEach(function(e) {
       var s = sumEntiteDep(e);
@@ -2474,8 +2547,9 @@ function rapportDepDetaille() {
 
 function soldeTransferer() {
   var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
-  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun.</p>'; return; }
-  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3><p>Détail complet par séance</p></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  if (!deps.length) { document.getElementById('rapportDepBox').innerHTML = '<p>Aucun — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p>'; return; }
+  var html = '<div class="rapport-header"><h3>🏦 SOLDE À TRANSFÉRER</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + ' — Détail complet par séance</p></div>';
   var totalSoldeFC = 0, totalSoldeUSD = 0, totalGenFC = 0, totalGenUSD = 0;
   deps.forEach(function(d) {
     var soldeFC = 0, soldeUSD = 0;
@@ -2485,7 +2559,7 @@ function soldeTransferer() {
     totalSoldeFC += soldeFC; totalSoldeUSD += soldeUSD; totalGenFC += genFC; totalGenUSD += genUSD;
 
     html += '<div style="background:#e8f5e9;padding:10px;border-radius:8px;margin:14px 0 8px;border-left:5px solid #0a6e2c">';
-    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + '</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#0a6e2c">📅 ' + d.mois + ' ' + d.annee + ' — Phase ' + d.phase + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</div>';
     html += '<div style="font-size:12px;color:#666">Date : ' + fmtDate(d.date) + '</div></div>';
 
     html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Entité</th><th>Solde FC</th><th>Solde USD</th></tr></thead><tbody>';
@@ -2928,6 +3002,8 @@ function genererCodeBien(siteId, cat) {
 }
 
 function ajouterBienPatrimoine() {
+  var prov = exigerProvince();
+  if (!prov) return;
   var siteId = document.getElementById('pBienSite').value;
   var cat = document.getElementById('pBienCategorie').value;
   var nom = document.getElementById('pBienNom').value.trim();
@@ -2937,11 +3013,11 @@ function ajouterBienPatrimoine() {
   if (!nom) return alert('Entrez la désignation');
   var list = DB.get('patrimoineBiens', []);
   var code = genererCodeBien(siteId, cat);
-  list.push({ id: uid(), siteId: siteId, categorie: cat, code: code, nom: nom, qte: qte, etat: etat, photo: photoBienTemp || null, archived: false });
+  list.push({ id: uid(), siteId: siteId, categorie: cat, code: code, nom: nom, qte: qte, etat: etat, photo: photoBienTemp || null, province: prov, archived: false });
   DB.set('patrimoineBiens', list);
   reinitialiserFormBienPatrimoine();
   refreshPatrimoineSites();
-  alert('✅ Bien ajouté : ' + code);
+  alert('✅ Bien ajouté : ' + code + ' (' + prov + ')');
 }
 
 function reinitialiserFormBienPatrimoine() {
@@ -3036,7 +3112,8 @@ function afficherReparations() {
 function rapportPatrimoineGlobal() {
   var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
   var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; });
-  var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3></div>';
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
   html += '<tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr>';
@@ -3064,24 +3141,24 @@ function _typesArchives() {
     { key: 'entites', label: 'Entités', icon: '🏛️',
       nom: function(x) { return (x.type || '') + ' - ' + (x.nom || '') + ' | Resp : ' + (x.responsable || '-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
     { key: 'participations', label: 'Participations', icon: '📝',
-      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + fmtDate(x.date) + ' (M:' + (x.m||0) + ' S:' + (x.s||0) + ' NV:' + (x.n||0) + ')'; } },
+      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + fmtDate(x.date) + ' (M:' + (x.m||0) + ' S:' + (x.s||0) + ' NV:' + (x.n||0) + ')' + (x.province ? ' | 🌍 ' + x.province : ''); } },
     { key: 'fichesMensuelles', label: 'Fiches mensuelles', icon: '📆',
-      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + (x.mois||'') + ' ' + (x.annee||'') + ' | Resp : ' + (x.responsable||'-'); } },
+      nom: function(x) { return getEntiteNom(x.entiteId) + ' — ' + (x.mois||'') + ' ' + (x.annee||'') + ' | Resp : ' + (x.responsable||'-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
     { key: 'candidats', label: 'Candidats', icon: '👤',
       nom: function(x) { return (x.nom||'') + ' — ' + (x.motif||'') + ' (' + (x.typeEntite||'') + ' ' + (x.nomEntite||'') + ')' + (x.province ? ' | 🌍 ' + x.province : '') + ' | Versé : ' + (x.totalVerse||0).toFixed(2) + '$'; } },
     { key: 'versements', label: 'Versements', icon: '💵',
       nom: function(x) {
         var c = DB.get('candidats', []).find(function(z) { return z.id === x.candId; });
-        return (c ? c.nom : 'Candidat supprimé') + ' — ' + fmtDate(x.date) + ' — ' + (x.montantUSD||0).toFixed(2) + '$ (' + (x.montantOrigine||0) + ' ' + (x.monnaie||'') + ')';
+        return (c ? c.nom : 'Candidat supprimé') + ' — ' + fmtDate(x.date) + ' — ' + (x.montantUSD||0).toFixed(2) + '$ (' + (x.montantOrigine||0) + ' ' + (x.monnaie||'') + ')' + (x.province ? ' | 🌍 ' + x.province : '');
       } },
     { key: 'depouillements', label: 'Dépouillements', icon: '🧾',
-      nom: function(x) { return (x.mois||'') + ' ' + (x.annee||'') + ' — Phase ' + (x.phase||'') + ' (' + (x.entites ? x.entites.length : 0) + ' entités)'; } },
+      nom: function(x) { return (x.mois||'') + ' ' + (x.annee||'') + ' — Phase ' + (x.phase||'') + ' (' + (x.entites ? x.entites.length : 0) + ' entités)' + (x.province ? ' | 🌍 ' + x.province : ''); } },
     { key: 'annonces', label: 'Annonces', icon: '📢',
       nom: function(x) { return fmtDate(x.date) + ' — ' + (x.texte || '').substring(0, 80) + ((x.texte||'').length > 80 ? '...' : ''); } },
     { key: 'patrimoineSites', label: 'Sites patrimoine', icon: '🏛️',
       nom: function(x) { return (x.type||'') + ' - ' + (x.nom||'') + ' | Resp : ' + (x.responsable||'-') + (x.province ? ' | 🌍 ' + x.province : ''); } },
     { key: 'patrimoineBiens', label: 'Biens patrimoine', icon: '📦',
-      nom: function(x) { return (x.code||'') + ' — ' + (x.nom||'') + ' (' + (x.qte||1) + 'x, ' + (x.etat||'') + ')'; } }
+      nom: function(x) { return (x.code||'') + ' — ' + (x.nom||'') + ' (' + (x.qte||1) + 'x, ' + (x.etat||'') + ')' + (x.province ? ' | 🌍 ' + x.province : ''); } }
   ];
 }
 
