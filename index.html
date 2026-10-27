@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOhtml>    <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -46,6 +46,7 @@
     <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
     <div class="header-logo-fallback" style="display:none">EMM</div>
     <div><h1>EMM MONDIAL</h1><p id="userRoleLabel">Gestion des Membres</p></div>
+    <button id="btnProvince" onclick="ouvrirModalProvince()" title="Changer de province" style="background:rgba(255,255,255,0.25);color:white;border:1.5px solid rgba(255,255,255,0.4);padding:6px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;max-width:110px;overflow:hidden;text-overflow:ellipsis;">🌍 Toutes</button>
     <div id="saveIndicator" style="background:rgba(255,255,255,0.2);color:white;padding:5px 10px;border-radius:12px;font-size:11px;opacity:0.35;transition:opacity 0.3s;white-space:nowrap;flex-shrink:0;" title="Sauvegarde locale">💾</div>
     <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
   </header>
@@ -210,6 +211,9 @@
       </div>
       <div class="input-group"><label>Nom de l'entité</label><input type="text" id="jNomEntite" placeholder="Ex : KELE-KELE"></div>
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="jResponsable"></div>
+      <div class="input-group"><label>Province *</label>
+        <select id="jProvinceEntite"></select>
+      </div>
       <button class="btn-primary" onclick="ajouterEntite()">Enregistrer</button>
       <button class="btn-secondary" onclick="reinitialiserFormEntite()">🔄 Réinitialiser</button>
     </div>
@@ -350,6 +354,9 @@
       </div>
       <div class="input-group"><label>Nom de l'entité</label><input type="text" id="cNomEntite" placeholder="Ex : BIANCKYA"></div>
       <div class="input-group"><label>Nom du responsable</label><input type="text" id="cResponsable"></div>
+      <div class="input-group"><label>Province *</label>
+        <select id="cProvince"></select>
+      </div>
       <div class="input-group"><label>Motif</label>
         <select id="cMotif">
           <option>Initiation</option><option>Ré-initiation</option><option>Photo sacrée</option>
@@ -583,6 +590,9 @@
       </div>
       <div class="input-group"><label>Nom du site</label><input type="text" id="pNomSite"></div>
       <div class="input-group"><label>Responsable</label><input type="text" id="pRespSite"></div>
+      <div class="input-group"><label>Province *</label>
+        <select id="pProvinceSite"></select>
+      </div>
       <button class="btn-primary" onclick="ajouterSitePatrimoine()">Ajouter le site</button>
       <button class="btn-secondary" onclick="reinitialiserFormSitePatrimoine()">🔄 Réinitialiser</button>
     </div>
@@ -729,7 +739,22 @@
 
 </div>
 
-<!-- MODAL OPTIONS PDF (avec couleur de signature) -->
+<!-- MODAL PROVINCE -->
+<div id="provinceModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3>🌍 Sélectionner la province</h3>
+    <p style="font-size:12px;color:#666;margin-bottom:12px">Toutes les opérations seront liées à cette province.</p>
+    <div class="input-group">
+      <label>Province</label>
+      <select id="provinceSelect" style="font-size:14px;padding:12px"></select>
+    </div>
+    <div id="provinceInfo" style="background:#e8f5e9;padding:10px;border-radius:8px;font-size:12px;color:#0a6e2c;margin-bottom:12px;text-align:center"></div>
+    <button class="btn-primary" onclick="confirmerProvince()">✅ Confirmer</button>
+    <button class="btn-secondary" onclick="fermerModalProvince()">Annuler</button>
+  </div>
+</div>
+
+<!-- MODAL OPTIONS PDF -->
 <div id="pdfOptionsModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🖨️ Options d'impression / PDF</h3>
@@ -753,20 +778,13 @@
     <div class="input-group">
       <label>Taille de police</label>
       <select id="pdfFontSize">
-        <option value="9">9 pt (petit)</option>
-        <option value="10">10 pt</option>
-        <option value="11">11 pt</option>
-        <option value="12" selected>12 pt (normal)</option>
-        <option value="13">13 pt</option>
-        <option value="14">14 pt</option>
-        <option value="16">16 pt</option>
-        <option value="18">18 pt</option>
-        <option value="20">20 pt</option>
-        <option value="22">22 pt</option>
-        <option value="24">24 pt</option>
-        <option value="26">26 pt</option>
-        <option value="28">28 pt</option>
-        <option value="32">32 pt (très grand)</option>
+        <option value="9">9 pt</option><option value="10">10 pt</option>
+        <option value="11">11 pt</option><option value="12" selected>12 pt</option>
+        <option value="13">13 pt</option><option value="14">14 pt</option>
+        <option value="16">16 pt</option><option value="18">18 pt</option>
+        <option value="20">20 pt</option><option value="22">22 pt</option>
+        <option value="24">24 pt</option><option value="26">26 pt</option>
+        <option value="28">28 pt</option><option value="32">32 pt</option>
       </select>
     </div>
     <div class="input-group">
@@ -782,11 +800,11 @@
         <input type="color" id="pdfSignatureColor" value="#0a6e2c" oninput="appliquerCouleurSignature(this.value)" onchange="appliquerCouleurSignature(this.value)" style="width:52px;height:36px;padding:2px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:white;flex-shrink:0">
         <input type="text" id="pdfSignatureColorText" value="#0a6e2c" maxlength="7" onchange="appliquerCouleurSignature(this.value)" style="width:90px;padding:8px;border:2px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;text-align:center;background:white">
         <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button type="button" onclick="appliquerCouleurSignature('#0a6e2c')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#0a6e2c;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Vert"></button>
-          <button type="button" onclick="appliquerCouleurSignature('#000000')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#000000;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Noir"></button>
-          <button type="button" onclick="appliquerCouleurSignature('#1976d2')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#1976d2;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Bleu"></button>
-          <button type="button" onclick="appliquerCouleurSignature('#d32f2f')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#d32f2f;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Rouge"></button>
-          <button type="button" onclick="appliquerCouleurSignature('#6a1b9a')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#6a1b9a;cursor:pointer;box-shadow:0 0 0 1px #ddd" title="Violet"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#0a6e2c')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#0a6e2c;cursor:pointer;box-shadow:0 0 0 1px #ddd"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#000000')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#000000;cursor:pointer;box-shadow:0 0 0 1px #ddd"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#1976d2')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#1976d2;cursor:pointer;box-shadow:0 0 0 1px #ddd"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#d32f2f')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#d32f2f;cursor:pointer;box-shadow:0 0 0 1px #ddd"></button>
+          <button type="button" onclick="appliquerCouleurSignature('#6a1b9a')" style="width:28px;height:28px;border-radius:50%;border:2px solid white;background:#6a1b9a;cursor:pointer;box-shadow:0 0 0 1px #ddd"></button>
         </div>
         <span id="pdfSignatureColorValue" style="font-size:12px;color:#0a6e2c;font-weight:600;margin-left:auto">#0a6e2c</span>
       </div>
@@ -824,4 +842,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-  </html>                                                    
+  </html>                                          
