@@ -1,6 +1,6 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE v29
-// + Province : enregistrement ET recherche par province active
+// EMM MONDIAL — LOGIQUE PRINCIPALE v30
+// + Membres actifs / inactifs + TOTAL culte
 // ============================================
 
 var currentUser = null;
@@ -111,10 +111,7 @@ function confirmerProvince() {
   alert(sel.value ? '✅ Province : ' + (sel.value === '__non_assignee' ? 'Non assignées' : sel.value) : '🌐 Toutes les provinces');
 }
 
-// ========== FILTRES PAR PROVINCE (corrigés) ==========
-// Règle commune : si pas de province active → tout ; si "__non_assignee" → sans province ;
-// sinon → fiches qui ont province === active (retour immédiat après enregistrement).
-
+// ========== FILTRES PAR PROVINCE ==========
 function filtrerParProvinceListe(list, extraMatch) {
   var p = getProvinceActive();
   if (!p) return list;
@@ -374,6 +371,9 @@ function switchMainTab(name, btn) {
     setTimeout(initSignature, 400);
     setTimeout(initSignature, 800);
   }
+  if (name === 'frequence') {
+    setTimeout(recalculerTotauxRN, 100);
+  }
   if (name === 'patrimoine') refreshPatrimoineSites();
   if (name === 'archives') afficherArchives();
 }
@@ -615,14 +615,19 @@ function rafraichirEntitesRN() {
 }
 
 function recalculerTotauxRN() {
-  var cm = parseInt(document.getElementById('rnCulteMembres').value) || 0;
-  var cs = parseInt(document.getElementById('rnCulteSymp').value) || 0;
-  var cn = parseInt(document.getElementById('rnCulteNV').value) || 0;
-  document.getElementById('rnCulteTotal').value = cm + cs + cn;
+  var elM = document.getElementById('rnCulteMembres');
+  var elS = document.getElementById('rnCulteSymp');
+  var elN = document.getElementById('rnCulteNV');
+  var elT = document.getElementById('rnCulteTotal');
+  if (!elT) return;
+  var cm = elM ? (parseInt(elM.value) || 0) : 0;
+  var cs = elS ? (parseInt(elS.value) || 0) : 0;
+  var cn = elN ? (parseInt(elN.value) || 0) : 0;
+  elT.value = cm + cs + cn;
 }
 
 function collecterRapportNumerique() {
-  var n = function(id) { return parseInt(document.getElementById(id).value) || 0; };
+  var n = function(id) { var el = document.getElementById(id); return el ? (parseInt(el.value) || 0) : 0; };
   var entiteId = document.getElementById('rnEntite').value;
   var entProv = (DB.get('entites', []).find(function(e) { return e.id === entiteId; }) || {}).province || getProvinceActive();
   return {
@@ -632,6 +637,8 @@ function collecterRapportNumerique() {
     mois: document.getElementById('rnMois').value,
     annee: document.getElementById('rnAnnee').value,
     membresBaptises: n('rnBaptises'),
+    membresActifs: n('rnActifs'),
+    membresInactifs: n('rnInactifs'),
     inities: n('rnInities'),
     entres: n('rnEntres'),
     sortis: n('rnSortis'),
@@ -675,6 +682,8 @@ function construireHtmlRapportNumerique(d) {
   h += '<p style="text-align:center;font-size:12pt;color:#555;margin-bottom:14px">' + echapper(entiteNom) + (d.province ? ' — 🌍 ' + echapper(d.province) : '') + '</p>';
   h += '<div class="rn-section"><div class="rn-section-title">MEMBRES : ' + d.membresBaptises + '</div>';
   h += '<div class="rn-row"><span>- Membres baptisés</span><strong>' + d.membresBaptises + '</strong></div>';
+  h += '<div class="rn-row"><span>- Membres actifs</span><strong>' + (d.membresActifs || 0) + '</strong></div>';
+  h += '<div class="rn-row"><span>- Membres inactifs</span><strong>' + (d.membresInactifs || 0) + '</strong></div>';
   h += '<div class="rn-row"><span>- Initiés du mois</span><strong>' + d.inities + '</strong></div>';
   h += '<div class="rn-row"><span>- Membres entrés</span><strong>' + d.entres + '</strong></div>';
   h += '<div class="rn-row"><span>- Membres sortis du pays</span><strong>' + d.sortis + '</strong></div>';
@@ -691,7 +700,8 @@ function construireHtmlRapportNumerique(d) {
   h += '<div class="rn-row"><span>- Membres</span><strong>' + d.culteMembres + '</strong></div>';
   h += '<div class="rn-row"><span>- Sympathisants</span><strong>' + d.culteSymp + '</strong></div>';
   h += '<div class="rn-row"><span>- Nouveaux venus</span><strong>' + d.culteNV + '</strong></div>';
-  h += '<div class="rn-total">TOTAL : ' + d.culteTotal + '</div></div>';
+  var culteTotalCalcul = (d.culteMembres || 0) + (d.culteSymp || 0) + (d.culteNV || 0);
+  h += '<div class="rn-total">TOTAL : ' + culteTotalCalcul + '</div></div>';
   h += '<div class="rn-section"><div class="rn-section-title">ACTIVITÉS & DÉVOUEMENTS</div>';
   h += '<div class="rn-row"><span>- Familles qui donnent le johrei</span><strong>' + d.johrei + '</strong></div>';
   h += '<div class="rn-row"><span>- Élèves sanguetsu</span><strong>' + d.sanguetsu + '</strong></div>';
@@ -719,12 +729,14 @@ function construireHtmlRapportNumerique(d) {
 }
 
 function genererRapportNumerique() {
+  recalculerTotauxRN();
   var d = collecterRapportNumerique();
   if (!d.entiteId) return alert('⚠️ Sélectionnez d\'abord une entité');
   ouvrirModalPdf({ type: 'html', html: construireHtmlRapportNumerique(d), titre: 'Rapport Numérique ' + d.mois + ' ' + d.annee });
 }
 
 function enregistrerRapportNumerique() {
+  recalculerTotauxRN();
   var d = collecterRapportNumerique();
   if (!d.entiteId) return alert('⚠️ Sélectionnez une entité');
   var list = DB.get('rapportsNumeriques', []);
@@ -746,7 +758,7 @@ function enregistrerRapportNumerique() {
 
 function reinitialiserRapportNumerique() {
   if (!confirm('🔄 Réinitialiser tout le formulaire ?')) return;
-  var fields = ['rnBaptises','rnInities','rnEntres','rnSortis','rnRecuperes','rnDecedes',
+  var fields = ['rnBaptises','rnActifs','rnInactifs','rnInities','rnEntres','rnSortis','rnRecuperes','rnDecedes',
     'rnFreqMembres','rnFreqSymp','rnFreqNV','rnAcheminees','rnAchemineesRestees','rnNVRestes',
     'rnCulteMembres','rnCulteSymp','rnCulteNV',
     'rnJohrei','rnSanguetsu','rnFleurs','rnChampsUnite','rnChampsFloral','rnAgriculteurs',
@@ -767,7 +779,7 @@ function filtrerRapportsNum() {
 }
 
 function sommerRapportsNum(list) {
-  var cles = ['membresBaptises','inities','entres','sortis','recuperes','decedes',
+  var cles = ['membresBaptises','membresActifs','membresInactifs','inities','entres','sortis','recuperes','decedes',
     'freqMembres','freqSymp','freqNV','acheminees','achemineesRestees','nvRestes',
     'culteMembres','culteSymp','culteNV','culteTotal',
     'johrei','sanguetsu','fleurs','champsUnite','champsFloral','agriculteurs',
@@ -793,6 +805,8 @@ function afficherRapportNumeriqueGlobal() {
   h += '<div class="table-wrapper"><table class="data-table"><tbody>';
   h += '<tr><th colspan="2">MEMBRES</th></tr>';
   h += '<tr><td>Membres baptisés</td><td class="num">' + t.membresBaptises + '</td></tr>';
+  h += '<tr><td>Membres actifs</td><td class="num">' + (t.membresActifs || 0) + '</td></tr>';
+  h += '<tr><td>Membres inactifs</td><td class="num">' + (t.membresInactifs || 0) + '</td></tr>';
   h += '<tr><td>Initiés du mois</td><td class="num">' + t.inities + '</td></tr>';
   h += '<tr><td>Membres entrés</td><td class="num">' + t.entres + '</td></tr>';
   h += '<tr><td>Membres sortis du pays</td><td class="num">' + t.sortis + '</td></tr>';
@@ -809,7 +823,7 @@ function afficherRapportNumeriqueGlobal() {
   h += '<tr><td>Membres</td><td class="num">' + t.culteMembres + '</td></tr>';
   h += '<tr><td>Sympathisants</td><td class="num">' + t.culteSymp + '</td></tr>';
   h += '<tr><td>Nouveaux venus</td><td class="num">' + t.culteNV + '</td></tr>';
-  h += '<tr style="background:#e8f5e9"><td><strong>TOTAL CULTE</strong></td><td class="num"><strong>' + t.culteTotal + '</strong></td></tr>';
+  h += '<tr style="background:#e8f5e9"><td><strong>TOTAL CULTE</strong></td><td class="num"><strong>' + (t.culteMembres + t.culteSymp + t.culteNV) + '</strong></td></tr>';
   h += '<tr><th colspan="2">ACTIVITÉS</th></tr>';
   h += '<tr><td>Familles johrei</td><td class="num">' + t.johrei + '</td></tr>';
   h += '<tr><td>Élèves sanguetsu</td><td class="num">' + t.sanguetsu + '</td></tr>';
@@ -851,6 +865,7 @@ function afficherRapportNumeriqueDetaille() {
     h += '<div class="entity-block" style="margin-bottom:18px">';
     h += '<h4>🏛️ ' + echapper(getEntiteNom(eid)) + '</h4>';
     parEntite[eid].forEach(function(r) {
+      var culteCalc = (r.culteMembres || 0) + (r.culteSymp || 0) + (r.culteNV || 0);
       h += '<div style="background:#fff;padding:12px;border-radius:8px;margin-bottom:10px;border:1px solid #e0e0e0">';
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">';
       h += '<strong style="color:#0a6e2c;font-size:14px">📅 ' + r.mois + ' ' + r.annee + '</strong>';
@@ -860,9 +875,9 @@ function afficherRapportNumeriqueDetaille() {
       h += '<button class="btn-mini danger" onclick="supprimerRapportNum(\'' + r.id + '\')">🗑️</button>';
       h += '</div></div>';
       h += '<div style="font-size:12px;line-height:1.6">';
-      h += '<div><strong>Membres :</strong> ' + r.membresBaptises + ' baptisés · ' + r.inities + ' initiés · ' + r.entres + ' entrés · ' + r.sortis + ' sortis · ' + r.recuperes + ' récupérés · ' + r.decedes + ' décédés</div>';
+      h += '<div><strong>Membres :</strong> ' + r.membresBaptises + ' baptisés · ' + (r.membresActifs||0) + ' actifs · ' + (r.membresInactifs||0) + ' inactifs · ' + r.inities + ' initiés · ' + r.entres + ' entrés · ' + r.sortis + ' sortis · ' + r.recuperes + ' récupérés · ' + r.decedes + ' décédés</div>';
       h += '<div><strong>Fréquentation :</strong> ' + r.freqMembres + ' membres · ' + r.freqSymp + ' symp · ' + r.freqNV + ' NV</div>';
-      h += '<div><strong>Culte :</strong> ' + r.culteMembres + ' M · ' + r.culteSymp + ' S · ' + r.culteNV + ' NV — <strong style="color:#0a6e2c">TOTAL ' + r.culteTotal + '</strong></div>';
+      h += '<div><strong>Culte :</strong> ' + r.culteMembres + ' M · ' + r.culteSymp + ' S · ' + r.culteNV + ' NV — <strong style="color:#0a6e2c">TOTAL ' + culteCalc + '</strong></div>';
       h += '<div><strong>Activités :</strong> ' + r.johrei + ' johrei · ' + r.sanguetsu + ' sanguetsu · ' + r.fleurs + ' fleurs · ' + r.autels + ' autels</div>';
       if (r.observation) h += '<div style="margin-top:6px;padding:6px;background:#fffde7;border-left:3px solid #f9a825;font-size:11px"><strong>Obs :</strong> ' + echapper(r.observation) + '</div>';
       h += '</div></div>';
@@ -885,7 +900,10 @@ function modifierRapportNum(id) {
   var r = list.find(function(x) { return x.id === id; });
   if (!r) return;
   var champs = [
-    ['membresBaptises','Membres baptisés'],['inities','Initiés'],['entres','Entrés'],['sortis','Sortis'],
+    ['membresBaptises','Membres baptisés'],
+    ['membresActifs','Membres actifs'],
+    ['membresInactifs','Membres inactifs'],
+    ['inities','Initiés'],['entres','Entrés'],['sortis','Sortis'],
     ['recuperes','Récupérés'],['decedes','Décédés'],
     ['freqMembres','Fréq membres'],['freqSymp','Fréq symp'],['freqNV','Fréq NV'],
     ['acheminees','Acheminées'],['achemineesRestees','Acheminées restées'],['nvRestes','NV restés'],
