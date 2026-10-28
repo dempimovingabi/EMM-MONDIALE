@@ -1,5 +1,5 @@
 // ============================================
-// SERVICE WORKER — EMM MONDIAL v19
+// SERVICE WORKER — EMM MONDIAL v20
 // ============================================
 
 const CACHE_NAME = 'emm-mondial-v20';
@@ -41,7 +41,7 @@ self.addEventListener('fetch', function(event) {
   if (event.request.method !== 'GET') return;
   var url = event.request.url;
   
-  // SÉCURITÉ : On ignore Firebase pour ne pas bloquer l'application
+  // SÉCURITÉ : On ignore Firebase pour éviter les ralentissements
   if (url.indexOf('firebase') !== -1 || url.indexOf('googleapis') !== -1 || url.indexOf('gstatic') !== -1) {
     return; 
   }
