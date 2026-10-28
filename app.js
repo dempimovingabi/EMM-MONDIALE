@@ -360,6 +360,7 @@ function switchMainTab(name, btn) {
   }
   if (name === 'patrimoine') refreshPatrimoineSites();
   if (name === 'archives') afficherArchives();
+  if (name === 'admin') { if (typeof majInterfacePremium === 'function') majInterfacePremium(); } //
 }
 
 // ========== LOGIN / LOGOUT ==========
@@ -2270,12 +2271,30 @@ function initSignature() {
   signatureCanvas = canvas; signatureCtx = canvas.getContext('2d');
   signatureCtx.setTransform(1, 0, 0, 1, 0, 0); signatureCtx.scale(ratio, ratio);
   signatureCtx.lineWidth = 3; signatureCtx.lineCap = 'round'; signatureCtx.lineJoin = 'round';
-  signatureCtx.strokeStyle = '#111';
+  signatureCtx.strokeStyle = getSignatureEncreColor(); // <-- UTILISE LA COULEUR CHOISIE
+  
   if (canvas.dataset.listeners === '1') return; canvas.dataset.listeners = '1';
+  
   var drawing = false, lastX = 0, lastY = 0;
   function getPos(e) { var r = canvas.getBoundingClientRect(); var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e); return { x: p.clientX - r.left, y: p.clientY - r.top }; }
-  function start(e) { e.preventDefault(); drawing = true; var p = getPos(e); lastX = p.x; lastY = p.y; signatureCtx.beginPath(); signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); signatureCtx.fill(); signatureVide = false; var st = document.getElementById('vSignatureStatus'); if (st) { st.textContent = '✅ Signé'; st.style.color = '#0a6e2c'; } }
-  function move(e) { if (!drawing) return; e.preventDefault(); var p = getPos(e); signatureCtx.beginPath(); signatureCtx.moveTo(lastX, lastY); signatureCtx.lineTo(p.x, p.y); signatureCtx.stroke(); lastX = p.x; lastY = p.y; signatureVide = false; }
+  
+  function start(e) { 
+    e.preventDefault(); drawing = true; 
+    signatureCtx.strokeStyle = getSignatureEncreColor(); // <-- MET A JOUR LA COULEUR
+    var p = getPos(e); lastX = p.x; lastY = p.y; 
+    signatureCtx.beginPath(); signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); signatureCtx.fill(); 
+    signatureVide = false; 
+    var st = document.getElementById('vSignatureStatus'); if (st) { st.textContent = '✅ Signé'; st.style.color = '#0a6e2c'; } 
+  }
+  
+  function move(e) { 
+    if (!drawing) return; e.preventDefault(); 
+    signatureCtx.strokeStyle = getSignatureEncreColor(); // <-- MET A JOUR LA COULEUR
+    var p = getPos(e); 
+    signatureCtx.beginPath(); signatureCtx.moveTo(lastX, lastY); signatureCtx.lineTo(p.x, p.y); signatureCtx.stroke(); 
+    lastX = p.x; lastY = p.y; signatureVide = false; 
+  }
+  
   function stop() { drawing = false; }
   canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop);
   canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); canvas.addEventListener('touchend', stop); canvas.addEventListener('touchcancel', stop);
@@ -3388,6 +3407,66 @@ window._signalerSauvegarde = function() {
 
 function majBandeauOffline() { var banner = document.getElementById('offlineBanner'); if (!banner) return; banner.style.display = navigator.onLine ? 'none' : 'block'; }
 window.addEventListener('online', majBandeauOffline); window.addEventListener('offline', majBandeauOffline); window.addEventListener('load', majBandeauOffline);
+// ========== NOUVELLES RECHERCHES GLOBALES (TABLEAU DE BORD) ==========
+function rechercherFreqGeneral() {
+  var annee = (document.getElementById('gSearchFreqAnnee').value || '').trim();
+  var mois = document.getElementById('gSearchFreqMois').value;
+  var fiches = fichesProvince().filter(function(f) { return !f.archived; }).filter(function(f) {
+    return (!annee || String(f.annee) === annee) && (!mois || f.mois === mois);
+  });
+  var box = document.getElementById('resultatRechercheFreqGeneral');
+  if (!fiches.length) { box.innerHTML = '<p style="color:#888">Aucune fiche trouvée.</p>'; return; }
+  var html = '<h4>Résultats (' + fiches.length + ')</h4>';
+  fiches.forEach(function(f) {
+    html += '<div class="entity-block" style="margin-bottom:8px; padding:8px;">';
+    html += '<strong>📍 ' + echapper(getEntiteNom(f.entiteId)) + '</strong> — ' + f.mois + ' ' + f.annee;
+    html += '<div style="font-size:12px;color:#666;margin-top:4px">Membres actifs : ' + (f.mMembresActifs || 0) + ' | Sympathisants : ' + (f.mSympathisants || 0) + '</div>';
+    html += '</div>';
+  });
+  box.innerHTML = html;
+}
+function reinitialiserRechercheFreqGeneral() { document.getElementById('gSearchFreqAnnee').value = ''; document.getElementById('gSearchFreqMois').selectedIndex = 0; document.getElementById('resultatRechercheFreqGeneral').innerHTML = ''; }
+
+function rechercherFinGeneral() {
+  var q = (document.getElementById('gSearchFinTexte').value || '').trim().toUpperCase();
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).filter(function(c) {
+    return (!q || c.nom.toUpperCase().indexOf(q) !== -1 || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1));
+  });
+  var box = document.getElementById('resultatRechercheFinGeneral');
+  if (!cands.length) { box.innerHTML = '<p style="color:#888">Aucun candidat trouvé.</p>'; return; }
+  var html = '<h4>Résultats (' + cands.length + ')</h4><div class="table-wrapper"><table class="data-table"><thead><tr><th>Nom</th><th>Entité</th><th>Versé</th></tr></thead><tbody>';
+  cands.forEach(function(c) {
+    html += '<tr><td>' + echapper(c.nom) + '</td><td>' + echapper(c.nomEntite) + '</td><td class="num">' + c.totalVerse.toFixed(2) + '$</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
+}
+function reinitialiserRechercheFinGeneral() { document.getElementById('gSearchFinTexte').value = ''; document.getElementById('resultatRechercheFinGeneral').innerHTML = ''; }
+
+function rechercherPatGeneral() {
+  var q = (document.getElementById('gSearchPatTexte').value || '').trim().toUpperCase();
+  var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }).filter(function(s) {
+    return (!q || s.nom.toUpperCase().indexOf(q) !== -1);
+  });
+  var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; }).filter(function(b) {
+    return (!q || b.nom.toUpperCase().indexOf(q) !== -1 || b.code.toUpperCase().indexOf(q) !== -1);
+  });
+  var box = document.getElementById('resultatRecherchePatGeneral');
+  if (!sites.length && !biens.length) { box.innerHTML = '<p style="color:#888">Aucun site ou bien trouvé.</p>'; return; }
+  var html = '';
+  if (sites.length) {
+    html += '<h4>Sites (' + sites.length + ')</h4><ul>';
+    sites.forEach(function(s) { html += '<li>🏛️ <strong>' + echapper(s.nom) + '</strong> (' + echapper(s.type) + ') - Resp : ' + echapper(s.responsable) + '</li>'; });
+    html += '</ul>';
+  }
+  if (biens.length) {
+    html += '<h4>Biens (' + biens.length + ')</h4><ul>';
+    biens.forEach(function(b) { html += '<li>📦 <strong>' + echapper(b.code) + '</strong> - ' + echapper(b.nom) + ' (Qté : ' + b.qte + ')</li>'; });
+    html += '</ul>';
+  }
+  box.innerHTML = html;
+}
+function reinitialiserRecherchePatGeneral() { document.getElementById('gSearchPatTexte').value = ''; document.getElementById('resultatRecherchePatGeneral').innerHTML = ''; }
 
 // =========================================================
 // 🔥 INTÉGRATION FIREBASE & PREMIUM (AJOUTÉ À LA FIN)
