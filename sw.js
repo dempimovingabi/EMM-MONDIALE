@@ -2,8 +2,8 @@
 // SERVICE WORKER — EMM MONDIAL v19
 // ============================================
 
-const CACHE_NAME = 'emm-mondial-v19';
-const CACHE_RUNTIME = 'emm-mondial-runtime-v19';
+const CACHE_NAME = 'emm-mondial-v20';
+const CACHE_RUNTIME = 'emm-mondial-runtime-v20';
 
 const URLS_PRECACHE = [
   './',
