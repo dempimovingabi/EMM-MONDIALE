@@ -37,26 +37,27 @@
 
 <div id="mainScreen" class="screen">
   <header class="app-header">
-  <button class="btn-hamburger" onclick="toggleMainMenu()" title="Menu"><span></span><span></span><span></span></button>
-  <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-  <div class="header-logo-fallback" style="display:none">EMM</div>
-  
-  <!-- Le titre prend l'espace disponible -->
-  <div style="flex: 1; margin-left: 8px;">
-    <h1 style="font-size: 15px; margin-bottom: 2px;">EMM MONDIAL</h1>
-    <p id="userRoleLabel" style="font-size: 10px; opacity: 0.9;">Chargement...</p>
-  </div>
-  
-  <!-- La colonne avec les boutons Province et Premium -->
-  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-right: 8px;">
-    <button id="btnProvince" onclick="ouvrirModalProvince()" title="Changer de province" style="background:rgba(255,255,255,0.25);color:white;border:1.5px solid rgba(255,255,255,0.4);padding:4px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;">🌍 Toutes</button>
+    <button class="btn-hamburger" onclick="toggleMainMenu()" title="Menu"><span></span><span></span><span></span></button>
+    <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    <div class="header-logo-fallback" style="display:none">EMM</div>
     
-    <button id="btnPremium" onclick="ouvrirModalPremium()" style="background:#ffc107;color:#000;border:none;padding:4px 8px;border-radius:10px;font-size:10px;font-weight:700;cursor:pointer;display:none;">⭐ Premium</button>
-  </div>
-  
-  <div id="saveIndicator" style="background:rgba(255,255,255,0.2);color:white;padding:5px 8px;border-radius:12px;font-size:11px;opacity:0.35;transition:opacity 0.3s;white-space:nowrap;flex-shrink:0;">💾</div>
-  <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
+    <!-- Le titre prend l'espace disponible -->
+    <div style="flex: 1; margin-left: 8px;">
+      <h1 style="font-size: 15px; margin-bottom: 2px;">EMM MONDIAL</h1>
+      <p id="userRoleLabel" style="font-size: 10px; opacity: 0.9;">Chargement...</p>
+    </div>
+    
+    <!-- La colonne avec les boutons Province et Premium (l'un en dessous de l'autre) -->
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-right: 8px;">
+      <button id="btnProvince" onclick="ouvrirModalProvince()" title="Changer de province" style="background:rgba(255,255,255,0.25);color:white;border:1.5px solid rgba(255,255,255,0.4);padding:4px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;">🌍 Toutes</button>
+      
+      <button id="btnPremium" onclick="ouvrirModalPremium()" style="background:#ffc107;color:#000;border:none;padding:4px 8px;border-radius:10px;font-size:10px;font-weight:700;cursor:pointer;display:none;">⭐ Premium</button>
+    </div>
+    
+    <div id="saveIndicator" style="background:rgba(255,255,255,0.2);color:white;padding:5px 8px;border-radius:12px;font-size:11px;opacity:0.35;transition:opacity 0.3s;white-space:nowrap;flex-shrink:0;">💾</div>
+    <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
   </header>
+
   <div id="mainMenu" class="main-menu">
     <button class="main-tab active" onclick="switchMainTab('general', this)">📊 Général</button>
     <button class="main-tab" onclick="switchMainTab('frequence', this)">📈 Fréquence</button>
@@ -651,13 +652,10 @@
       <div id="monCompteBox"></div>
     </div>
 
-    <!-- BONUS : Gestion des clients Premium -->
     <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
       <h3>⚡ Gestion des clients Premium</h3>
       <p style="font-size:12px; color:#666; margin-bottom:10px;">Liste des comptes connectés. Vous pouvez gérer leur abonnement ici.</p>
-      
       <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
-      
       <div id="listeClientsAdmin">
         <p style="color:#888; font-size:13px;">Cliquez sur "Rafraîchir" pour voir les comptes.</p>
       </div>
@@ -791,5 +789,15 @@
 <script src="firebase-config.js" defer></script>
 <script src="db.js" defer></script>
 <script src="app.js" defer></script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      console.log('✅ Service Worker actif');
+    }).catch(function(e) { console.log('SW erreur:', e); });
+  });
+}
+</script>
 </body>
-      </html>
+        </html>
