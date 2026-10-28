@@ -1,9 +1,9 @@
 // ============================================
-// SERVICE WORKER — EMM MONDIAL v18
+// SERVICE WORKER — EMM MONDIAL v19
 // ============================================
 
-const CACHE_NAME = 'emm-mondial-v18';
-const CACHE_RUNTIME = 'emm-mondial-runtime-v18';
+const CACHE_NAME = 'emm-mondial-v19';
+const CACHE_RUNTIME = 'emm-mondial-runtime-v19';
 
 const URLS_PRECACHE = [
   './',
@@ -40,6 +40,12 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   if (event.request.method !== 'GET') return;
   var url = event.request.url;
+  
+  // SÉCURITÉ : On ignore Firebase pour ne pas bloquer l'application
+  if (url.indexOf('firebase') !== -1 || url.indexOf('googleapis') !== -1 || url.indexOf('gstatic') !== -1) {
+    return; 
+  }
+  
   if (url.indexOf('http') === 0 && url.indexOf(self.location.origin) !== 0) return;
 
   event.respondWith(
