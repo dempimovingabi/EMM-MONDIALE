@@ -1272,16 +1272,27 @@ function rechercherPatGeneral() {
 function reinitialiserRecherchePatGeneral() { document.getElementById('gSearchPatTexte').value = ''; document.getElementById('resultatRecherchePatGeneral').innerHTML = ''; }
 
 // ========== INITIALISATION GENERALE ==========
-window.addEventListener('load', async function() {
+window.addEventListener('load', function() {
+  // 1. On affiche le splash screen instantanément
   showScreen('splashScreen');
-  try { await DB.init(); initDB(); console.log('✅ Base de données prête'); } catch(e) { console.error('❌ Erreur init DB:', e); }
-  rafraichirProvinceHeader(); peuplerProvinceSelects(); syncSignatureEncrePickers(); showSplash();
-  setTimeout(initSignature, 500); setTimeout(initSignature, 1500);
+  
+  // 2. On lance l'initialisation de la base de données en arrière-plan
+  DB.init().then(function() {
+    try { initDB(); } catch(e) {}
+    console.log('✅ Base de données prête');
+  }).catch(function(e) {
+    console.error('❌ Erreur init DB:', e);
+  });
+
+  // 3. On initialise l'interface SANS attendre la base de données
+  rafraichirProvinceHeader(); 
+  peuplerProvinceSelects(); 
+  syncSignatureEncrePickers(); 
+  showSplash(); // Le splash disparaîtra après 1.5s max
+  
+  setTimeout(initSignature, 500); 
+  setTimeout(initSignature, 1500);
 });
-document.addEventListener('click', function(e) { var menu = document.getElementById('mainMenu'); var btn = document.querySelector('.btn-hamburger'); if (menu && menu.classList.contains('open') && !menu.contains(e.target) && btn && !btn.contains(e.target)) { fermerMainMenu(); } });
-window._signalerSauvegarde = function() { var el = document.getElementById('saveIndicator'); if (!el) return; el.style.opacity = '1'; el.textContent = '💾 Sauvegardé'; clearTimeout(window._saveTimeout); window._saveTimeout = setTimeout(function() { el.style.opacity = '0.35'; el.textContent = '💾'; }, 1200); };
-function majBandeauOffline() { var banner = document.getElementById('offlineBanner'); if (!banner) return; banner.style.display = navigator.onLine ? 'none' : 'block'; }
-window.addEventListener('online', majBandeauOffline); window.addEventListener('offline', majBandeauOffline); window.addEventListener('load', majBandeauOffline);
 
 // =========================================================
 // 🔥 INTÉGRATION FIREBASE & PREMIUM (SUPER ADMIN)
