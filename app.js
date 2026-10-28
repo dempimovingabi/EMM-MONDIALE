@@ -1774,16 +1774,45 @@ auth.onAuthStateChanged(function(user) {
 });
 function ecouterStatutPremium(uid) {
   dbFS.collection('users').doc(uid).onSnapshot(function(doc) {
+    var btnPrem = document.getElementById('btnPremium');
+    var now = Date.now();
+    
     if (doc.exists) {
-      var data = doc.data(); var now = Date.now(); var expire = data.premiumExpire || 0;
-      if (currentUser.email === SUPER_ADMIN_EMAIL) { userPremiumStatus = true; userPremiumExpire = now + (365 * 24 * 60 * 60 * 1000); }
-      else if (data.premium === true && expire > now) { userPremiumStatus = true; userPremiumExpire = expire; }
-      else { userPremiumStatus = false; userPremiumExpire = 0; }
-      var btnPrem = document.getElementById('btnPremium');
-      if (btnPrem) btnPrem.style.display = userPremiumStatus ? 'none' : 'block';
-      if (typeof majInterfacePremium === 'function') majInterfacePremium();
+      var data = doc.data(); 
+      var expire = data.premiumExpire || 0;
+      
+      if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) { 
+        userPremiumStatus = true; 
+        userPremiumExpire = now + (365 * 24 * 60 * 60 * 1000); 
+      } else if (data.premium === true && expire > now) { 
+        userPremiumStatus = true; 
+        userPremiumExpire = expire; 
+      } else { 
+        userPremiumStatus = false; 
+        userPremiumExpire = 0; 
+      }
+    } else {
+      // Si le document n'existe pas, on considère que c'est gratuit et on affiche le bouton
+      userPremiumStatus = false; 
+      userPremiumExpire = 0;
     }
+    
+    if (btnPrem) {
+      if (userPremiumStatus) {
+        btnPrem.style.display = 'none'; // Cacher si Premium
+      } else {
+        btnPrem.style.display = 'block'; // Afficher si Gratuit
+      }
+    }
+    
+    if (typeof majInterfacePremium === 'function') majInterfacePremium();
+  }, function(error) {
+    // En cas d'erreur (règles Firebase), on affiche le bouton par défaut
+    var btnPrem = document.getElementById('btnPremium');
+    if (btnPrem) btnPrem.style.display = 'block';
+    if (typeof majInterfacePremium === 'function') majInterfacePremium();
   });
+        }
 }
 var _ancien_ouvrirModalPdf = ouvrirModalPdf;
 ouvrirModalPdf = function(contexte) {
