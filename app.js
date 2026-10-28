@@ -189,7 +189,6 @@ function captureSignaturesFromDOM() {
 // ========== SPLASH & UI ==========
 function showSplash() {
   showScreen('splashScreen');
-  // CORRECTIF : On ne bloque plus 2 secondes, on passe au login après 1.5s max
   setTimeout(function() {
     var splash = document.getElementById('splashScreen');
     if (splash && splash.classList.contains('active')) {
@@ -218,10 +217,9 @@ function switchMainTab(name, btn) {
   if (name === 'depouillement') setTimeout(syncSignatureEncrePickers, 150);
   if (name === 'patrimoine') refreshPatrimoineSites();
   if (name === 'archives') afficherArchives();
-  if (name === 'admin') { if (typeof majInterfacePremium === 'function') majInterfacePremium(); } // CORRECTIF : Affiche le statut admin
+  if (name === 'admin') { if (typeof majInterfacePremium === 'function') majInterfacePremium(); }
 }
 
-// ========== LOGIN / LOGOUT ==========
 function login() { /* Remplacé par Firebase à la fin */ }
 function logout() { /* Remplacé par Firebase à la fin */ }
 
@@ -329,6 +327,7 @@ function signatureBlockHTML() {
   return '<div class="signature-block" style="margin-top:40px;page-break-inside:avoid">' + '<div class="signature-color-picker" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:10px;background:#f0f4f0;border-radius:8px;border:2px dashed #0a6e2c">' + '<div style="font-size:11px;color:#0a6e2c;font-weight:700;text-align:center;margin-bottom:2px">🎨 Couleur de la CASE de signature</div>' + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">' + presetsHtml + '</div>' + '<div style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:4px">' + '<label style="font-size:11px;color:#555">Perso :</label>' + '<input type="color" value="' + couleur + '" oninput="appliquerCouleurSignature(this.value)" onchange="appliquerCouleurSignature(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">' + '<input type="text" value="' + couleur + '" onchange="appliquerCouleurSignature(this.value)" maxlength="7" style="width:90px;padding:6px 8px;border:2px solid #ddd;border-radius:6px;font-size:12px;font-family:monospace;text-align:center">' + '<button type="button" onclick="appliquerCouleurSignature(\'#0a6e2c\')" style="padding:6px 10px;border:1px solid #0a6e2c;border-radius:6px;background:#e8f5e9;color:#0a6e2c;cursor:pointer;font-size:11px;font-weight:600">↺ Reset</button>' + '</div>' + '</div>' + '<div class="sig-encre-picker" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff8e1;padding:10px;border-radius:8px;border:2px dashed #e65100;margin-bottom:12px">' + '<div style="font-size:11px;color:#e65100;font-weight:700;width:100%;text-align:center;margin-bottom:2px">✒️ Couleur de l\'ENCRE de la signature (le tracé)</div>' + '<input type="color" value="' + couleurEncre + '" oninput="appliquerCouleurSignatureEncre(this.value)" onchange="appliquerCouleurSignatureEncre(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">' + '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;flex:1">' + presetsEncreHtml + '</div>' + '</div>' + '<table style="width:100%;border:none;border-collapse:separate"><tr>' + '<td style="width:48%;padding:0;border:none;vertical-align:top">' + '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:8px;background:#f9f9f9">' + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' + '<span class="signature-label" style="font-size:11pt;color:#666;font-weight:600">✍️ Signature</span>' + '<button type="button" onclick="effacerSignatureBlock(this)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;font-size:11px">🧹 Effacer</button>' + '</div>' + '<canvas class="sig-canvas" style="width:100%;height:110px;touch-action:none;display:block;background:white;border:1px dashed #ccc;border-radius:6px;cursor:crosshair"></canvas>' + '<div class="signature-line" style="border-top:1px solid ' + couleur + ';margin-top:6px;padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">Le Responsable</div>' + '</div>' + '</td>' + '<td style="width:4%;padding:0;border:none"></td>' + '<td style="width:48%;padding:0;border:none;vertical-align:top">' + '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:8px;background:#f9f9f9">' + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' + '<span class="signature-label" style="font-size:11pt;color:#666;font-weight:600">✍️ Signature</span>' + '<button type="button" onclick="effacerSignatureBlock(this)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;font-size:11px">🧹 Effacer</button>' + '</div>' + '<canvas class="sig-canvas" style="width:100%;height:110px;touch-action:none;display:block;background:white;border:1px dashed #ccc;border-radius:6px;cursor:crosshair"></canvas>' + '<div class="signature-line" style="border-top:1px solid ' + couleur + ';margin-top:6px;padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">L\'Administrateur</div>' + '</div>' + '</td>' + '</tr></table></div>';
 }
 // --- FIN DE LA PARTIE 1 ---
+
 // ========== TABLEAU DE BORD & ANNONCES ==========
 function afficherDashboard() {
   var box = document.getElementById('dashboardBox');
@@ -711,434 +710,7 @@ function relevéCompletEntite() {
   w.document.write('<div class="header"><h1>EMM MONDIAL</h1><p style="text-align:center;color:#666;font-size:12px">Relevé global par entité</p></div>');
   Object.keys(parEntite).forEach(function(key) {
     var liste = parEntite[key]; var totalPrevu = 0, totalVerse = 0; liste.forEach(function(c) { totalPrevu += c.montantPrevu; totalVerse += (c.totalVerse || 0); });
-    w.document.write('<h2>🏛️ ' + echapper(key) + '</h2><table><thead><tr><th>Nom</th><th>Motif</th><th>Statut</th><th>Prévu</th><th>Versé</th><th>Solde</th><th>Nb vers.</th></tr></thead><tbody>');
-    liste.forEach(function(c) { var nb = vers.filter(function(v) { return v.candId === c.id; }).length; var solde = c.montantPrevu - (c.totalVerse || 0); w.document.write('<tr><td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</td><td class="num">' + c.montantPrevu + '$</td><td class="num">' + (c.totalVerse || 0).toFixed(2) + '$</td><td class="num">' + solde.toFixed(2) + '$</td><td class="num">' + nb + '</td></tr>'); });
-    w.document.write('</tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">' + totalPrevu.toFixed(2) + '$</td><td class="num">' + totalVerse.toFixed(2) + '$</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td><td></td></tr></tfoot></table>');
-  });
-  w.document.write('<p style="text-align:center;font-size:11px;color:#888;margin-top:30px">Généré le ' + new Date().toLocaleString('fr-FR') + '</p></body></html>'); w.document.close(); setTimeout(function() { w.print(); }, 600);
-}
-function rapportFinGlobal() {
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }); var vers = versementsProvince().filter(function(v) { return !v.archived; }); var totalVerse = 0, totalPrevu = 0; cands.forEach(function(c) { totalVerse += (c.totalVerse || 0); totalPrevu += c.montantPrevu; });
-  var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div><div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr><tr><td>Terminés</td><td class="num">' + cands.filter(function(c) { return c.statut === 'termine'; }).length + '</td></tr><tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr><tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr><tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr><tr><td>Versements</td><td class="num">' + vers.length + '</td></tr></tbody></table></div>'; document.getElementById('rapportFinBox').innerHTML = html;
-}
-function rapportFinDetaille() {
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); }); var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
-  if (!cands.length) html += '<p>Aucun candidat.</p>';
-  else { cands.forEach(function(c) {
-      html += '<div class="entity-block"><h4>'; if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">'; html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
-      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div><div class="table-wrapper"><table class="data-table"><tbody>';
-      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr><tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr><tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr></tbody></table></div></div>';
-    });
-  }
-  document.getElementById('rapportFinBox').innerHTML = html;
-}
-// --- FIN DE LA PARTIE 2 ---// ========== TABLEAU DE BORD & ANNONCES ==========
-function afficherDashboard() {
-  var box = document.getElementById('dashboardBox');
-  if (!box) return;
-  var entites = entitesProvince().filter(function(e) { return !e.archived; }).length;
-  var parts = participationsProvince().filter(function(p) { return !p.archived; });
-  var totPart = parts.reduce(function(a, p) { return a + p.m + p.s + p.n; }, 0);
-  var fiches = fichesProvince().filter(function(f) { return !f.archived; }).length;
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; });
-  var totalVerse = cands.reduce(function(a, c) { return a + (c.totalVerse || 0); }, 0);
-  var deps = depouillementsProvince().filter(function(d) { return !d.archived; });
-  var soldeDepFC = 0, soldeDepUSD = 0;
-  deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
-  var sitesP = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }).length;
-  var biensP = biensPatrimoineProvince().filter(function(b) { return !b.archived; }).length;
-  var provinceLabel = getProvinceActive() || 'Toutes';
-  var html = '<p style="text-align:center;font-size:12px;color:#0a6e2c;font-weight:600;margin-bottom:10px">🌍 Province : ' + echapper(provinceLabel === '__non_assignee' ? 'Non assignées' : provinceLabel) + '</p>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
-  html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
-  html += '<tr><td>Total présences</td><td class="num">' + totPart + '</td></tr>';
-  html += '<tr><td>Fiches mensuelles</td><td class="num">' + fiches + '</td></tr>';
-  html += '<tr><th colspan="2">💰 MODULE II — FINANCE</th></tr>';
-  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr>';
-  html += '<tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + ' $</td></tr>';
-  html += '<tr><th colspan="2">🧾 MODULE III — DÉPOUILLEMENT</th></tr>';
-  html += '<tr><td>Séances actives</td><td class="num">' + deps.length + '</td></tr>';
-  html += '<tr><td>Solde total FC</td><td class="num">' + soldeDepFC.toLocaleString() + ' FC</td></tr>';
-  html += '<tr><td>Solde total USD</td><td class="num">' + soldeDepUSD.toLocaleString() + ' $</td></tr>';
-  html += '<tr><th colspan="2">🏛️ MODULE IV — PATRIMOINE</th></tr>';
-  html += '<tr><td>Sites enregistrés</td><td class="num">' + sitesP + '</td></tr>';
-  html += '<tr><td>Biens enregistrés</td><td class="num">' + biensP + '</td></tr>';
-  html += '</tbody></table></div>';
-  box.innerHTML = html;
-}
-
-function afficherAnnonces() {
-  var list = DB.get('annonces', []); var box = document.getElementById('announcementsBox'); if (!box) return;
-  if (!list.length) { box.innerHTML = '<p>Aucune annonce.</p>'; return; }
-  var html = '';
-  list.slice().reverse().forEach(function(a) {
-    html += '<div class="item-list"' + (a.archived ? ' style="opacity:0.7;background:#f0f0f0"' : '') + '>';
-    html += '<strong>📢 ' + a.date + '</strong><br>' + echapper(a.texte);
-    if (isAdmin()) {
-      html += '<div style="margin-top:6px">';
-      html += '<button class="btn-mini orange" onclick="modifierAnnonce(\'' + a.id + '\')">✏️</button>';
-      html += '<button class="btn-mini ' + (a.archived ? 'blue' : 'gray') + '" onclick="archiverAnnonce(\'' + a.id + '\')">' + (a.archived ? '↩️' : '📦') + '</button>';
-      html += '<button class="btn-mini danger" onclick="supprimerAnnonce(\'' + a.id + '\')">🗑️</button></div>';
-    }
-    html += '</div>';
-  });
-  box.innerHTML = html;
-}
-
-function publierAnnonce() {
-  if (!isAdmin()) return alert('Réservé admin');
-  var texte = document.getElementById('annonceText').value.trim(); if (!texte) return alert('Écrivez une annonce');
-  var list = DB.get('annonces', []); list.push({ id: uid(), texte: texte, date: new Date().toLocaleDateString('fr-FR'), auteur: currentUser.nom || currentUser.email, archived: false });
-  DB.set('annonces', list); reinitialiserFormAnnonce(); afficherAnnonces(); alert('✅ Annonce publiée');
-}
-function reinitialiserFormAnnonce() { var el = document.getElementById('annonceText'); if (el) el.value = ''; }
-function modifierAnnonce(id) {
-  if (!isAdmin()) return alert('Réservé admin'); var list = DB.get('annonces', []); var a = list.find(function(x) { return x.id === id; }); if (!a) return;
-  var txt = prompt('Modifier :', a.texte); if (txt === null) return; a.texte = txt.trim(); DB.set('annonces', list); afficherAnnonces(); alert('✅ Modifiée');
-}
-function archiverAnnonce(id) {
-  if (!isAdmin()) return alert('Réservé admin'); var list = DB.get('annonces', []); var a = list.find(function(x) { return x.id === id; }); if (!a) return;
-  a.archived = !a.archived; DB.set('annonces', list); afficherAnnonces(); alert(a.archived ? '📦 Archivée' : '↩️ Restaurée');
-}
-function supprimerAnnonce(id) {
-  if (!isAdmin()) return alert('Réservé admin'); if (!confirm('⚠️ Supprimer cette annonce ?')) return;
-  DB.set('annonces', DB.get('annonces', []).filter(function(a) { return a.id !== id; })); afficherAnnonces();
-}
-
-// ========== MODULE I — ENTITÉS ==========
-function ajouterEntite() {
-  var prov = exigerProvince(); if (!prov) return;
-  var type = document.getElementById('jTypeEntite').value; var nom = document.getElementById('jNomEntite').value.trim().toUpperCase(); var resp = document.getElementById('jResponsable').value.trim();
-  if (!nom || !resp) return alert('Remplissez tous les champs');
-  var entites = DB.get('entites', []);
-  if (entites.find(function(e) { return e.nom === nom && e.province === prov && !e.archived; })) return alert('Cette entité existe déjà dans cette province');
-  entites.push({ id: uid(), type: type, nom: nom, responsable: resp, province: prov, archived: false });
-  DB.set('entites', entites); reinitialiserFormEntite(); refreshAll(); alert('✅ Entité ajoutée : ' + nom + ' (' + prov + ')');
-}
-function reinitialiserFormEntite() { var a = document.getElementById('jNomEntite'); if (a) a.value = ''; var b = document.getElementById('jResponsable'); if (b) b.value = ''; var c = document.getElementById('jTypeEntite'); if (c) c.selectedIndex = 0; }
-
-function rafraichirEntites() {
-  var entites = entitesProvince().filter(function(e) { return !e.archived; });
-  ['jEntiteSelect','mEntite'].forEach(function(id) {
-    var sel = document.getElementById(id); if (!sel) return; var val = sel.value; var opts = '';
-    entites.forEach(function(e) { opts += '<option value="' + e.id + '">' + e.type + ' - ' + e.nom + (e.province ? ' (' + e.province + ')' : '') + '</option>'; });
-    sel.innerHTML = opts; if (val) sel.value = val;
-  });
-}
-
-function afficherListeEntites() {
-  var filtre = document.getElementById('filtreEntites') ? document.getElementById('filtreEntites').value : 'actif';
-  var search = (document.getElementById('searchEntiteListe') ? document.getElementById('searchEntiteListe').value : '').toUpperCase();
-  var entites = entitesProvince(); entites = filtrerListe(entites, filtre);
-  if (search) entites = entites.filter(function(e) { return e.nom.indexOf(search) !== -1; });
-  var box = document.getElementById('listeEntites'); if (!box) return;
-  if (!entites.length) { box.innerHTML = '<p>Aucune entité.</p>'; return; }
-  var html = '';
-  entites.forEach(function(e) {
-    html += '<div class="item-list" style="padding:12px' + (e.archived ? ';opacity:0.7;background:#f0f0f0' : '') + '">';
-    html += '<div style="font-size:14px;color:#0a6e2c;font-weight:600;margin-bottom:4px">🏛️ ' + echapper(e.type) + ' - ' + echapper(e.nom) + (e.archived ? ' <span class="badge badge-archive">📦</span>' : '') + '</div>';
-    html += '<div style="font-size:12px;color:#666;margin-bottom:8px">👤 ' + echapper(e.responsable) + (e.province ? ' | 🌍 ' + echapper(e.province) : ' | 📭 Non assignée') + '</div>';
-    html += '<button class="btn-mini orange" onclick="modifierEntite(\'' + e.id + '\')">✏️ Modifier</button> ';
-    html += '<button class="btn-mini ' + (e.archived ? 'blue' : 'gray') + '" onclick="archiverEntite(\'' + e.id + '\')">' + (e.archived ? '↩️ Désarchiver' : '📦 Archiver') + '</button> ';
-    html += '<button class="btn-mini danger" onclick="supprimerEntite(\'' + e.id + '\')">🗑️ Supprimer</button></div>';
-  });
-  box.innerHTML = html;
-}
-
-function modifierEntite(id) {
-  var list = DB.get('entites', []); var e = list.find(function(x) { return x.id === id; }); if (!e) return;
-  var type = prompt('Type :', e.type); if (type === null) return; var nom = prompt('Nom :', e.nom); if (nom === null) return;
-  var resp = prompt('Responsable :', e.responsable); if (resp === null) return; var prov = prompt('Province :', e.province || ''); if (prov === null) return;
-  var nn = nom.trim().toUpperCase(); if (!nn) return alert('Nom vide'); var provFinale = prov.trim() || e.province;
-  if (list.find(function(x) { return x.id !== id && x.nom === nn && x.province === provFinale && !x.archived; })) return alert('⚠️ Nom déjà utilisé dans cette province');
-  e.type = type.trim() || e.type; e.nom = nn; e.responsable = resp.trim(); if (provFinale) e.province = provFinale;
-  DB.set('entites', list); refreshAll(); alert('✅ Modifiée');
-}
-
-function archiverEntite(id) {
-  var list = DB.get('entites', []); var e = list.find(function(x) { return x.id === id; }); if (!e) return;
-  if (!e.archived) { if (!confirm('📦 Archiver "' + e.nom + '" ?')) return; e.archived = true; } else { e.archived = false; }
-  DB.set('entites', list); refreshAll(); alert(e.archived ? '📦 Archivée' : '↩️ Restaurée');
-}
-
-function supprimerEntite(id) {
-  var e = DB.get('entites', []).find(function(x) { return x.id === id; }); if (!e) return;
-  var parts = DB.get('participations', []).filter(function(p) { return p.entiteId === id; }); var msg = '⚠️ Supprimer "' + e.nom + '" ?';
-  if (parts.length) msg += '\n\n' + parts.length + ' participation(s) liée(s) supprimée(s).'; if (!confirm(msg)) return;
-  DB.set('entites', DB.get('entites', []).filter(function(x) { return x.id !== id; })); DB.set('participations', DB.get('participations', []).filter(function(p) { return p.entiteId !== id; })); refreshAll(); alert('✅ Supprimée');
-}
-
-// ========== MODULE I — JOURNALIÈRE & FICHE MENSUELLE ==========
-function enregistrerParticipation() {
-  var prov = exigerProvince(); if (!prov) return;
-  var entiteId = document.getElementById('jEntiteSelect').value; var date = document.getElementById('jDate').value;
-  var m = parseInt(document.getElementById('jMembres').value) || 0; var s = parseInt(document.getElementById('jSympathisants').value) || 0; var n = parseInt(document.getElementById('jNouveaux').value) || 0;
-  if (!entiteId) return alert('⚠️ Enregistrez d\'abord une entité'); if (!date) return alert('Choisissez une date');
-  var list = DB.get('participations', []); list.push({ id: uid(), entiteId: entiteId, date: date, m: m, s: s, n: n, province: prov, createdAt: new Date().toISOString(), auteur: currentUser ? (currentUser.nom || currentUser.email) : '', archived: false });
-  DB.set('participations', list); reinitialiserFormParticipation(); afficherJournaliere(); alert('✅ Enregistrée (' + prov + ')');
-}
-function reinitialiserFormParticipation() { var a = document.getElementById('jDate'); if (a) a.value = ''; var b = document.getElementById('jMembres'); if (b) b.value = 0; var c = document.getElementById('jSympathisants'); if (c) c.value = 0; var d = document.getElementById('jNouveaux'); if (d) d.value = 0; }
-function afficherJournaliere() {
-  var filtre = document.getElementById('filtreParticipations') ? document.getElementById('filtreParticipations').value : 'actif'; var parts = filtrerListe(participationsProvince(), filtre); var box = document.getElementById('listeJournaliere'); if (!box) return;
-  if (!parts.length) { box.innerHTML = '<p>Aucune donnée.</p>'; return; }
-  var parEntite = {}; parts.forEach(function(p) { if (!parEntite[p.entiteId]) parEntite[p.entiteId] = []; parEntite[p.entiteId].push(p); }); var html = '';
-  Object.keys(parEntite).forEach(function(eid) {
-    var lignes = parEntite[eid].slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }); var tm = 0, ts = 0, tn = 0; lignes.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
-    html += '<div class="entity-block"><h4>📍 ' + echapper(getEntiteNom(eid)) + '</h4><div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>M</th><th>S</th><th>NV</th><th>Actions</th></tr></thead><tbody>';
-    lignes.forEach(function(p) {
-      html += '<tr' + (p.archived ? ' style="opacity:0.6"' : '') + '><td>' + fmtDate(p.date) + '</td><td class="num">' + p.m + '</td><td class="num">' + p.s + '</td><td class="num">' + p.n + '</td><td>';
-      html += '<button class="btn-mini orange" onclick="modifierParticipation(\'' + p.id + '\')">✏️</button><button class="btn-mini ' + (p.archived ? 'blue' : 'gray') + '" onclick="archiverParticipation(\'' + p.id + '\')">' + (p.archived ? '↩️' : '📦') + '</button><button class="btn-mini danger" onclick="supprimerParticipation(\'' + p.id + '\')">🗑️</button></td></tr>';
-    });
-    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + tm + '</td><td class="num">' + ts + '</td><td class="num">' + tn + '</td><td></td></tr></tfoot></table></div></div>';
-  });
-  box.innerHTML = html;
-}
-function modifierParticipation(id) {
-  var list = DB.get('participations', []); var p = list.find(function(x) { return x.id === id; }); if (!p) return;
-  var date = prompt('Date (AAAA-MM-JJ) :', p.date); if (date === null) return; var m = prompt('Membres :', p.m); if (m === null) return;
-  var s = prompt('Sympathisants :', p.s); if (s === null) return; var n = prompt('Nouveaux venus :', p.n); if (n === null) return;
-  p.date = date.trim(); p.m = parseInt(m) || 0; p.s = parseInt(s) || 0; p.n = parseInt(n) || 0; DB.set('participations', list); afficherJournaliere(); alert('✅ Modifiée');
-}
-function archiverParticipation(id) { var list = DB.get('participations', []); var p = list.find(function(x) { return x.id === id; }); if (!p) return; p.archived = !p.archived; DB.set('participations', list); afficherJournaliere(); alert(p.archived ? '📦 Archivée' : '↩️ Restaurée'); }
-function supprimerParticipation(id) { if (!confirm('⚠️ Supprimer ?')) return; DB.set('participations', DB.get('participations', []).filter(function(x) { return x.id !== id; })); afficherJournaliere(); }
-
-function enregistrerFicheMensuelle() {
-  var prov = exigerProvince(); if (!prov) return;
-  var numericIds = ['mEncadreurs','mMembresActifs','mSympathisants','mFMembres','mFSympathisants','mFNouveaux','mFoyersLumiere','mAvecGoshintai','mSansGoshintai','mFoyersSymp','mFleurs','mPotagers','mTotalPotagers','mMaisonsOuvertes','mTemoignages','mCandGoshintai','mConfInit','mConfReinit','mConfShoku','mConfKannon','mConfMitamaya','mAssistMembres','mAssistSymp','mConcessions','mTerrains','mCampagnes','mCoursEns','mCoursFleurs'];
-  var f = { id: uid(), province: prov, entiteId: document.getElementById('mEntite').value, mois: document.getElementById('mMois').value, annee: document.getElementById('mAnnee').value, responsable: document.getElementById('mResponsable').value, jourReunion: document.getElementById('mJourReunion').value, themes: document.getElementById('mThemes').value, graces: document.getElementById('mGraces').value, points: document.getElementById('mPoints').value, solutions: document.getElementById('mSolutions').value, objectifs: document.getElementById('mObjectifs').value, actions: document.getElementById('mActions').value, archived: false, dateCreation: new Date().toISOString() };
-  numericIds.forEach(function(id) { var el = document.getElementById(id); f[id] = el ? (parseInt(el.value) || 0) : 0; });
-  if (!f.entiteId) return alert('⚠️ Enregistrez d\'abord une entité');
-  var list = DB.get('fichesMensuelles', []); list.push(f); DB.set('fichesMensuelles', list); alert('✅ Fiche enregistrée (' + prov + ')'); rechercherFreqAvance();
-}
-function reinitialiserFormFiche() {
-  var ids = ['mResponsable','mThemes','mGraces','mPoints','mSolutions','mObjectifs','mActions']; ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
-  var nums = ['mEncadreurs','mMembresActifs','mSympathisants','mFMembres','mFSympathisants','mFNouveaux','mFoyersLumiere','mAvecGoshintai','mSansGoshintai','mFoyersSymp','mFleurs','mPotagers','mTotalPotagers','mMaisonsOuvertes','mTemoignages','mCandGoshintai','mConfInit','mConfReinit','mConfShoku','mConfKannon','mConfMitamaya','mAssistMembres','mAssistSymp','mConcessions','mTerrains','mCampagnes','mCoursEns','mCoursFleurs'];
-  nums.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = 0; });
-}
-function tableFicheMensuelle(f) {
-  var h = '<div class="entity-block"' + (f.archived ? ' style="opacity:0.7;background:#f0f0f0"' : '') + '><h4>📍 ' + echapper(getEntiteNom(f.entiteId)) + ' — ' + echapper(f.mois) + ' ' + echapper(f.annee);
-  if (f.province) h += ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(f.province) + '</span>';
-  if (f.archived) h += ' <span class="badge badge-archive">📦</span>'; h += '</h4><div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#fff;border-radius:8px;border:1px dashed #0a6e2c">';
-  h += '<button class="btn-mini orange" onclick="modifierFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">✏️</button><button class="btn-mini ' + (f.archived ? 'blue' : 'gray') + '" onclick="archiverFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">' + (f.archived ? '↩️' : '📦') + '</button><button class="btn-mini danger" onclick="supprimerFiche(\'' + f.id + '\')" style="padding:8px 12px;font-size:12px">🗑️</button></div>';
-  h += '<div class="table-wrapper"><table class="data-table"><tbody><tr><td>Responsable</td><td>' + echapper(f.responsable) + '</td></tr><tr><td>Encadreurs</td><td class="num">' + (f.mEncadreurs || 0) + '</td></tr><tr><td>Membres actifs</td><td class="num">' + (f.mMembresActifs || 0) + '</td></tr><tr><td>Sympathisants</td><td class="num">' + (f.mSympathisants || 0) + '</td></tr><tr><td>Thèmes</td><td>' + echapper(f.themes) + '</td></tr><tr><td>Grâces</td><td>' + echapper(f.graces) + '</td></tr></tbody></table></div></div>';
-  return h;
-}
-function modifierFiche(id) {
-  var list = DB.get('fichesMensuelles', []); var f = list.find(function(x) { return x.id === id; }); if (!f) return;
-  var resp = prompt('Responsable :', f.responsable); if (resp === null) return; f.responsable = resp.trim(); var themes = prompt('Thèmes :', f.themes); if (themes === null) return; f.themes = themes;
-  var graces = prompt('Grâces :', f.graces); if (graces === null) return; f.graces = graces; DB.set('fichesMensuelles', list); alert('✅ Modifiée'); rechercherFreqAvance();
-}
-function archiverFiche(id) { var list = DB.get('fichesMensuelles', []); var f = list.find(function(x) { return x.id === id; }); if (!f) return; f.archived = !f.archived; DB.set('fichesMensuelles', list); alert(f.archived ? '📦 Archivée' : '↩️ Restaurée'); rechercherFreqAvance(); }
-function supprimerFiche(id) { if (!confirm('⚠️ Supprimer cette fiche ?')) return; DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(x) { return x.id !== id; })); alert('✅ Supprimée'); rapportFreqDetaille(); }
-function rechercherFreqAvance() {
-  var q = (document.getElementById('searchFreq').value || '').toUpperCase().trim(); var annee = (document.getElementById('searchFreqAnnee').value || '').trim(); var mois = document.getElementById('searchFreqMois').value; var statut = document.getElementById('searchFreqStatut').value;
-  var fiches = filtrerListe(fichesProvince(), statut); fiches = fiches.filter(function(f) { var nom = getEntiteNom(f.entiteId).toUpperCase(); return (!q || nom.indexOf(q) !== -1) && (!annee || String(f.annee) === annee) && (!mois || f.mois === mois); });
-  var provLabel = getProvinceActive() || 'Toutes'; var html = '<h3>Résultats (' + fiches.length + ') — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</h3>';
-  if (!fiches.length) html += '<p>Aucun résultat.</p>'; else fiches.forEach(function(f) { html += tableFicheMensuelle(f); }); document.getElementById('rapportFreqBox').innerHTML = html;
-}
-function reinitialiserRechercheFreq() { var a = document.getElementById('searchFreq'); if (a) a.value = ''; var b = document.getElementById('searchFreqAnnee'); if (b) b.value = ''; var c = document.getElementById('searchFreqMois'); if (c) c.selectedIndex = 0; var d = document.getElementById('searchFreqStatut'); if (d) d.selectedIndex = 0; document.getElementById('rapportFreqBox').innerHTML = ''; }
-function rapportFreqGlobal() {
-  var fiches = fichesProvince().filter(function(f) { return !f.archived; }); var parts = participationsProvince().filter(function(p) { return !p.archived; }); var tm = 0, ts = 0, tn = 0; parts.forEach(function(p) { tm += p.m; ts += p.s; tn += p.n; });
-  var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FRÉQUENCES</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div><div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Fiches mensuelles</td><td class="num">' + fiches.length + '</td></tr><tr><td>Participations</td><td class="num">' + parts.length + '</td></tr><tr><td>Total Membres</td><td class="num">' + tm + '</td></tr><tr><td>Total Sympathisants</td><td class="num">' + ts + '</td></tr><tr><td>Total Nouveaux</td><td class="num">' + tn + '</td></tr></tbody></table></div>';
-  if (fiches.length) fiches.forEach(function(f) { html += tableFicheMensuelle(f); }); document.getElementById('rapportFreqBox').innerHTML = html;
-}
-function rapportFreqDetaille() {
-  var fiches = fichesProvince().filter(function(f) { return !f.archived; }); var provLabel = getProvinceActive() || 'Toutes';
-  if (!fiches.length) { document.getElementById('rapportFreqBox').innerHTML = '<p>Aucune fiche active — 🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p>'; return; }
-  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FRÉQUENCES</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
-  fiches.forEach(function(f) { html += tableFicheMensuelle(f); }); document.getElementById('rapportFreqBox').innerHTML = html;
-}
-function recalculerTotauxRN() { var elM = document.getElementById('rnCulteMembres'); var elS = document.getElementById('rnCulteSymp'); var elN = document.getElementById('rnCulteNV'); var elT = document.getElementById('rnCulteTotal'); if (!elT) return; var cm = elM ? (parseInt(elM.value) || 0) : 0; var cs = elS ? (parseInt(elS.value) || 0) : 0; var cn = elN ? (parseInt(elN.value) || 0) : 0; elT.value = cm + cs + cn; }
-
-// ========== MODULE II — PHOTO & SIGNATURE ==========
-function previewPhotoCandidat(ev) {
-  var file = ev.target.files[0]; if (!file) { photoCandidatTemp = null; var p = document.getElementById('cPhotoPreview'); if (p) p.innerHTML = ''; return; }
-  if (file.size > 5 * 1024 * 1024) return alert('⚠️ Image trop lourde (max 5 Mo)'); var reader = new FileReader();
-  reader.onload = function(e) { var img = new Image(); img.onload = function() { var canvas = document.createElement('canvas'); canvas.width = 250; canvas.height = 250; var ctx = canvas.getContext('2d'); var min = Math.min(img.width, img.height); ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 250, 250); photoCandidatTemp = canvas.toDataURL('image/jpeg', 0.65); document.getElementById('cPhotoPreview').innerHTML = '<img src="' + photoCandidatTemp + '" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c;box-shadow:0 2px 8px rgba(0,0,0,0.2)">'; }; img.src = e.target.result; }; reader.readAsDataURL(file);
-}
-
-function initSignature() {
-  var canvas = document.getElementById('vSignatureCanvas'); if (!canvas) return;
-  var ratio = window.devicePixelRatio || 1; var rect = canvas.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) { setTimeout(initSignature, 200); return; }
-  canvas.width = rect.width * ratio; canvas.height = rect.height * ratio;
-  signatureCanvas = canvas; signatureCtx = canvas.getContext('2d');
-  signatureCtx.setTransform(1, 0, 0, 1, 0, 0); signatureCtx.scale(ratio, ratio);
-  signatureCtx.lineWidth = 3; signatureCtx.lineCap = 'round'; signatureCtx.lineJoin = 'round';
-  signatureCtx.strokeStyle = getSignatureEncreColor(); // CORRECTION ICI : On applique la couleur
-  signatureCtx.fillStyle = getSignatureEncreColor();
-  
-  if (canvas.dataset.listeners === '1') return; canvas.dataset.listeners = '1';
-  var drawing = false, lastX = 0, lastY = 0;
-  function getPos(e) { var r = canvas.getBoundingClientRect(); var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e); return { x: p.clientX - r.left, y: p.clientY - r.top }; }
-  function start(e) { 
-    e.preventDefault(); drawing = true; 
-    signatureCtx.strokeStyle = getSignatureEncreColor(); 
-    signatureCtx.fillStyle = getSignatureEncreColor();
-    var p = getPos(e); lastX = p.x; lastY = p.y; 
-    signatureCtx.beginPath(); signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); signatureCtx.fill(); 
-    signatureVide = false; var st = document.getElementById('vSignatureStatus'); if (st) { st.textContent = '✅ Signé'; st.style.color = '#0a6e2c'; } 
-  }
-  function move(e) { 
-    if (!drawing) return; e.preventDefault(); 
-    signatureCtx.strokeStyle = getSignatureEncreColor(); 
-    var p = getPos(e); 
-    signatureCtx.beginPath(); signatureCtx.moveTo(lastX, lastY); signatureCtx.lineTo(p.x, p.y); signatureCtx.stroke(); 
-    lastX = p.x; lastY = p.y; signatureVide = false; 
-  }
-  function stop() { drawing = false; }
-  canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop); canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); canvas.addEventListener('touchend', stop); canvas.addEventListener('touchcancel', stop);
-}
-function effacerSignature() { if (!signatureCtx || !signatureCanvas) return; signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height); signatureVide = true; var st = document.getElementById('vSignatureStatus'); if (st) { st.textContent = 'Aucune signature'; st.style.color = '#888'; } }
-
-// ========== MODULE II — CANDIDATS & VERSEMENTS ==========
-function ajouterCandidat() {
-  var prov = exigerProvince(); if (!prov) return; var nom = document.getElementById('cNom').value.trim(); var typeEntite = document.getElementById('cTypeEntite').value; var nomEntite = document.getElementById('cNomEntite').value.trim().toUpperCase(); var responsable = document.getElementById('cResponsable').value.trim(); var motif = document.getElementById('cMotif').value; var montant = parseFloat(document.getElementById('cMontant').value) || 0; var taux = parseFloat(document.getElementById('cTaux').value) || 2300;
-  if (!nom) return alert('Entrez le nom'); if (!nomEntite) return alert('Entrez l\'entité');
-  var list = DB.get('candidats', []); if (list.find(function(c) { return c.nom.toLowerCase() === nom.toLowerCase() && c.motif === motif && c.province === prov && c.statut === 'en_cours' && !c.archived; })) return alert('⚠️ Candidat déjà en cours dans cette province');
-  list.push({ id: uid(), nom: nom, typeEntite: typeEntite, nomEntite: nomEntite, responsable: responsable, motif: motif, montantPrevu: montant, taux: taux, totalVerse: 0, statut: 'en_cours', dateInscription: new Date().toISOString(), photo: photoCandidatTemp || null, province: prov, archived: false });
-  DB.set('candidats', list); reinitialiserFormCandidat(); refreshAll(); alert('✅ Candidat ajouté : ' + nom + ' (' + prov + ')');
-}
-function reinitialiserFormCandidat() { ['cNom','cNomEntite','cResponsable'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; }); var m = document.getElementById('cMontant'); if (m) m.value = 200; var t = document.getElementById('cTaux'); if (t) t.value = 2300; var p = document.getElementById('cPhotoPreview'); if (p) p.innerHTML = ''; var c1 = document.getElementById('cPhotoCamera'); if (c1) c1.value = ''; var c2 = document.getElementById('cPhotoGallery'); if (c2) c2.value = ''; photoCandidatTemp = null; }
-
-function afficherCandidats() {
-  var search = (document.getElementById('searchCand') ? document.getElementById('searchCand').value : '').toLowerCase(); var filtre = document.getElementById('filtreCandidats') ? document.getElementById('filtreCandidats').value : 'actif'; var list = candidatsProvince().slice();
-  if (filtre === 'en_cours') list = list.filter(function(c) { return c.statut === 'en_cours' && !c.archived; }); else if (filtre === 'termine') list = list.filter(function(c) { return c.statut === 'termine' && !c.archived; }); else if (filtre === 'archive') list = list.filter(function(c) { return c.archived === true; }); else if (filtre === 'actif') list = list.filter(function(c) { return !c.archived && c.statut !== 'archive'; });
-  if (search) list = list.filter(function(c) { return c.nom.toLowerCase().indexOf(search) !== -1; }); list.sort(function(a, b) { return a.nom.localeCompare(b.nom); }); var box = document.getElementById('listeCandidats'); if (!box) return;
-  if (!list.length) { box.innerHTML = '<p>Aucun candidat.</p>'; return; }
-  var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Nom</th><th>Entité</th><th>Province</th><th>Motif</th><th>Statut</th><th>Versé</th><th>Actions</th></tr></thead><tbody>';
-  list.forEach(function(c) {
-    var badge = c.archived ? '<span class="badge badge-archive">📦</span>' : (c.statut === 'termine' ? '<span class="badge badge-ok">✅</span>' : '<span class="badge badge-progress">⏳</span>');
-    html += '<tr' + (c.archived ? ' style="opacity:0.6"' : '') + '><td style="text-align:center">'; if (c.photo) html += '<img src="' + c.photo + '" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">'; else html += '<div style="width:42px;height:42px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:16px">👤</div>';
-    html += '</td><td>' + echapper(c.nom) + '</td><td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td><td>' + (c.province ? '🌍 ' + echapper(c.province) : '📭') + '</td><td>' + echapper(c.motif) + '</td><td>' + badge + '</td><td class="num">' + c.totalVerse.toFixed(2) + '$</td><td>';
-    html += '<button class="btn-mini" onclick="verserRapide(\'' + c.id + '\')">💵</button><button class="btn-mini blue" onclick="changerPhoto(\'' + c.id + '\')">📷</button><button class="btn-mini orange" onclick="modifierCandidat(\'' + c.id + '\')">✏️</button><button class="btn-mini ' + (c.archived ? 'blue' : 'gray') + '" onclick="archiverCandidat(\'' + c.id + '\')">' + (c.archived ? '↩️' : '📦') + '</button><button class="btn-mini danger" onclick="supprimerCandidat(\'' + c.id + '\')">🗑️</button></td></tr>';
-  });
-  html += '</tbody></table></div>'; box.innerHTML = html;
-}
-function voirPhoto(cid) { var c = DB.get('candidats', []).find(function(x) { return x.id === cid; }); if (!c || !c.photo) return; var w = window.open('', '_blank'); w.document.write('<html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column"><img src="' + c.photo + '" style="max-width:90vw;max-height:80vh;border:4px solid white;border-radius:8px"><p style="color:white;font-family:Arial;margin-top:20px;font-size:18px">' + echapper(c.nom) + '</p></body></html>'); }
-function changerPhoto(cid) { var choix = confirm('📸 OK = Caméra\n❌ Annuler = Galerie'); var input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; if (choix) input.capture = 'user'; input.onchange = function(ev) { var file = ev.target.files[0]; if (!file) return; if (file.size > 5 * 1024 * 1024) return alert('⚠️ Image trop lourde (max 5 Mo)'); var reader = new FileReader(); reader.onload = function(e) { var img = new Image(); img.onload = function() { var canvas = document.createElement('canvas'); canvas.width = 250; canvas.height = 250; var ctx = canvas.getContext('2d'); var min = Math.min(img.width, img.height); ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, 250, 250); var data = canvas.toDataURL('image/jpeg', 0.65); var list = DB.get('candidats', []); var c = list.find(function(x) { return x.id === cid; }); if (c) { c.photo = data; DB.set('candidats', list); refreshAll(); alert('✅ Photo mise à jour'); } }; img.src = e.target.result; }; reader.readAsDataURL(file); }; input.click(); }
-function modifierCandidat(cid) { var list = DB.get('candidats', []); var c = list.find(function(x) { return x.id === cid; }); if (!c) return; var nom = prompt('Nom :', c.nom); if (nom === null) return; var type = prompt('Type :', c.typeEntite); if (type === null) return; var entite = prompt('Entité :', c.nomEntite); if (entite === null) return; var resp = prompt('Responsable :', c.responsable); if (resp === null) return; var montant = prompt('Montant prévu :', c.montantPrevu); if (montant === null) return; c.nom = nom.trim(); c.typeEntite = type.trim(); c.nomEntite = entite.trim().toUpperCase(); c.responsable = resp.trim(); c.montantPrevu = parseFloat(montant) || c.montantPrevu; c.statut = (c.totalVerse >= c.montantPrevu - 0.01) ? 'termine' : 'en_cours'; DB.set('candidats', list); refreshAll(); alert('✅ Modifié'); }
-function archiverCandidat(cid) { var list = DB.get('candidats', []); var c = list.find(function(x) { return x.id === cid; }); if (!c) return; if (!c.archived) { if (!confirm('📦 Archiver "' + c.nom + '" ?\n\nIl n\'apparaîtra plus dans les rapports PDF.')) return; c.archived = true; } else { c.archived = false; } DB.set('candidats', list); refreshAll(); alert(c.archived ? '📦 Archivé' : '↩️ Restauré'); }
-function supprimerCandidat(cid) { if (!confirm('⚠️ Supprimer ce candidat et TOUS ses versements ?')) return; DB.set('candidats', DB.get('candidats', []).filter(function(c) { return c.id !== cid; })); DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== cid; })); refreshAll(); alert('✅ Supprimé'); }
-function reinitialiserRechercheCand() { var el = document.getElementById('searchCand'); if (el) el.value = ''; var f = document.getElementById('filtreCandidats'); if (f) f.selectedIndex = 0; afficherCandidats(); }
-function reinitialiserRechercheEntite() { var a = document.getElementById('searchEntiteFinance'); if (a) a.value = ''; var b = document.getElementById('searchEntiteType'); if (b) b.selectedIndex = 0; var box = document.getElementById('resultatRechercheEntite'); if (box) box.innerHTML = ''; }
-function rafraichirCandidatsSelect() { var sel = document.getElementById('vCandidat'); if (!sel) return; var list = candidatsProvince().filter(function(c) { return c.statut === 'en_cours' && !c.archived; }); list.sort(function(a, b) { return a.nom.localeCompare(b.nom); }); var val = sel.value; var opts = ''; list.forEach(function(c) { opts += '<option value="' + c.id + '">' + c.nom + ' - ' + c.motif + ' (' + c.nomEntite + ')</option>'; }); if (!opts) opts = '<option value="">-- Aucun candidat en cours --</option>'; sel.innerHTML = opts; if (val) sel.value = val; }
-function verserRapide(cid) { rafraichirCandidatsSelect(); document.getElementById('vCandidat').value = cid; document.getElementById('vDate').value = new Date().toISOString().slice(0, 10); switchMainTab('finance', document.querySelectorAll('.main-tab')[2]); setTimeout(function() { initSignature(); var v = document.getElementById('vMontant'); if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 500); }
-
-function enregistrerVersement() {
-  var prov = exigerProvince(); if (!prov) return; var candId = document.getElementById('vCandidat').value; var monnaie = document.getElementById('vMonnaie').value; var montant = parseFloat(document.getElementById('vMontant').value) || 0; var taux = parseFloat(document.getElementById('vTaux').value) || 2300; var date = document.getElementById('vDate').value || new Date().toISOString().slice(0, 10);
-  if (!candId) return alert('⚠️ Choisissez un candidat'); if (montant <= 0) return alert('Entrez un montant valide'); if (signatureVide || !signatureCanvas) return alert('✍️ Le candidat doit signer');
-  var montantUSD = monnaie === 'FC' ? (montant / taux) : montant; var signatureData = signatureCanvas.toDataURL('image/png'); var vers = DB.get('versements', []);
-  vers.push({ id: uid(), candId: candId, monnaie: monnaie, montantOrigine: montant, montantUSD: montantUSD, taux: taux, date: date, province: prov, dateCreation: new Date().toISOString(), signature: signatureData, archived: false });
-  DB.set('versements', vers); var cands = DB.get('candidats', []); var c = cands.find(function(x) { return x.id === candId; });
-  if (c) { c.totalVerse = (c.totalVerse || 0) + montantUSD; if (c.totalVerse >= c.montantPrevu - 0.01) c.statut = 'termine'; }
-  DB.set('candidats', cands); reinitialiserFormVersement(); refreshAll(); alert('✅ Versement : ' + montantUSD.toFixed(2) + '$ (' + prov + ')');
-}
-function reinitialiserFormVersement() { var m = document.getElementById('vMontant'); if (m) m.value = 0; var d = document.getElementById('vDate'); if (d) d.value = new Date().toISOString().slice(0, 10); effacerSignature(); }
-
-function afficherVersements() {
-  var filtre = document.getElementById('filtreVersements') ? document.getElementById('filtreVersements').value : 'actif'; var vers = filtrerListe(versementsProvince(), filtre); var box = document.getElementById('historiqueVersements'); if (!box) return;
-  if (!vers.length) { box.innerHTML = '<p>Aucun versement.</p>'; return; }
-  var parCandidat = {}; vers.forEach(function(v) { if (!parCandidat[v.candId]) parCandidat[v.candId] = []; parCandidat[v.candId].push(v); }); var html = '';
-  Object.keys(parCandidat).sort(function(a, b) { var ca = DB.get('candidats', []).find(function(x) { return x.id === a; }); var cb = DB.get('candidats', []).find(function(x) { return x.id === b; }); return (ca ? ca.nom : '').localeCompare(cb ? cb.nom : ''); }).forEach(function(cid) {
-    var c = DB.get('candidats', []).find(function(x) { return x.id === cid; }); if (!c) return; var lignes = parCandidat[cid].slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }); var totalFC = 0, totalUSD = 0; lignes.forEach(function(v) { totalUSD += v.montantUSD; if (v.monnaie === 'FC') totalFC += v.montantOrigine; });
-    html += '<div class="entity-block"><h4 style="display:flex;align-items:center;gap:8px">'; if (c.photo) html += '<img src="' + c.photo + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c">'; html += '👤 ' + echapper(c.nom) + '</h4><div style="font-size:12px;color:#666;margin-bottom:8px">' + echapper(c.typeEntite) + ' - <strong>' + echapper(c.nomEntite) + '</strong> | ' + echapper(c.motif) + '</div>';
-    html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>FC</th><th>USD</th><th>Signé</th><th>Actions</th></tr></thead><tbody>';
-    lignes.forEach(function(v) {
-      html += '<tr' + (v.archived ? ' style="opacity:0.6"' : '') + '><td>' + fmtDate(v.date) + '</td><td class="num">' + (v.monnaie === 'FC' ? v.montantOrigine.toLocaleString() : '-') + '</td><td class="num">' + v.montantUSD.toFixed(2) + '$</td><td style="text-align:center">' + (v.signature ? '<img src="' + v.signature + '" style="height:26px;cursor:pointer;border:1px solid #ddd;background:white" onclick="voirSignature(\'' + v.id + '\')">' : '—') + '</td><td>';
-      html += '<button class="btn-mini orange" onclick="modifierVersement(\'' + v.id + '\')">✏️</button><button class="btn-mini ' + (v.archived ? 'blue' : 'gray') + '" onclick="archiverVersement(\'' + v.id + '\')">' + (v.archived ? '↩️' : '📦') + '</button><button class="btn-mini danger" onclick="supprimerVersement(\'' + v.id + '\')">🗑️</button><button class="btn-mini blue" onclick="imprimerRecu(\'' + v.id + '\')">🖨️</button></td></tr>';
-    });
-    html += '</tbody><tfoot><tr><td>TOTAL</td><td class="num">' + totalFC.toLocaleString() + ' FC</td><td class="num">' + totalUSD.toFixed(2) + '$</td><td></td><td></td></tr></tfoot></table></div></div>';
-  });
-  box.innerHTML = html;
-}
-function voirSignature(vid) { var v = DB.get('versements', []).find(function(x) { return x.id === vid; }); if (!v || !v.signature) return; var c = DB.get('candidats', []).find(function(x) { return x.id === v.candId; }); var w = window.open('', '_blank'); w.document.write('<html><body style="margin:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;font-family:Arial"><img src="' + v.signature + '" style="max-width:90vw;background:white;border:2px solid #0a6e2c;border-radius:8px;padding:20px"><p style="color:#333;margin-top:20px;font-size:16px;text-align:center"><strong>' + (c ? echapper(c.nom) : '') + '</strong><br>' + fmtDate(v.date) + ' — ' + v.montantUSD.toFixed(2) + ' $</p></body></html>'); }
-function modifierVersement(vid) { var list = DB.get('versements', []); var v = list.find(function(x) { return x.id === vid; }); if (!v) return; var montant = prompt('Montant :', v.montantOrigine); if (montant === null) return; var ancienUSD = v.montantUSD; v.montantOrigine = parseFloat(montant) || 0; v.montantUSD = v.monnaie === 'FC' ? (v.montantOrigine / v.taux) : v.montantOrigine; var cands = DB.get('candidats', []); var c = cands.find(function(x) { return x.id === v.candId; }); if (c) { c.totalVerse = c.totalVerse - ancienUSD + v.montantUSD; if (c.totalVerse >= c.montantPrevu - 0.01 && c.statut === 'en_cours') c.statut = 'termine'; if (c.totalVerse < c.montantPrevu - 0.01 && c.statut === 'termine') c.statut = 'en_cours'; } DB.set('candidats', cands); DB.set('versements', list); refreshAll(); alert('✅ Modifié'); }
-function archiverVersement(vid) { var list = DB.get('versements', []); var v = list.find(function(x) { return x.id === vid; }); if (!v) return; v.archived = !v.archived; DB.set('versements', list); afficherVersements(); alert(v.archived ? '📦 Archivé' : '↩️ Restauré'); }
-function supprimerVersement(vid) { if (!confirm('⚠️ Supprimer ce versement ?')) return; var list = DB.get('versements', []); var v = list.find(function(x) { return x.id === vid; }); if (!v) return; var cands = DB.get('candidats', []); var c = cands.find(function(x) { return x.id === v.candId; }); if (c) c.totalVerse = c.totalVerse - v.montantUSD; DB.set('candidats', cands); DB.set('versements', list.filter(function(x) { return x.id !== vid; })); refreshAll(); alert('✅ Supprimé'); }
-
-function imprimerRecu(vid) {
-  var v = DB.get('versements', []).find(function(x) { return x.id === vid; }); if (!v) return; var c = DB.get('candidats', []).find(function(x) { return x.id === v.candId; }); if (!c) return; var sigColor = getSignatureColor(); var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Reçu</title><style>body{font-family:Arial;padding:30px;max-width:600px;margin:auto}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}h1{color:#0a6e2c;font-size:18px}.logo{width:80px;height:80px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;margin-bottom:10px}.photo-box{text-align:center;margin:15px 0}.photo-box img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}table{width:100%;border-collapse:collapse;margin:20px 0}td{padding:8px;border-bottom:1px solid #ddd}td.label{font-weight:bold;color:#0a6e2c}.montant{font-size:22px;color:#0a6e2c;font-weight:bold;text-align:center;padding:20px;background:#e8f5e9;border-radius:8px}.signature{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end}.sig-line{border-top:1px solid ' + sigColor + ';color:' + sigColor + ';width:45%;padding-top:5px;font-size:12px;text-align:center;font-weight:600}.sig-img{width:45%;text-align:center;padding-bottom:5px}.sig-img img{max-height:70px;max-width:100%;border-bottom:1px solid ' + sigColor + '}</style></head><body>');
-  w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666">EMM MONDIAL - Finance</p><h2 style="color:#0a6e2c">REÇU DE VERSEMENT</h2></div>');
-  if (c.photo) w.document.write('<div class="photo-box"><img src="' + c.photo + '"><p style="font-size:14px;font-weight:bold;margin-top:6px">' + echapper(c.nom) + '</p></div>');
-  w.document.write('<table><tr><td class="label">Nom</td><td>' + echapper(c.nom) + '</td></tr><tr><td class="label">Entité</td><td>' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</td></tr><tr><td class="label">Province</td><td>' + echapper(c.province || v.province || '-') + '</td></tr><tr><td class="label">Motif</td><td>' + echapper(c.motif) + '</td></tr><tr><td class="label">Date</td><td>' + fmtDate(v.date) + '</td></tr><tr><td class="label">Taux</td><td>1$ = ' + v.taux + ' FC</td></tr></table>');
-  w.document.write('<div class="montant">' + v.montantOrigine + ' ' + v.monnaie + '<br><small>= ' + v.montantUSD.toFixed(2) + ' USD</small></div><div class="signature">');
-  if (v.signature) w.document.write('<div class="sig-img"><img src="' + v.signature + '"><br><small>Le candidat</small></div>'); else w.document.write('<div class="sig-line">Le candidat</div>');
-  w.document.write('<div class="sig-line">Le Responsable</div></div></body></html>'); w.document.close(); setTimeout(function() { w.print(); }, 500);
-}
-function rechercherParEntite() {
-  var q = (document.getElementById('searchEntiteFinance').value || '').trim().toUpperCase(); var type = document.getElementById('searchEntiteType').value; var box = document.getElementById('resultatRechercheEntite'); if (!box) return;
-  if (!q && !type) { box.innerHTML = '<p style="color:#888;font-size:13px">Entrez un nom.</p>'; return; }
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).filter(function(c) { return (!q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1)) && (!type || c.typeEntite === type); });
-  if (!cands.length) { box.innerHTML = '<p style="color:#888;font-size:13px">Aucun candidat.</p>'; return; }
-  var parEntite = {}; cands.forEach(function(c) { var key = c.typeEntite + ' - ' + c.nomEntite; if (!parEntite[key]) parEntite[key] = []; parEntite[key].push(c); }); var html = '';
-  Object.keys(parEntite).forEach(function(key) {
-    var liste = parEntite[key]; var totalPrevu = 0, totalVerse = 0; liste.forEach(function(c) { totalPrevu += c.montantPrevu; totalVerse += (c.totalVerse || 0); });
-    html += '<div class="entity-block"><h4>🏛️ ' + echapper(key) + '</h4><div style="font-size:12px;color:#666;margin-bottom:8px">' + liste.length + ' candidat(s) | Prévu : <strong>' + totalPrevu.toFixed(2) + '$</strong> | Versé : <strong>' + totalVerse.toFixed(2) + '$</strong> | Solde : <strong style="color:#c62828">' + (totalPrevu - totalVerse).toFixed(2) + '$</strong></div>';
-    html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Photo</th><th>Nom</th><th>Motif</th><th>Statut</th><th>Prévu</th><th>Versé</th><th>Solde</th><th>Relevé</th></tr></thead><tbody>';
-    liste.sort(function(a, b) { return a.nom.localeCompare(b.nom); });
-    liste.forEach(function(c) {
-      var solde = c.montantPrevu - (c.totalVerse || 0); var badge = c.statut === 'termine' ? '<span class="badge badge-ok">✅</span>' : '<span class="badge badge-progress">⏳</span>';
-      html += '<tr><td style="text-align:center">'; if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer" onclick="voirPhoto(\'' + c.id + '\')">'; else html += '<div style="width:36px;height:36px;border-radius:50%;background:#e0e0e0;color:#888;display:inline-flex;align-items:center;justify-content:center;font-size:14px">👤</div>';
-      html += '</td><td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + badge + '</td><td class="num">' + c.montantPrevu + '$</td><td class="num">' + (c.totalVerse || 0).toFixed(2) + '$</td><td class="num">' + solde.toFixed(2) + '$</td><td><button class="btn-mini blue" onclick="afficherReleveVersement(\'' + c.id + '\')">📋</button></td></tr>';
-    });
-    html += '</tbody></table></div></div>';
-  });
-  box.innerHTML = html;
-}
-function afficherReleveVersement(candId) {
-  var c = DB.get('candidats', []).find(function(x) { return x.id === candId; }); if (!c) return alert('Candidat introuvable');
-  var vers = DB.get('versements', []).filter(function(v) { return v.candId === candId && !v.archived; }); vers.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
-  var totalUSD = 0, totalFC = 0; vers.forEach(function(v) { totalUSD += v.montantUSD; if (v.monnaie === 'FC') totalFC += v.montantOrigine; }); var sigColor = getSignatureColor(); var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé</title><style>body{font-family:Arial;padding:24px;max-width:800px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}.logo{width:70px;height:70px;background:#0a6e2c;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin-bottom:10px}h1{color:#0a6e2c;font-size:18px}h2{color:#333;font-size:14px;margin:15px 0 10px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:15px 0;font-size:13px}th{background:#0a6e2c;color:white;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}.info{background:#f9f9f9;padding:12px;border-radius:8px;margin:15px 0;border-left:4px solid #0a6e2c}.info p{margin:4px 0;font-size:13px}.solde{font-size:15px;color:#0a6e2c;font-weight:bold;text-align:center;padding:15px;background:#e8f5e9;border-radius:8px;margin-top:15px}.signature{margin-top:60px;display:flex;justify-content:space-between}.sig-line{border-top:1px solid ' + sigColor + ';color:' + sigColor + ';font-weight:600;width:45%;padding-top:5px;font-size:12px;text-align:center}.photo-top{text-align:center;margin:15px 0}.photo-top img{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #0a6e2c}</style></head><body>');
-  w.document.write('<div class="header"><div class="logo">EMM</div><h1>ÉGLISE MESSIANIQUE MONDIALE</h1><p style="color:#666;font-size:12px">EMM MONDIAL — Finance</p><h2 style="border:none;text-align:center">RELEVÉ DE VERSEMENT INDIVIDUEL</h2></div>');
-  if (c.photo) w.document.write('<div class="photo-top"><img src="' + c.photo + '"></div>');
-  w.document.write('<div class="info"><p><strong>Nom :</strong> ' + echapper(c.nom) + '</p><p><strong>Entité :</strong> ' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + '</p><p><strong>Province :</strong> ' + echapper(c.province || '-') + '</p><p><strong>Responsable :</strong> ' + echapper(c.responsable || '-') + '</p><p><strong>Motif :</strong> ' + echapper(c.motif) + '</p><p><strong>Statut :</strong> ' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</p></div><h2>Détail des versements (' + vers.length + ')</h2>');
-  if (vers.length) {
-    w.document.write('<table><thead><tr><th>#</th><th>Date</th><th>Monnaie</th><th>Montant</th><th>Taux</th><th>USD</th><th>Signature</th></tr></thead><tbody>');
-    vers.forEach(function(v, i) { w.document.write('<tr><td>' + (i + 1) + '</td><td>' + fmtDate(v.date) + '</td><td>' + v.monnaie + '</td><td class="num">' + v.montantOrigine.toLocaleString() + '</td><td class="num">' + v.taux + '</td><td class="num">' + v.montantUSD.toFixed(2) + ' $</td><td style="text-align:center">' + (v.signature ? '<img src="' + v.signature + '" style="max-height:40px;border:1px solid #ddd;background:white">' : '—') + '</td></tr>'); });
-    w.document.write('</tbody></table>');
-  }
-  w.document.write('<div class="solde">Montant prévu : ' + c.montantPrevu + ' $<br>Total versé : ' + totalUSD.toFixed(2) + ' $'); if (totalFC > 0) w.document.write(' (dont ' + totalFC.toLocaleString() + ' FC)'); w.document.write('<br>Solde restant : ' + (c.montantPrevu - totalUSD).toFixed(2) + ' $</div><div class="signature"><div class="sig-line">Le candidat</div><div class="sig-line">Le Responsable</div></div></body></html>');
-  w.document.close(); setTimeout(function() { w.print(); }, 500);
-}
-
-function relevéCompletEntite() {
-  var q = (document.getElementById('searchEntiteFinance').value || '').trim().toUpperCase(); var type = document.getElementById('searchEntiteType').value; if (!q && !type) return alert('Entrez d\'abord un nom');
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).filter(function(c) { return (!q || (c.nomEntite && c.nomEntite.toUpperCase().indexOf(q) !== -1)) && (!type || c.typeEntite === type); }); if (!cands.length) return alert('Aucun candidat');
-  var vers = DB.get('versements', []).filter(function(v) { return !v.archived; }); var parEntite = {}; cands.forEach(function(c) { var key = c.typeEntite + ' - ' + c.nomEntite; if (!parEntite[key]) parEntite[key] = []; parEntite[key].push(c); }); var w = window.open('', '_blank');
-  w.document.write('<html><head><meta charset="UTF-8"><title>Relevé entité</title><style>body{font-family:Arial;padding:24px;max-width:900px;margin:auto;color:#222}.header{text-align:center;border-bottom:3px double #0a6e2c;padding-bottom:15px;margin-bottom:20px}h1{color:#0a6e2c;font-size:20px;text-align:center}h2{color:#0a6e2c;font-size:14px;margin:20px 0 8px;border-left:4px solid #0a6e2c;padding-left:8px}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}th{background:#0a6e2c;color:white;padding:6px;text-align:left}td{padding:6px;border-bottom:1px solid #ddd}td.num{text-align:right}tfoot td{font-weight:bold;background:#e8f5e9;color:#0a6e2c;border-top:2px solid #0a6e2c}</style></head><body>');
-  w.document.write('<div class="header"><h1>EMM MONDIAL</h1><p style="text-align:center;color:#666;font-size:12px">Relevé global par entité</p></div>');
-  Object.keys(parEntite).forEach(function(key) {
-    var liste = parEntite[key]; var totalPrevu = 0, totalVerse = 0; liste.forEach(function(c) { totalPrevu += c.montantPrevu; totalVerse += (c.totalVerse || 0); });
-    w.document.write('<h2>🏛️ ' + echapper(key) + '</h2><table><thead><tr><th>Nom</th><th>Motif</th><th>Statut</th><th>Prévu</th><th>Versé</th><th>Solde</th><th>Nb vers.</th></tr></thead><tbody>');
-    liste.forEach(function(c) { var nb = vers.filter(function(v) { return v.candId === c.id; }).length; var solde = c.montantPrevu - (c.totalVerse || 0); w.document.write('<tr><td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</td><td class="num">' + c.montantPrevu + '$</td><td class="num">' + (c.totalVerse || 0).toFixed(2) + '$</td><td class="num">' + solde.toFixed(2) + '$</td><td class="num">' + nb + '</td></tr>'); });
-    w.document.write('</tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">' + totalPrevu.toFixed(2) + '$</td><td class="num">' + totalVerse.toFixed(2) + '$</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td><td></td></tr></tfoot></table>');
-  });
-  w.document.write('<p style="text-align:center;font-size:11px;color:#888;margin-top:30px">Généré le ' + new Date().toLocaleString('fr-FR') + '</p></body></html>'); w.document.close(); setTimeout(function() { w.print(); }, 600);
-}
-function rapportFinGlobal() {
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }); var vers = versementsProvince().filter(function(v) { return !v.archived; }); var totalVerse = 0, totalPrevu = 0; cands.forEach(function(c) { totalVerse += (c.totalVerse || 0); totalPrevu += c.montantPrevu; });
-  var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div><div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr><tr><td>Terminés</td><td class="num">' + cands.filter(function(c) { return c.statut === 'termine'; }).length + '</td></tr><tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr><tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr><tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr><tr><td>Versements</td><td class="num">' + vers.length + '</td></tr></tbody></table></div>'; document.getElementById('rapportFinBox').innerHTML = html;
-}
-function rapportFinDetaille() {
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); }); var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
-  if (!cands.length) html += '<p>Aucun candidat.</p>';
-  else { cands.forEach(function(c) {
-      html += '<div class="entity-block"><h4>'; if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">'; html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
-      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div><div class="table-wrapper"><table class="data-table"><tbody>';
-      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr><tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr><tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr></tbody></table></div></div>';
-    });
-  }
-  document.getElementById('rapportFinBox').innerHTML = html;
-}
-// --- FIN DE LA PARTIE 2 ---
-// ========== MODULE III — SÉANCE DÉPOUILLEMENT ==========
+    w.document.write('<h2>🏛️ ' + echapper(key) + '</h2>// ========== MODULE III — SÉANCE DÉPOUILLEMENT ==========
 function demarrerSeance() {
   var prov = exigerProvince(); if (!prov) return;
   var annee = document.getElementById('dAnnee').value; var mois = document.getElementById('dMois').value;
@@ -1712,7 +1284,7 @@ function majBandeauOffline() { var banner = document.getElementById('offlineBann
 window.addEventListener('online', majBandeauOffline); window.addEventListener('offline', majBandeauOffline); window.addEventListener('load', majBandeauOffline);
 
 // =========================================================
-// 🔥 INTÉGRATION FIREBASE & PREMIUM (AJOUTÉ À LA FIN)
+// 🔥 INTÉGRATION FIREBASE & PREMIUM (SUPER ADMIN)
 // =========================================================
 var userPremiumStatus = false;
 var userPremiumExpire = 0;
@@ -1783,16 +1355,7 @@ exporterWordBox = function(boxId, nom) {
 };
 function ouvrirModalPremium() { if (userPremiumStatus) { alert("✅ Vous êtes Premium actif."); return; } document.getElementById('premiumModal').style.display = 'flex'; }
 function fermerModalPremium() { document.getElementById('premiumModal').style.display = 'none'; }
-function activerPremium() {
-  var code = document.getElementById('premiumCode').value.trim().toUpperCase();
-  if (!code) return alert("Entrez un code.");
-  if (code === 'EMM-PREM-OK') {
-    var expiration = Date.now() + (30 * 24 * 60 * 60 * 1000);
-    dbFS.collection('users').doc(currentUser.uid).update({ premium: true, premiumExpire: expiration })
-    .then(function() { alert("✅ Compte Premium activé pour 30 jours !"); fermerModalPremium(); })
-    .catch(function() { alert("Erreur d'activation."); });
-  } else { alert("❌ Code invalide."); }
-}
+
 function majInterfacePremium() {
   var box = document.getElementById('monCompteBox');
   if (box && currentUser) {
@@ -1800,5 +1363,123 @@ function majInterfacePremium() {
     var statut = isDev ? "<span style='color:green'>✅ Développeur (Illimité)</span>" : (userPremiumStatus ? "<span style='color:green'>✅ Premium</span>" : "<span style='color:red'>❌ Gratuit</span>");
     var expire = (userPremiumStatus && !isDev) ? new Date(userPremiumExpire).toLocaleDateString() : "-";
     box.innerHTML = "<p><strong>Email :</strong> " + currentUser.email + "</p><p><strong>Statut :</strong> " + statut + "</p>" + (isDev ? "" : "<p><strong>Valide jusqu'au :</strong> " + expire + "</p>");
-  }
+    
+    // Afficher et charger la liste des clients pour le Super Admin
+    var card = document.getElementById('cardActivationRapide');
+    if (card) {
+      if (isDev) {
+        card.style.display = 'block';
+        if (typeof chargerListeClients === 'function') chargerListeClients();
+      } else {
+        card.style.display = 'none';
+      }
     }
+  }
+}
+
+// =========================================================
+// 🔥 GESTION DES CLIENTS PREMIUM (SUPER ADMIN)
+// =========================================================
+function chargerListeClients() {
+  if (!currentUser || currentUser.email !== SUPER_ADMIN_EMAIL) return;
+  
+  var box = document.getElementById('listeClientsAdmin');
+  if(!box) return;
+  box.innerHTML = "⏳ Chargement des clients...";
+  
+  dbFS.collection('users').get().then(function(querySnapshot) {
+    if (querySnapshot.empty) {
+      box.innerHTML = "<p>Aucun client trouvé.</p>"; return;
+    }
+    
+    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Email</th><th>Statut</th><th>Expire le</th><th>Actions</th></tr></thead><tbody>';
+    
+    querySnapshot.forEach(function(doc) {
+      var data = doc.data();
+      var email = data.email || 'Inconnu';
+      if (email === SUPER_ADMIN_EMAIL) return; // On ne s'affiche pas nous-même
+      
+      var isPrem = data.premium === true && (data.premiumExpire || 0) > Date.now();
+      var dateExp = (data.premiumExpire && data.premiumExpire > 0) ? new Date(data.premiumExpire).toLocaleDateString('fr-FR') : "-";
+      
+      html += '<tr>';
+      html += '<td style="font-size:11px;">' + email + '</td>';
+      html += '<td>' + (isPrem ? '<span class="badge badge-ok">✅ Premium</span>' : '<span class="badge badge-archive">❌ Gratuit</span>') + '</td>';
+      html += '<td class="num">' + dateExp + '</td>';
+      html += '<td style="white-space:nowrap;">';
+      
+      // Bouton pour ajouter 30 jours (et activer si ce n'est pas fait)
+      html += '<button class="btn-mini" style="background:#4caf50;" onclick="modifierAbonnement(\'' + email + '\', 30)">+30 jours</button>';
+      
+      // Bouton pour désactiver
+      if (isPrem) {
+        html += '<button class="btn-mini danger" onclick="modifierAbonnement(\'' + email + '\', 0)">Bloquer</button>';
+      }
+      
+      html += '</td></tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    box.innerHTML = html;
+    
+  }).catch(function(error) {
+    box.innerHTML = "<p style='color:red;'>Erreur : " + error.message + "</p>";
+  });
+}
+
+function modifierAbonnement(emailCible, jours) {
+  if (!currentUser || currentUser.email !== SUPER_ADMIN_EMAIL) return;
+  var box = document.getElementById('listeClientsAdmin');
+  
+  dbFS.collection('users').where('email', '==', emailCible).get().then(function(querySnapshot) {
+    if (querySnapshot.empty) return alert("Utilisateur introuvable");
+    
+    var docId = querySnapshot.docs[0].id;
+    var data = querySnapshot.docs[0].data();
+    
+    var nouvelleExpiration = 0;
+    var estPremium = false;
+    
+    if (jours > 0) {
+      // Si le compte est déjà premium et n'est pas expiré, on ajoute à la date existante
+      var baseDate = (data.premiumExpire && data.premiumExpire > Date.now()) ? data.premiumExpire : Date.now();
+      nouvelleExpiration = baseDate + (jours * 24 * 60 * 60 * 1000);
+      estPremium = true;
+    }
+    
+    dbFS.collection('users').doc(docId).update({
+      premium: estPremium,
+      premiumExpire: nouvelleExpiration
+    }).then(function() {
+      chargerListeClients(); // On rafraîchit la liste
+    }).catch(function(err) {
+      alert("Erreur : " + err.message);
+    });
+    
+  });
+}
+    
+// --- FIN DU FICHIER ---<table><thead><tr><th>Nom</th><th>Motif</th><th>Statut</th><th>Prévu</th><th>Versé</th><th>Solde</th><th>Nb vers.</th></tr></thead><tbody>');
+    liste.forEach(function(c) { var nb = vers.filter(function(v) { return v.candId === c.id; }).length; var solde = c.montantPrevu - (c.totalVerse || 0); w.document.write('<tr><td>' + echapper(c.nom) + '</td><td>' + echapper(c.motif) + '</td><td>' + (c.statut === 'termine' ? 'Terminé' : 'En cours') + '</td><td class="num">' + c.montantPrevu + '$</td><td class="num">' + (c.totalVerse || 0).toFixed(2) + '$</td><td class="num">' + solde.toFixed(2) + '$</td><td class="num">' + nb + '</td></tr>'); });
+    w.document.write('</tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">' + totalPrevu.toFixed(2) + '$</td><td class="num">' + totalVerse.toFixed(2) + '$</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td><td></td></tr></tfoot></table>');
+  });
+  w.document.write('<p style="text-align:center;font-size:11px;color:#888;margin-top:30px">Généré le ' + new Date().toLocaleString('fr-FR') + '</p></body></html>'); w.document.close(); setTimeout(function() { w.print(); }, 600);
+}
+function rapportFinGlobal() {
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }); var vers = versementsProvince().filter(function(v) { return !v.archived; }); var totalVerse = 0, totalPrevu = 0; cands.forEach(function(c) { totalVerse += (c.totalVerse || 0); totalPrevu += c.montantPrevu; });
+  var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div><div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr><tr><td>Terminés</td><td class="num">' + cands.filter(function(c) { return c.statut === 'termine'; }).length + '</td></tr><tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr><tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr><tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr><tr><td>Versements</td><td class="num">' + vers.length + '</td></tr></tbody></table></div>'; document.getElementById('rapportFinBox').innerHTML = html;
+}
+function rapportFinDetaille() {
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); }); var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
+  if (!cands.length) html += '<p>Aucun candidat.</p>';
+  else { cands.forEach(function(c) {
+      html += '<div class="entity-block"><h4>'; if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">'; html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
+      html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div><div class="table-wrapper"><table class="data-table"><tbody>';
+      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr><tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr><tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr></tbody></table></div></div>';
+    });
+  }
+  document.getElementById('rapportFinBox').innerHTML = html;
+}
+// --- FIN DE LA PARTIE 2 ---
+
