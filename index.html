@@ -20,7 +20,6 @@
   </div>
 </div>
 
-<!-- ÉCRAN DE CONNEXION -->
 <div id="loginScreen" class="screen">
   <div class="login-box">
     <img src="logo.png" alt="EMM" class="login-logo" onerror="this.style.display='none'; document.getElementById('loginFallback').style.display='flex';">
@@ -66,6 +65,7 @@
     <div class="card"><h3>📢 Annonces</h3><div id="announcementsBox" class="announcements"><p>Aucune annonce.</p></div></div>
     <div class="card"><h3>👋 Bienvenue</h3><div id="welcomeBox"></div></div>
     <div class="card"><h3>📊 Tableau de bord</h3><div id="dashboardBox"></div></div>
+    
     <div class="card">
       <h3>🔍 Recherche dépouillement (Général)</h3>
       <div class="input-group"><label>Année</label><input type="text" id="gSearchAnnee" placeholder="Ex : 2026"></div>
@@ -76,43 +76,41 @@
       <button class="btn-secondary" onclick="reinitialiserRechercheGeneral()">🔄 Réinitialiser</button>
       <div id="resultatRechercheGeneral"></div>
     </div>
+
+    <div class="card">
+      <h3>🔍 Recherche Fréquence (Général)</h3>
+      <div class="input-group"><label>Année</label><input type="text" id="gSearchFreqAnnee" placeholder="Ex : 2026"></div>
+      <div class="input-group"><label>Mois</label>
+        <select id="gSearchFreqMois"><option value="">-- Tous les mois --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
+      </div>
+      <button class="btn-secondary" onclick="rechercherFreqGeneral()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheFreqGeneral()">🔄 Réinitialiser</button>
+      <div id="resultatRechercheFreqGeneral"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche Finance (Général)</h3>
+      <div class="input-group"><label>Nom du candidat ou entité</label><input type="text" id="gSearchFinTexte" placeholder="Ex : TSHIBOLA..."></div>
+      <button class="btn-secondary" onclick="rechercherFinGeneral()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRechercheFinGeneral()">🔄 Réinitialiser</button>
+      <div id="resultatRechercheFinGeneral"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Recherche Patrimoine (Général)</h3>
+      <div class="input-group"><label>Nom du site ou du bien</label><input type="text" id="gSearchPatTexte" placeholder="Ex : BIANCKYA..."></div>
+      <button class="btn-secondary" onclick="rechercherPatGeneral()">🔍 Rechercher</button>
+      <button class="btn-secondary" onclick="reinitialiserRecherchePatGeneral()">🔄 Réinitialiser</button>
+      <div id="resultatRecherchePatGeneral"></div>
+    </div>
+
     <div class="card">
       <h3>🌍 Rapport Général Consolidé</h3>
       <button class="btn-primary" onclick="rapportGeneralConsolide()">📊 Générer</button>
       <button class="btn-secondary" onclick="imprimerGeneral()">🖨️ Imprimer (Premium)</button>
       <button class="btn-secondary" onclick="exporterWordGeneral()">📄 Word (Premium)</button>
       <button class="btn-secondary" onclick="exporterPDFGeneral()">📕 PDF (Premium)</button>
-      <button class="btn-secondary" onclick="partagerGeneral()">📤 Envoyer</button>
       <div id="rapportGeneralBox"></div>
-      <!-- AJOUT : Recherche Fréquence (Global) -->
-<div class="card">
-  <h3>🔍 Recherche Fréquence (Général)</h3>
-  <div class="input-group"><label>Année</label><input type="text" id="gSearchFreqAnnee" placeholder="Ex : 2026"></div>
-  <div class="input-group"><label>Mois</label>
-    <select id="gSearchFreqMois"><option value="">-- Tous les mois --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
-  </div>
-  <button class="btn-secondary" onclick="rechercherFreqGeneral()">🔍 Rechercher</button>
-  <button class="btn-secondary" onclick="reinitialiserRechercheFreqGeneral()">🔄 Réinitialiser</button>
-  <div id="resultatRechercheFreqGeneral"></div>
-</div>
-
-<!-- AJOUT : Recherche Finance (Global) -->
-<div class="card">
-  <h3>🔍 Recherche Finance (Général)</h3>
-  <div class="input-group"><label>Nom du candidat ou entité</label><input type="text" id="gSearchFinTexte" placeholder="Ex : TSHIBOLA..."></div>
-  <button class="btn-secondary" onclick="rechercherFinGeneral()">🔍 Rechercher</button>
-  <button class="btn-secondary" onclick="reinitialiserRechercheFinGeneral()">🔄 Réinitialiser</button>
-  <div id="resultatRechercheFinGeneral"></div>
-</div>
-
-<!-- AJOUT : Recherche Patrimoine (Global) -->
-<div class="card">
-  <h3>🔍 Recherche Patrimoine (Général)</h3>
-  <div class="input-group"><label>Nom du site ou du bien</label><input type="text" id="gSearchPatTexte" placeholder="Ex : BIANCKYA..."></div>
-  <button class="btn-secondary" onclick="rechercherPatGeneral()">🔍 Rechercher</button>
-  <button class="btn-secondary" onclick="reinitialiserRecherchePatGeneral()">🔄 Réinitialiser</button>
-  <div id="resultatRecherchePatGeneral"></div>
-</div>
     </div>
     <div class="card" style="text-align:center">
       <button class="btn-secondary" onclick="logout()" style="background:#ffebee;color:#c62828;border-color:#c62828">🚪 Se déconnecter</button>
@@ -649,11 +647,24 @@
   <!-- ==================== ONGLET ADMIN ==================== -->
   <div id="tab-admin" class="main-tab-content">
     <div class="card">
-  <h3>👤 Mon compte</h3>
-  <div id="monCompteBox"></div>
+      <h3>👤 Mon compte</h3>
+      <div id="monCompteBox"></div>
     </div>
+
+    <!-- BONUS : Gestion des clients Premium -->
+    <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
+      <h3>⚡ Gestion des clients Premium</h3>
+      <p style="font-size:12px; color:#666; margin-bottom:10px;">Liste des comptes connectés. Vous pouvez gérer leur abonnement ici.</p>
+      
+      <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
+      
+      <div id="listeClientsAdmin">
+        <p style="color:#888; font-size:13px;">Cliquez sur "Rafraîchir" pour voir les comptes.</p>
+      </div>
+    </div>
+
     <div class="card">
-      <h3>👥 Gestion des utilisateurs</h3>
+      <h3>👥 Gestion des utilisateurs (Local)</h3>
       <div class="input-group"><label>Nom</label><input type="text" id="uNom"></div>
       <div class="input-group"><label>Mot de passe</label><input type="text" id="uPass"></div>
       <div class="input-group"><label>Rôle</label>
@@ -661,7 +672,7 @@
       </div>
       <button class="btn-primary" onclick="ajouterUtilisateur()">Ajouter</button>
       <button class="btn-secondary" onclick="reinitialiserFormUtilisateur()">🔄 Réinitialiser</button>
-      <h4>Liste des utilisateurs</h4>
+      <h4>Liste des utilisateurs locaux</h4>
       <div id="listeUtilisateurs"></div>
     </div>
 
@@ -694,6 +705,7 @@
 
 </div>
 
+<!-- MODAL PROVINCE -->
 <div id="provinceModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🌍 Sélectionner la province</h3>
@@ -705,25 +717,39 @@
   </div>
 </div>
 
+<!-- MODAL PREMIUM (OPTION B) -->
 <div id="premiumModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>⭐ Abonnement Premium</h3>
-    <div id="premiumStatusBox" style="margin-bottom:15px; font-size:14px; text-align:center;"></div>
-    <p style="font-size:12px;color:#666;margin-bottom:12px;text-align:center;">Débloquez l'exportation PDF et les impressions.</p>
-    <div style="background:#f0f4f0; padding:10px; border-radius:8px; border:1px dashed #0a6e2c; margin-bottom:15px;">
-      <p style="font-size:12px; color:#0a6e2c; font-weight:bold; margin-bottom:5px;">Payer par Mobile Money</p>
-      <p style="font-size:12px;">Envoyez 10$ au : <strong>+243 976 286 929</strong> (EMM Mondial).</p>
-      <p style="font-size:11px; color:#666; margin-top:5px;">Mettez le nom de votre église dans la référence du transfert.</p>
+    <p style="font-size:13px;color:#666;margin-bottom:15px;text-align:center;">Débloquez l'exportation PDF, les impressions et les signatures.</p>
+    
+    <div style="background:#f0f4f0; padding:15px; border-radius:8px; border:2px dashed #0a6e2c; margin-bottom:15px;">
+      <p style="font-size:14px; color:#0a6e2c; font-weight:bold; margin-bottom:10px; text-align:center;">💳 Payer 10$ par Mobile Money</p>
+      
+      <div style="margin-bottom:8px; font-size:13px;">
+        <strong>📱 M-Pesa :</strong> +243 826 222 264
+      </div>
+      <div style="margin-bottom:12px; font-size:13px;">
+        <strong>📱 Airtel Money :</strong> +243 976 286 929
+      </div>
+      
+      <p style="font-size:12px; color:#e65100; font-weight:bold; margin-top:10px;">⚠️ Important : Mettez le nom de votre église dans la référence du transfert.</p>
     </div>
-    <div class="input-group">
-      <label>Code d'activation</label>
-      <input type="text" id="premiumCode" placeholder="Ex: EMM-PREM-OK">
+
+    <div style="background:#fffde7; padding:10px; border-radius:8px; border-left:4px solid #f9a825; margin-bottom:15px;">
+      <p style="font-size:12px; color:#333; line-height:1.4;">
+        <strong>Comment activer votre compte ?</strong><br>
+        1. Faites le transfert.<br>
+        2. Envoyez la capture d'écran au <strong>+243 976 286 929</strong> par WhatsApp.<br>
+        3. Dès que nous vérifions le paiement, votre compte sera activé dans les 5 minutes.
+      </p>
     </div>
-    <button class="btn-primary" onclick="activerPremium()">Activer</button>
-    <button class="btn-secondary" onclick="fermerModalPremium()">Fermer</button>
+
+    <button class="btn-primary" onclick="fermerModalPremium()">Fermer</button>
   </div>
 </div>
 
+<!-- MODAL OPTIONS PDF -->
 <div id="pdfOptionsModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🖨️ Options d'impression / PDF</h3>
@@ -761,19 +787,13 @@
 
 <div id="offlineBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#e65100,#ff6d00);color:white;text-align:center;padding:8px;font-size:12px;font-weight:600;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.2);">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
 
-<!-- Vos scripts d'origine -->
 <script src="db.js"></script>
-<script src="app.js"></script>
-
-<!-- AJOUTEZ CES LIGNES JUSTE EN DESSOUS -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js" defer></script>
 <script src="firebase-config.js" defer></script>
+<script src="app.js"></script>
 <script src="premium.js" defer></script>
-
-<!-- LE MODULE QUI FAIT LE LIEN SANS CASSER APP.JS -->
-<script src="premium.js"></script>
 
 <script>
 if ('serviceWorker' in navigator) {
@@ -785,6 +805,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-</html>
-</body>
-  </html>
+      </html>
