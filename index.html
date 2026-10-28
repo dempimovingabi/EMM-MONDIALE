@@ -60,7 +60,6 @@
     <button class="main-tab" onclick="switchMainTab('admin', this)">⚙️ Admin</button>
   </div>
 
-  <!-- ==================== ONGLET GÉNÉRAL ==================== -->
   <div id="tab-general" class="main-tab-content active">
     <div class="card"><h3>📢 Annonces</h3><div id="announcementsBox" class="announcements"><p>Aucune annonce.</p></div></div>
     <div class="card"><h3>👋 Bienvenue</h3><div id="welcomeBox"></div></div>
@@ -117,7 +116,6 @@
     </div>
   </div>
 
-  <!-- ==================== ONGLET FRÉQUENCE ==================== -->
   <div id="tab-frequence" class="main-tab-content">
     <div class="card">
       <h3>📊 Choix du rapport</h3>
@@ -324,7 +322,6 @@
     </div>
   </div>
 
-  <!-- ==================== ONGLET FINANCE ==================== -->
   <div id="tab-finance" class="main-tab-content">
     <div class="card">
       <h3>➕ Ajouter un candidat</h3>
@@ -437,7 +434,6 @@
     </div>
   </div>
 
-  <!-- ==================== ONGLET DÉPOUILLEMENT ==================== -->
   <div id="tab-depouillement" class="main-tab-content">
     <div class="card">
       <h3>📅 Informations de la séance</h3>
@@ -538,7 +534,6 @@
     </div>
   </div>
 
-  <!-- ==================== ONGLET PATRIMOINE ==================== -->
   <div id="tab-patrimoine" class="main-tab-content">
     <div class="card">
       <h3>🏛️ Gestion des Sites</h3>
@@ -620,7 +615,6 @@
     </div>
   </div>
 
-  <!-- ==================== ONGLET ARCHIVES ==================== -->
   <div id="tab-archives" class="main-tab-content">
     <div class="card">
       <h3>🔍 Filtrer les archives</h3>
@@ -644,7 +638,6 @@
     <div id="archivesBox"></div>
   </div>
 
-  <!-- ==================== ONGLET ADMIN ==================== -->
   <div id="tab-admin" class="main-tab-content">
     <div class="card">
       <h3>👤 Mon compte</h3>
@@ -705,7 +698,6 @@
 
 </div>
 
-<!-- MODAL PROVINCE -->
 <div id="provinceModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🌍 Sélectionner la province</h3>
@@ -717,7 +709,6 @@
   </div>
 </div>
 
-<!-- MODAL PREMIUM (OPTION B) -->
 <div id="premiumModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>⭐ Abonnement Premium</h3>
@@ -749,7 +740,6 @@
   </div>
 </div>
 
-<!-- MODAL OPTIONS PDF -->
 <div id="pdfOptionsModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h3>🖨️ Options d'impression / PDF</h3>
@@ -787,21 +777,12 @@
 
 <div id="offlineBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#e65100,#ff6d00);color:white;text-align:center;padding:8px;font-size:12px;font-weight:600;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.2);">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
 
+<!-- SCRIPTS (Ordre optimisé pour rapidité) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="firebase-config.js"></script>
 <script src="db.js"></script>
 <script src="app.js"></script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').then(function(reg) {
-      console.log('✅ Service Worker actif');
-    }).catch(function(e) { console.log('SW erreur:', e); });
-  });
-}
-</script>
 </body>
       </html>
