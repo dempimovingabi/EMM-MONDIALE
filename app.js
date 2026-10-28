@@ -540,15 +540,61 @@ function confirmerImpressionPdf() {
 
 function signatureBlockHTML() {
   var couleur = getSignatureColor();
-  var presets = ['#0a6e2c','#000000','#1976d2','#d32f2f','#6a1b9a','#e65100','#1b5e20','#37474f'];
+  var couleurEncre = getSignatureEncreColor();
+  var presetsCases = ['#0a6e2c','#000000','#1976d2','#d32f2f','#6a1b9a','#e65100','#1b5e20','#37474f'];
   var presetsHtml = '';
-  presets.forEach(function(c) {
+  presetsCases.forEach(function(c) {
     var sel = (c.toLowerCase() === couleur.toLowerCase());
-    presetsHtml += '<button type="button" data-color="' + c + '" onclick="appliquerCouleurSignature(\'' + c + '\')" ' +
-      'style="width:30px;height:30px;border-radius:50%;border:2px solid white;background:' + c + ';cursor:pointer;padding:0;' +
-      (sel ? 'box-shadow:0 0 0 2px #333;' : 'box-shadow:0 0 0 1px #ddd;') + '" ' +
-      'title="' + c + '"></button>';
+    presetsHtml += '<button type="button" data-color="' + c + '" onclick="appliquerCouleurSignature(\'' + c + '\')" style="width:30px;height:30px;border-radius:50%;border:2px solid white;background:' + c + ';cursor:pointer;padding:0;' + (sel ? 'box-shadow:0 0 0 2px #333;' : 'box-shadow:0 0 0 1px #ddd;') + '" title="' + c + '"></button>';
   });
+  
+  var presetsEncre = ['#111111','#1976d2','#0a6e2c','#d32f2f','#6a1b9a','#e65100'];
+  var presetsEncreHtml = '';
+  presetsEncre.forEach(function(c) {
+    var sel = c.toLowerCase() === couleurEncre.toLowerCase();
+    presetsEncreHtml += '<button type="button" class="sig-encre-btn" data-encre="' + c + '" onclick="appliquerCouleurSignatureEncre(\'' + c + '\')" style="width:26px;height:26px;border-radius:50%;border:2px solid white;background:' + c + ';cursor:pointer;padding:0;' + (sel ? 'box-shadow:0 0 0 2px #333;' : 'box-shadow:0 0 0 1px #ddd;') + '" title="' + c + '"></button>';
+  });
+
+  return '<div class="signature-block" style="margin-top:40px;page-break-inside:avoid">' +
+    '<div class="signature-color-picker" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:10px;background:#f0f4f0;border-radius:8px;border:2px dashed #0a6e2c">' +
+      '<div style="font-size:11px;color:#0a6e2c;font-weight:700;text-align:center;margin-bottom:2px">🎨 Couleur de la CASE de signature</div>' +
+      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">' + presetsHtml + '</div>' +
+      '<div style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:4px">' +
+        '<label style="font-size:11px;color:#555">Perso :</label>' +
+        '<input type="color" value="' + couleur + '" oninput="appliquerCouleurSignature(this.value)" onchange="appliquerCouleurSignature(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">' +
+        '<input type="text" value="' + couleur + '" onchange="appliquerCouleurSignature(this.value)" maxlength="7" style="width:90px;padding:6px 8px;border:2px solid #ddd;border-radius:6px;font-size:12px;font-family:monospace;text-align:center">' +
+        '<button type="button" onclick="appliquerCouleurSignature(\'#0a6e2c\')" style="padding:6px 10px;border:1px solid #0a6e2c;border-radius:6px;background:#e8f5e9;color:#0a6e2c;cursor:pointer;font-size:11px;font-weight:600">↺ Reset</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="sig-encre-picker" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff8e1;padding:10px;border-radius:8px;border:2px dashed #e65100;margin-bottom:12px">' +
+      '<div style="font-size:11px;color:#e65100;font-weight:700;width:100%;text-align:center;margin-bottom:2px">✒️ Couleur de l\'ENCRE de la signature (le tracé)</div>' +
+      '<input type="color" value="' + couleurEncre + '" oninput="appliquerCouleurSignatureEncre(this.value)" onchange="appliquerCouleurSignatureEncre(this.value)" style="width:44px;height:32px;padding:2px;border:2px solid #ddd;border-radius:6px;cursor:pointer;background:white">' +
+      '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;flex:1">' + presetsEncreHtml + '</div>' +
+    '</div>' +
+    '<table style="width:100%;border:none;border-collapse:separate"><tr>' +
+      '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
+        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:8px;background:#f9f9f9">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+            '<span class="signature-label" style="font-size:11pt;color:#666;font-weight:600">✍️ Signature</span>' +
+            '<button type="button" onclick="effacerSignatureBlock(this)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;font-size:11px">🧹 Effacer</button>' +
+          '</div>' +
+          '<canvas class="sig-canvas" style="width:100%;height:110px;touch-action:none;display:block;background:white;border:1px dashed #ccc;border-radius:6px;cursor:crosshair"></canvas>' +
+          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';margin-top:6px;padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">Le Responsable</div>' +
+        '</div>' +
+      '</td>' +
+      '<td style="width:4%;padding:0;border:none"></td>' +
+      '<td style="width:48%;padding:0;border:none;vertical-align:top">' +
+        '<div class="signature-box" style="border:2px solid ' + couleur + ';border-radius:8px;padding:8px;background:#f9f9f9">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+            '<span class="signature-label" style="font-size:11pt;color:#666;font-weight:600">✍️ Signature</span>' +
+            '<button type="button" onclick="effacerSignatureBlock(this)" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;font-size:11px">🧹 Effacer</button>' +
+          '</div>' +
+          '<canvas class="sig-canvas" style="width:100%;height:110px;touch-action:none;display:block;background:white;border:1px dashed #ccc;border-radius:6px;cursor:crosshair"></canvas>' +
+          '<div class="signature-line" style="border-top:1px solid ' + couleur + ';margin-top:6px;padding-top:5px;font-size:11pt;text-align:center;font-weight:700;color:' + couleur + '">L\'Administrateur</div>' +
+        '</div>' +
+      '</td>' +
+    '</tr></table></div>';
+                   }
   return '<div class="signature-block" style="margin-top:40px;page-break-inside:avoid">' +
     '<div class="signature-color-picker" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:10px;background:#f0f4f0;border-radius:8px;border:2px dashed #0a6e2c">' +
       '<div style="font-size:11px;color:#0a6e2c;font-weight:700;text-align:center;margin-bottom:2px">🎨 Couleur de la signature</div>' +
@@ -2264,40 +2310,80 @@ function previewPhotoCandidat(ev) {
 }
 
 function initSignature() {
-  var canvas = document.getElementById('vSignatureCanvas'); if (!canvas) return;
-  var ratio = window.devicePixelRatio || 1; var rect = canvas.getBoundingClientRect();
-  if (rect.width === 0 || rect.height === 0) { setTimeout(initSignature, 200); return; }
-  canvas.width = rect.width * ratio; canvas.height = rect.height * ratio;
-  signatureCanvas = canvas; signatureCtx = canvas.getContext('2d');
-  signatureCtx.setTransform(1, 0, 0, 1, 0, 0); signatureCtx.scale(ratio, ratio);
-  signatureCtx.lineWidth = 3; signatureCtx.lineCap = 'round'; signatureCtx.lineJoin = 'round';
-  signatureCtx.strokeStyle = getSignatureEncreColor(); // <-- UTILISE LA COULEUR CHOISIE
+  var canvas = document.getElementById('vSignatureCanvas'); 
+  if (!canvas) return;
   
-  if (canvas.dataset.listeners === '1') return; canvas.dataset.listeners = '1';
+  var ratio = window.devicePixelRatio || 1; 
+  var rect = canvas.getBoundingClientRect();
+  
+  // Si le canvas est caché, on attend qu'il s'affiche
+  if (rect.width === 0 || rect.height === 0) { 
+    setTimeout(initSignature, 200); 
+    return; 
+  }
+  
+  canvas.width = rect.width * ratio; 
+  canvas.height = rect.height * ratio;
+  signatureCanvas = canvas; 
+  signatureCtx = canvas.getContext('2d');
+  
+  signatureCtx.setTransform(1, 0, 0, 1, 0, 0); 
+  signatureCtx.scale(ratio, ratio);
+  signatureCtx.lineWidth = 3; 
+  signatureCtx.lineCap = 'round'; 
+  signatureCtx.lineJoin = 'round';
+  signatureCtx.strokeStyle = getSignatureEncreColor(); 
+  signatureCtx.fillStyle = getSignatureEncreColor();
+  
+  if (canvas.dataset.listeners === '1') return; 
+  canvas.dataset.listeners = '1';
   
   var drawing = false, lastX = 0, lastY = 0;
-  function getPos(e) { var r = canvas.getBoundingClientRect(); var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e); return { x: p.clientX - r.left, y: p.clientY - r.top }; }
+  
+  function getPos(e) { 
+    var r = canvas.getBoundingClientRect(); 
+    var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e); 
+    return { x: p.clientX - r.left, y: p.clientY - r.top }; 
+  }
   
   function start(e) { 
-    e.preventDefault(); drawing = true; 
-    signatureCtx.strokeStyle = getSignatureEncreColor(); // <-- MET A JOUR LA COULEUR
-    var p = getPos(e); lastX = p.x; lastY = p.y; 
-    signatureCtx.beginPath(); signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); signatureCtx.fill(); 
+    e.preventDefault(); 
+    drawing = true; 
+    signatureCtx.strokeStyle = getSignatureEncreColor(); 
+    signatureCtx.fillStyle = getSignatureEncreColor();
+    var p = getPos(e); 
+    lastX = p.x; lastY = p.y; 
+    signatureCtx.beginPath(); 
+    signatureCtx.arc(p.x, p.y, 1.5, 0, Math.PI * 2); 
+    signatureCtx.fill(); 
     signatureVide = false; 
-    var st = document.getElementById('vSignatureStatus'); if (st) { st.textContent = '✅ Signé'; st.style.color = '#0a6e2c'; } 
+    var st = document.getElementById('vSignatureStatus'); 
+    if (st) { st.textContent = '✅ Signé'; st.style.color = '#0a6e2c'; } 
   }
   
   function move(e) { 
-    if (!drawing) return; e.preventDefault(); 
-    signatureCtx.strokeStyle = getSignatureEncreColor(); // <-- MET A JOUR LA COULEUR
+    if (!drawing) return; 
+    e.preventDefault(); 
+    signatureCtx.strokeStyle = getSignatureEncreColor(); 
     var p = getPos(e); 
-    signatureCtx.beginPath(); signatureCtx.moveTo(lastX, lastY); signatureCtx.lineTo(p.x, p.y); signatureCtx.stroke(); 
-    lastX = p.x; lastY = p.y; signatureVide = false; 
+    signatureCtx.beginPath(); 
+    signatureCtx.moveTo(lastX, lastY); 
+    signatureCtx.lineTo(p.x, p.y); 
+    signatureCtx.stroke(); 
+    lastX = p.x; lastY = p.y; 
+    signatureVide = false; 
   }
   
   function stop() { drawing = false; }
-  canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop);
-  canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); canvas.addEventListener('touchend', stop); canvas.addEventListener('touchcancel', stop);
+  
+  canvas.addEventListener('mousedown', start); 
+  canvas.addEventListener('mousemove', move); 
+  canvas.addEventListener('mouseup', stop); 
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, { passive: false }); 
+  canvas.addEventListener('touchmove', move, { passive: false }); 
+  canvas.addEventListener('touchend', stop); 
+  canvas.addEventListener('touchcancel', stop);
 }
 
 function effacerSignature() {
