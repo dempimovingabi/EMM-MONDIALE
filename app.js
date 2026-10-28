@@ -319,11 +319,9 @@ function captureSignaturesFromDOM() {
 // ========== SPLASH ==========
 function showSplash() {
   showScreen('splashScreen');
-  setTimeout(function() {
-    var sess = DB.get('session');
-    if (sess) { currentUser = sess; appliquerSession(); showScreen('mainScreen'); }
-    else { showScreen('loginScreen'); var inp = document.getElementById('loginUsername'); if (inp) inp.focus(); }
-  }, 2000);
+  // On ne met plus de délai. 
+  // Firebase (onAuthStateChanged) va automatiquement nous rediriger 
+  // vers 'loginScreen' ou 'mainScreen' dès qu'il aura vérifié la connexion.
 }
 
 function showScreen(id) {
