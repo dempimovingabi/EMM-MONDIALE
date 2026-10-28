@@ -1701,31 +1701,33 @@ function rechercherPatGeneral() {
 function reinitialiserRecherchePatGeneral() { document.getElementById('gSearchPatTexte').value = ''; document.getElementById('resultatRecherchePatGeneral').innerHTML = ''; }
 
 // ========== INITIALISATION GENERALE ==========
-window.addEventListener('load', function() {
-  // 1. On affiche le splash screen instantanément
+document.addEventListener('DOMContentLoaded', function() {
+  // 1. On affiche l'écran de chargement instantanément
   showScreen('splashScreen');
   
-  // 2. On lance l'initialisation de la base de données en arrière-plan
-  DB.init().then(function() {
-    try { initDB(); } catch(e) {}
-    console.log('✅ Base de données prête');
-  }).catch(function(e) {
-    console.error('❌ Erreur init DB:', e);
-  });
-
-  // 3. On initialise l'interface SANS attendre la base de données
+  // 2. On initialise l'interface immédiatement
   rafraichirProvinceHeader(); 
   peuplerProvinceSelects(); 
   syncSignatureEncrePickers(); 
-  showSplash(); // Le splash disparaîtra après 800ms max
   
-  setTimeout(initSignature, 500); 
-  setTimeout(initSignature, 1500);
+  // 3. On force le passage au login après 800ms MAX, sans attendre Firebase
+  setTimeout(function() {
+    var splash = document.getElementById('splashScreen');
+    if (splash && splash.classList.contains('active')) {
+      showScreen('loginScreen');
+    }
+  }, 800);
+
+  // 4. En arrière-plan, on initialise la base de données locale
+  setTimeout(function() {
+    DB.init().then(function() {
+      try { initDB(); } catch(e) {}
+      console.log('✅ Base locale prête');
+    }).catch(function(e) { console.error('❌ DB:', e); });
+  }, 100);
+  
+  setTimeout(initSignature, 800); 
 });
-document.addEventListener('click', function(e) { var menu = document.getElementById('mainMenu'); var btn = document.querySelector('.btn-hamburger'); if (menu && menu.classList.contains('open') && !menu.contains(e.target) && btn && !btn.contains(e.target)) { fermerMainMenu(); } });
-window._signalerSauvegarde = function() { var el = document.getElementById('saveIndicator'); if (!el) return; el.style.opacity = '1'; el.textContent = '💾 Sauvegardé'; clearTimeout(window._saveTimeout); window._saveTimeout = setTimeout(function() { el.style.opacity = '0.35'; el.textContent = '💾'; }, 1200); };
-function majBandeauOffline() { var banner = document.getElementById('offlineBanner'); if (!banner) return; banner.style.display = navigator.onLine ? 'none' : 'block'; }
-window.addEventListener('online', majBandeauOffline); window.addEventListener('offline', majBandeauOffline); window.addEventListener('load', majBandeauOffline);
 
 // =========================================================
 // 🔥 INTÉGRATION FIREBASE & PREMIUM (SUPER ADMIN)
