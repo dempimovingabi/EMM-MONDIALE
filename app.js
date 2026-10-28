@@ -189,13 +189,12 @@ function captureSignaturesFromDOM() {
 // ========== SPLASH & UI ==========
 function showSplash() {
   showScreen('splashScreen');
-  // CORRECTION DE VITESSE : On force le passage au login après 800ms MAX
   setTimeout(function() {
     var splash = document.getElementById('splashScreen');
     if (splash && splash.classList.contains('active')) {
       showScreen('loginScreen');
     }
-  }, 800);
+  }, 800); // CORRECTION DE VITESSE : 800ms max
 }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
@@ -1132,14 +1131,7 @@ function rapportFinDetaille() {
   else { cands.forEach(function(c) {
       html += '<div class="entity-block"><h4>'; if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">'; html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div><div class="table-wrapper"><table class="data-table"><tbody>';
-      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr><tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr><tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr></tbody></table></div></div>';
-    });
-  }
-  document.getElementById('rapportFinBox').innerHTML = html;
-}
-// --- FIN DE LA PARTIE 2 ---
-
-// ========== MODULE III — SÉANCE DÉPOUILLEMENT ==========
+      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr>// ========== MODULE III — SÉANCE DÉPOUILLEMENT ==========
 function demarrerSeance() {
   var prov = exigerProvince(); if (!prov) return;
   var annee = document.getElementById('dAnnee').value; var mois = document.getElementById('dMois').value;
@@ -1700,9 +1692,9 @@ function rechercherPatGeneral() {
 }
 function reinitialiserRecherchePatGeneral() { document.getElementById('gSearchPatTexte').value = ''; document.getElementById('resultatRecherchePatGeneral').innerHTML = ''; }
 
-// ========== INITIALISATION GENERALE ==========
+// ========== INITIALISATION GENERALE (ULTRA RAPIDE) ==========
 document.addEventListener('DOMContentLoaded', function() {
-  // 1. On affiche l'écran de chargement instantanément
+  // 1. On affiche le splash screen instantanément
   showScreen('splashScreen');
   
   // 2. On initialise l'interface immédiatement
@@ -1728,6 +1720,11 @@ document.addEventListener('DOMContentLoaded', function() {
   
   setTimeout(initSignature, 800); 
 });
+
+document.addEventListener('click', function(e) { var menu = document.getElementById('mainMenu'); var btn = document.querySelector('.btn-hamburger'); if (menu && menu.classList.contains('open') && !menu.contains(e.target) && btn && !btn.contains(e.target)) { fermerMainMenu(); } });
+window._signalerSauvegarde = function() { var el = document.getElementById('saveIndicator'); if (!el) return; el.style.opacity = '1'; el.textContent = '💾 Sauvegardé'; clearTimeout(window._saveTimeout); window._saveTimeout = setTimeout(function() { el.style.opacity = '0.35'; el.textContent = '💾'; }, 1200); };
+function majBandeauOffline() { var banner = document.getElementById('offlineBanner'); if (!banner) return; banner.style.display = navigator.onLine ? 'none' : 'block'; }
+window.addEventListener('online', majBandeauOffline); window.addEventListener('offline', majBandeauOffline); window.addEventListener('load', majBandeauOffline);
 
 // =========================================================
 // 🔥 INTÉGRATION FIREBASE & PREMIUM (SUPER ADMIN)
@@ -1814,7 +1811,6 @@ function ecouterStatutPremium(uid) {
     if (btnPrem) btnPrem.style.display = 'block';
     if (typeof majInterfacePremium === 'function') majInterfacePremium();
   });
-        }
 }
 var _ancien_ouvrirModalPdf = ouvrirModalPdf;
 ouvrirModalPdf = function(contexte) {
@@ -1933,4 +1929,8 @@ function modifierAbonnement(emailCible, jours) {
     
   });
 }
-// --- FIN DU FICHIER ---
+// --- FIN DU FICHIER ---<tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr><tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr></tbody></table></div></div>';
+    });
+  }
+  
+
