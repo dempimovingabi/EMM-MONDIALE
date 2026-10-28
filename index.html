@@ -84,6 +84,35 @@
       <button class="btn-secondary" onclick="exporterPDFGeneral()">📕 PDF (Premium)</button>
       <button class="btn-secondary" onclick="partagerGeneral()">📤 Envoyer</button>
       <div id="rapportGeneralBox"></div>
+      <!-- AJOUT : Recherche Fréquence (Global) -->
+<div class="card">
+  <h3>🔍 Recherche Fréquence (Général)</h3>
+  <div class="input-group"><label>Année</label><input type="text" id="gSearchFreqAnnee" placeholder="Ex : 2026"></div>
+  <div class="input-group"><label>Mois</label>
+    <select id="gSearchFreqMois"><option value="">-- Tous les mois --</option><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option><option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option></select>
+  </div>
+  <button class="btn-secondary" onclick="rechercherFreqGeneral()">🔍 Rechercher</button>
+  <button class="btn-secondary" onclick="reinitialiserRechercheFreqGeneral()">🔄 Réinitialiser</button>
+  <div id="resultatRechercheFreqGeneral"></div>
+</div>
+
+<!-- AJOUT : Recherche Finance (Global) -->
+<div class="card">
+  <h3>🔍 Recherche Finance (Général)</h3>
+  <div class="input-group"><label>Nom du candidat ou entité</label><input type="text" id="gSearchFinTexte" placeholder="Ex : TSHIBOLA..."></div>
+  <button class="btn-secondary" onclick="rechercherFinGeneral()">🔍 Rechercher</button>
+  <button class="btn-secondary" onclick="reinitialiserRechercheFinGeneral()">🔄 Réinitialiser</button>
+  <div id="resultatRechercheFinGeneral"></div>
+</div>
+
+<!-- AJOUT : Recherche Patrimoine (Global) -->
+<div class="card">
+  <h3>🔍 Recherche Patrimoine (Général)</h3>
+  <div class="input-group"><label>Nom du site ou du bien</label><input type="text" id="gSearchPatTexte" placeholder="Ex : BIANCKYA..."></div>
+  <button class="btn-secondary" onclick="rechercherPatGeneral()">🔍 Rechercher</button>
+  <button class="btn-secondary" onclick="reinitialiserRecherchePatGeneral()">🔄 Réinitialiser</button>
+  <div id="resultatRecherchePatGeneral"></div>
+</div>
     </div>
     <div class="card" style="text-align:center">
       <button class="btn-secondary" onclick="logout()" style="background:#ffebee;color:#c62828;border-color:#c62828">🚪 Se déconnecter</button>
