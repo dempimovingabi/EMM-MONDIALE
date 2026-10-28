@@ -1734,17 +1734,26 @@ var userPremiumExpire = 0;
 var SUPER_ADMIN_EMAIL = "dedickmpiana@gmail.com";
 
 function login() {
+  var errBox = document.getElementById('loginError');
+  if (typeof auth === 'undefined' || typeof dbFS === 'undefined' || !firebase.apps || !firebase.apps.length) {
+    if (errBox) errBox.textContent = '⏳ Chargement en cours, patientez 2 secondes...';
+    return;
+  }
   var email = document.getElementById('loginEmail').value.trim();
   var pass = document.getElementById('loginPassword').value.trim();
-  var errBox = document.getElementById('loginError');
   if (!email || !pass) { errBox.textContent = '❌ Entrez l\'email et le mot de passe'; return; }
   errBox.textContent = '⏳ Connexion...';
   auth.signInWithEmailAndPassword(email, pass).then(function() { errBox.textContent = ''; document.getElementById('loginPassword').value = ''; }).catch(function(error) { errBox.textContent = '❌ ' + error.message; });
 }
+
 function creerCompte() {
+  var errBox = document.getElementById('loginError');
+  if (typeof auth === 'undefined' || typeof dbFS === 'undefined' || !firebase.apps || !firebase.apps.length) {
+    if (errBox) errBox.textContent = '⏳ Chargement en cours, patientez 2 secondes...';
+    return;
+  }
   var email = document.getElementById('loginEmail').value.trim();
   var pass = document.getElementById('loginPassword').value.trim();
-  var errBox = document.getElementById('loginError');
   if (!email || !pass) { errBox.textContent = '❌ Entrez un email et un mot de passe (min 6 car.)'; return; }
   errBox.textContent = '⏳ Création...';
   auth.createUserWithEmailAndPassword(email, pass).then(function(userCredential) {
@@ -1752,10 +1761,13 @@ function creerCompte() {
     errBox.textContent = '✅ Compte créé !';
   }).catch(function(error) { errBox.textContent = '❌ ' + error.message; });
 }
+
 function logout() {
   if (!confirm('Voulez-vous vraiment vous déconnecter ?')) return;
+  if (typeof auth === 'undefined') { currentUser = null; showScreen('loginScreen'); return; }
   auth.signOut().then(function() { currentUser = null; userPremiumStatus = false; userPremiumExpire = 0; showScreen('loginScreen'); });
 }
+
 auth.onAuthStateChanged(function(user) {
   if (user) {
     currentUser = user;
