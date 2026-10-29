@@ -782,27 +782,33 @@
 
 <div id="offlineBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#e65100,#ff6d00);color:white;text-align:center;padding:8px;font-size:12px;font-weight:600;z-index:999;box-shadow:0 -2px 8px rgba(0,0,0,0.2);">📵 Mode hors ligne — Vos données sont sauvegardées localement</div>
 
-<!-- ON DESACTIVE FIREBASE ET LE SERVICE WORKER POUR LE TEST -->
-<!--
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js" defer></script>
-<script src="firebase-config.js" defer></script>
--->
+  <!-- SDK Firebase (Version 8) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<script src="db.js"></script>
-<script src="app.js"></script>
+  <!-- Initialisation de Firebase -->
+  <script>
+    // REMPLACEZ CE BLOC PAR VOTRE CONFIGURATION COPIÉE À L'ÉTAPE 1
+    var firebaseConfig = {
+      apiKey: "VOTRE_API_KEY",
+      authDomain: "VOTRE_PROJET.firebaseapp.com",
+      projectId: "VOTRE_PROJET",
+      storageBucket: "VOTRE_PROJET.appspot.com",
+      messagingSenderId: "VOTRE_SENDER_ID",
+      appId: "VOTRE_APP_ID"
+    };
+    
+    // Initialisation
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    var auth = firebase.auth();
+    var dbFS = firebase.firestore();
+  </script>
 
-<!--
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').then(function(reg) {
-      console.log('✅ Service Worker actif');
-    }).catch(function(e) { console.log('SW erreur:', e); });
-  });
-}
-</script>
-
+  <!-- Vos autres scripts (db.js et app.js) doivent être APRÈS Firebase -->
+  <script src="db.js"></script>
+  <script src="app.js"></script>
 </body>
         </html>
