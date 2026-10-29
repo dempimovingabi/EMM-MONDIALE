@@ -1743,7 +1743,14 @@ window.addEventListener('online', majBandeauOffline); window.addEventListener('o
 // =========================================================
 var userPremiumStatus = false;
 var userPremiumExpire = 0;
-var SUPER_ADMIN_EMAIL = "dedickmpiana@gmail.com";
+var SUPER_ADMIN_EMAILS = [
+  "dedickmpiana@gmail.com"
+  // Pour ajouter un développeur, mettez une virgule et son email : "ami@gmail.com"
+];
+
+function isSuperAdmin() {
+  return currentUser && SUPER_ADMIN_EMAILS.includes(currentUser.email);
+}
 
 function login() {
   var errBox = document.getElementById('loginError');
@@ -1766,12 +1773,26 @@ function creerCompte() {
   }
   var email = document.getElementById('loginEmail').value.trim();
   var pass = document.getElementById('loginPassword').value.trim();
+  var phone = document.getElementById('loginPhone') ? document.getElementById('loginPhone').value.trim() : "";
+  
   if (!email || !pass) { errBox.textContent = '❌ Entrez un email et un mot de passe (min 6 car.)'; return; }
+  if (!phone) { errBox.textContent = '❌ Entrez votre numéro WhatsApp'; return; }
+  
   errBox.textContent = '⏳ Création...';
+  
   auth.createUserWithEmailAndPassword(email, pass).then(function(userCredential) {
-    dbFS.collection('users').doc(userCredential.user.uid).set({ email: email, premium: false, premiumExpire: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-    errBox.textContent = '✅ Compte créé !';
-  }).catch(function(error) { errBox.textContent = '❌ ' + error.message; });
+    return dbFS.collection('users').doc(userCredential.user.uid).set({
+      email: email, 
+      phone: phone,
+      premium: false, 
+      premiumExpire: 0, 
+      createdAt: new Date()
+    });
+  }).then(function() {
+    errBox.textContent = '✅ Compte créé et enregistré ! Vous pouvez vous connecter.';
+  }).catch(function(error) { 
+    errBox.textContent = '❌ Erreur : ' + error.message; 
+  });
 }
 
 function logout() {
@@ -1804,7 +1825,7 @@ function ecouterStatutPremium(uid) {
       var data = doc.data(); 
       var expire = data.premiumExpire || 0;
       
-      if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) { 
+      if (isSuperAdmin()) {
         userPremiumStatus = true; 
         userPremiumExpire = now + (365 * 24 * 60 * 60 * 1000); 
       } else if (data.premium === true && expire > now) { 
@@ -1876,7 +1897,7 @@ function majInterfacePremium() {
 // 🔥 GESTION DES CLIENTS PREMIUM (SUPER ADMIN)
 // =========================================================
 function chargerListeClients() {
-  if (!currentUser || currentUser.email !== SUPER_ADMIN_EMAIL) return;
+  if (!isSuperAdmin()) return;
   
   var box = document.getElementById('listeClientsAdmin');
   if(!box) return;
@@ -1887,30 +1908,45 @@ function chargerListeClients() {
       box.innerHTML = "<p>Aucun client trouvé.</p>"; return;
     }
     
-    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Email</th><th>Statut</th><th>Expire le</th><th>Actions</th></tr></thead><tbody>';
+    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Email / Tel</th><th>Statut</th><th>Jours restants</th><th>Forfaits</th><th>Outils</th></tr></thead><tbody>';
     
     querySnapshot.forEach(function(doc) {
       var data = doc.data();
+      var docId = doc.id;
       var email = data.email || 'Inconnu';
-      if (email === SUPER_ADMIN_EMAIL) return; // On ne s'affiche pas nous-même
+      var phone = data.phone || ''; 
+      
+      if (SUPER_ADMIN_EMAILS.includes(email)) return; 
       
       var isPrem = data.premium === true && (data.premiumExpire || 0) > Date.now();
-      var dateExp = (data.premiumExpire && data.premiumExpire > 0) ? new Date(data.premiumExpire).toLocaleDateString('fr-FR') : "-";
+      var isIllimite = data.premiumExpire > 32503680000000; 
       
-      html += '<tr>';
-      html += '<td style="font-size:11px;">' + email + '</td>';
-      html += '<td>' + (isPrem ? '<span class="badge badge-ok">✅ Premium</span>' : '<span class="badge badge-archive">❌ Gratuit</span>') + '</td>';
-      html += '<td class="num">' + dateExp + '</td>';
-      html += '<td style="white-space:nowrap;">';
-      
-      // Bouton pour ajouter 30 jours (et activer si ce n'est pas fait)
-      html += '<button class="btn-mini" style="background:#4caf50;" onclick="modifierAbonnement(\'' + email + '\', 30)">+30 jours</button>';
-      
-      // Bouton pour désactiver
-      if (isPrem) {
-        html += '<button class="btn-mini danger" onclick="modifierAbonnement(\'' + email + '\', 0)">Bloquer</button>';
+      var joursRestants = 0;
+      if (isPrem && !isIllimite) {
+        joursRestants = Math.ceil((data.premiumExpire - Date.now()) / (1000 * 60 * 60 * 24));
       }
       
+      var badgeStatut = isIllimite ? '<span class="badge" style="background:#ffd700;color:#000;font-weight:bold;">♾️ Illimité</span>' : (isPrem ? '<span class="badge badge-ok">✅ Premium</span>' : '<span class="badge badge-archive">❌ Gratuit</span>');
+      var txtJours = isIllimite ? 'À vie' : (isPrem ? joursRestants + ' j' : '-');
+      
+      html += '<tr>';
+      html += '<td style="font-size:11px;">' + email + '<br><span style="color:#666;">' + phone + '</span></td>';
+      html += '<td>' + badgeStatut + '</td>';
+      html += '<td style="text-align:center; font-weight:bold; color:' + (isPrem ? '#0a6e2c' : '#c62828') + '">' + txtJours + '</td>';
+      
+      html += '<td style="white-space:nowrap;">';
+      html += '<button class="btn-mini" style="background:#4caf50;" onclick="modifierAbonnement(\'' + docId + '\', 30)">+30j</button> ';
+      html += '<button class="btn-mini" style="background:#2196f3;" onclick="modifierAbonnement(\'' + docId + '\', 60)">+60j</button> ';
+      html += '<button class="btn-mini" style="background:#ff9800;" onclick="modifierAbonnement(\'' + docId + '\', 90)">+90j</button> ';
+      html += '<button class="btn-mini" style="background:#9c27b0;" onclick="modifierAbonnement(\'' + docId + '\', 9999)">♾️</button>';
+      html += '</td>';
+      
+      html += '<td style="white-space:nowrap;">';
+      if (isPrem && phone) {
+        var dateExp = isIllimite ? 'À vie' : new Date(data.premiumExpire).toLocaleDateString('fr-FR');
+        html += '<button class="btn-mini" style="background:#25D366;" onclick="envoyerWhatsApp(\'' + phone + '\', \'' + email + '\', \'' + dateExp + '\')">📱 WA</button> ';
+      }
+      html += '<button class="btn-mini danger" onclick="supprimerClient(\'' + docId + '\')">🗑️</button>';
       html += '</td></tr>';
     });
     
@@ -1922,36 +1958,92 @@ function chargerListeClients() {
   });
 }
 
-function modifierAbonnement(emailCible, jours) {
-  if (!currentUser || currentUser.email !== SUPER_ADMIN_EMAIL) return;
-  var box = document.getElementById('listeClientsAdmin');
+function modifierAbonnement(docId, jours) {
+  if (!isSuperAdmin()) return;
   
-  dbFS.collection('users').where('email', '==', emailCible).get().then(function(querySnapshot) {
-    if (querySnapshot.empty) return alert("Utilisateur introuvable");
+  dbFS.collection('users').doc(docId).get().then(function(doc) {
+    if (!doc.exists) return;
+    var data = doc.data();
+    var nouvelleExpiration;
     
-    var docId = querySnapshot.docs[0].id;
-    var data = querySnapshot.docs[0].data();
-    
-    var nouvelleExpiration = 0;
-    var estPremium = false;
-    
-    if (jours > 0) {
-      // Si le compte est déjà premium et n'est pas expiré, on ajoute à la date existante
+    if (jours === 9999) {
+      nouvelleExpiration = 32503680000000; 
+    } else {
       var baseDate = (data.premiumExpire && data.premiumExpire > Date.now()) ? data.premiumExpire : Date.now();
       nouvelleExpiration = baseDate + (jours * 24 * 60 * 60 * 1000);
-      estPremium = true;
     }
     
-    dbFS.collection('users').doc(docId).update({
-      premium: estPremium,
+    return dbFS.collection('users').doc(docId).update({
+      premium: true,
       premiumExpire: nouvelleExpiration
-    }).then(function() {
-      chargerListeClients(); // On rafraîchit la liste
-    }).catch(function(err) {
-      alert("Erreur : " + err.message);
     });
-    
-  });
+  }).then(function() {
+    chargerListeClients(); 
+    alert('✅ Abonnement mis à jour !');
+  }).catch(function(err) { alert("Erreur : " + err.message); });
 }
+
+function envoyerWhatsApp(phone, email, dateExp) {
+  var cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
+  var message = "Bonjour ! Votre compte EMM Mondial (" + email + ") a bien été activé. Il est valide jusqu'au : " + dateExp + ". Que Dieu vous bénisse !";
+  window.open("https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(message), '_blank');
+}
+
+function supprimerClient(docId) {
+  if (!isSuperAdmin()) return;
+  if (!confirm("⚠️ Supprimer définitivement ce client ?")) return;
+  
+  dbFS.collection('users').doc(docId).delete().then(function() {
+    chargerListeClients(); 
+    alert("✅ Client supprimé.");
+  }).catch(function(error) {
+    alert("Erreur : " + error.message);
+  });
+        }
+
+// --- DEBUT FONCTIONS PREMIUM ET VERIFICATIONS ---
+var _ancien_ouvrirModalPdf = ouvrirModalPdf;
+ouvrirModalPdf = function(contexte) {
+  if (isSuperAdmin()) { _ancien_ouvrirModalPdf(contexte); return; }
+  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Rapport PDF) est réservée aux églises abonnées Premium.\n\nCliquez sur le bouton ⭐ Premium en haut pour vous abonner."); return; }
+  _ancien_ouvrirModalPdf(contexte);
+};
+
+var _ancien_exporterWordBox = exporterWordBox;
+exporterWordBox = function(boxId, nom) {
+  if (isSuperAdmin()) { _ancien_exporterWordBox(boxId, nom); return; }
+  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Export Word) est réservée aux églises abonnées Premium."); return; }
+  _ancien_exporterWordBox(boxId, nom);
+};
+
+function ouvrirModalPremium() { 
+  if (userPremiumStatus) { alert("✅ Vous êtes Premium actif."); return; } 
+  document.getElementById('premiumModal').style.display = 'flex'; 
+}
+
+function fermerModalPremium() { 
+  document.getElementById('premiumModal').style.display = 'none'; 
+}
+
+function majInterfacePremium() {
+  var box = document.getElementById('monCompteBox');
+  if (box && currentUser) {
+    var isDev = isSuperAdmin(); // LIGNE MODIFIÉE ICI
+    var statut = isDev ? "<span style='color:green'>✅ Développeur (Illimité)</span>" : (userPremiumStatus ? "<span style='color:green'>✅ Premium</span>" : "<span style='color:red'>❌ Gratuit</span>");
+    var expire = (userPremiumStatus && !isDev) ? new Date(userPremiumExpire).toLocaleDateString() : "-";
+    box.innerHTML = "<p><strong>Email :</strong> " + currentUser.email + "</p><p><strong>Statut :</strong> " + statut + "</p>" + (isDev ? "" : "<p><strong>Valide jusqu'au :</strong> " + expire + "</p>");
+    
+    var card = document.getElementById('cardActivationRapide');
+    if (card) {
+      if (isDev) {
+        card.style.display = 'block';
+        if (typeof chargerListeClients === 'function') chargerListeClients();
+      } else {
+        card.style.display = 'none';
+      }
+    }
+  }
+}
+
 
 
