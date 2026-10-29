@@ -1126,12 +1126,24 @@ function rapportFinGlobal() {
   html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr><tr><td>Terminés</td><td class="num">' + cands.filter(function(c) { return c.statut === 'termine'; }).length + '</td></tr><tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr><tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr><tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr><tr><td>Versements</td><td class="num">' + vers.length + '</td></tr></tbody></table></div>'; document.getElementById('rapportFinBox').innerHTML = html;
 }
 function rapportFinDetaille() {
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); }); var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   if (!cands.length) html += '<p>Aucun candidat.</p>';
-  else { cands.forEach(function(c) {
-      html += '<div class="entity-block"><h4>'; if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">'; html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
+  else {
+    cands.forEach(function(c) {
+      html += '<div class="entity-block"><h4>';
+      if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">';
+      html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div><div class="table-wrapper"><table class="data-table"><tbody>';
-      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr>// ========== MODULE III — SÉANCE DÉPOUILLEMENT ==========
+      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr>';
+      html += '<tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr>';
+      html += '<tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr>';
+      html += '</tbody></table></div></div>';
+    });
+  }
+  document.getElementById('rapportFinBox').innerHTML = html;
+}
 function demarrerSeance() {
   var prov = exigerProvince(); if (!prov) return;
   var annee = document.getElementById('dAnnee').value; var mois = document.getElementById('dMois').value;
@@ -1941,8 +1953,5 @@ function modifierAbonnement(emailCible, jours) {
     
   });
 }
-// --- FIN DU FICHIER ---<tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr><tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr></tbody></table></div></div>';
-    });
-  }
-  
+
 
