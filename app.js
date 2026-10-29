@@ -308,14 +308,37 @@ function confirmerImpressionPdf() {
   if (!pdfContexteEnAttente) return;
   var options = lireOptionsPdf(); setSignatureColor(options.signatureColor);
   var ctx = pdfContexteEnAttente; var contenu = '', titre = 'Rapport';
-  if (ctx.type === 'box') { var box = document.getElementById(ctx.boxId); if (!box || !box.innerHTML.trim()) { fermerModalPdf(); return alert('Rapport vide'); } contenu = box.innerHTML; titre = ctx.titre || 'Rapport EMM'; }
-  else if (ctx.type === 'html') { contenu = ctx.html; titre = ctx.titre || 'Rapport EMM'; }
+  
+  if (ctx.type === 'box') { 
+    var box = document.getElementById(ctx.boxId); 
+    if (!box || !box.innerHTML.trim()) { fermerModalPdf(); return alert('Rapport vide'); } 
+    contenu = box.innerHTML; titre = ctx.titre || 'Rapport EMM'; 
+  } else if (ctx.type === 'html') { 
+    contenu = ctx.html; titre = ctx.titre || 'Rapport EMM'; 
+  }
+  
   if (!contenu) { fermerModalPdf(); return alert('Rapport vide'); }
-  var w = window.open('', '_blank'); var css = cssImpression(options);
+  
+  // TENTATIVE D'OUVERTURE DE LA FENÊTRE
+  var w = window.open('', '_blank'); 
+  
+  // SI LE NAVIGATEUR BLOQUE LA FENÊTRE (Pop-up bloqué)
+  if (!w) {
+    alert("⚠️ Votre navigateur a bloqué l'ouverture de la fenêtre d'impression.\n\nAllez dans les paramètres de votre navigateur et autorisez les 'Pop-ups' pour ce site.");
+    return;
+  }
+  
+  var css = cssImpression(options);
   w.document.write('<html><head><meta charset="UTF-8"><title>' + titre + '</title><style>' + css + '</style></head><body>');
   w.document.write('<h1>EMM MONDIAL</h1><hr>' + contenu);
-  w.document.write('<p style="text-align:center;font-size:' + (options.fontSize - 2) + 'pt;color:#888;margin-top:20px">Généré le ' + new Date().toLocaleString('fr-FR') + ' par ' + (currentUser ? (currentUser.nom || currentUser.email) : '') + '</p>');
-  w.document.write('</body></html>'); w.document.close(); fermerModalPdf(); setTimeout(function() { w.print(); }, 800);
+  w.document.write('<p style="text-align:center;font-size:' + (options.fontSize - 2) + 'pt;color:#888;margin-top:20px">Généré le ' + new Date().toLocaleString('fr-FR') + ' par ' + (currentUser ? (currentUser.email) : '') + '</p>');
+  w.document.write('</body></html>'); 
+  w.document.close(); 
+  fermerModalPdf(); 
+  
+  setTimeout(function() { 
+    w.print(); 
+  }, 800);
 }
 
 function signatureBlockHTML() {
@@ -1857,18 +1880,31 @@ function ecouterStatutPremium(uid) {
     if (typeof majInterfacePremium === 'function') majInterfacePremium();
   });
 }
+// --- DEBUT VERIFICATION PREMIUM PDF & WORD ---
 var _ancien_ouvrirModalPdf = ouvrirModalPdf;
 ouvrirModalPdf = function(contexte) {
-  if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) { _ancien_ouvrirModalPdf(contexte); return; }
-  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Rapport PDF) est réservée aux églises abonnées Premium.\n\nCliquez sur le bouton ⭐ Premium en haut pour vous abonner."); return; }
+  // Si c'est le Super Admin, on le laisse passer direct
+  if (isSuperAdmin()) { _ancien_ouvrirModalPdf(contexte); return; }
+  
+  // Si c'est un client, on vérifie son statut Premium
+  if (!userPremiumStatus) { 
+    alert("🔒 Cette fonctionnalité (Rapport PDF) est réservée aux églises abonnées Premium.\n\nCliquez sur le bouton ⭐ Premium en haut pour vous abonner."); 
+    return; 
+  }
   _ancien_ouvrirModalPdf(contexte);
 };
+
 var _ancien_exporterWordBox = exporterWordBox;
 exporterWordBox = function(boxId, nom) {
-  if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) { _ancien_exporterWordBox(boxId, nom); return; }
-  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Export Word) est réservée aux églises abonnées Premium."); return; }
+  if (isSuperAdmin()) { _ancien_exporterWordBox(boxId, nom); return; }
+  
+  if (!userPremiumStatus) { 
+    alert("🔒 Cette fonctionnalité (Export Word) est réservée aux églises abonnées Premium."); 
+    return; 
+  }
   _ancien_exporterWordBox(boxId, nom);
 };
+// --- FIN VERIFICATION PREMIUM PDF & WORD ---
 function ouvrirModalPremium() { if (userPremiumStatus) { alert("✅ Vous êtes Premium actif."); return; } document.getElementById('premiumModal').style.display = 'flex'; }
 function fermerModalPremium() { document.getElementById('premiumModal').style.display = 'none'; }
 
