@@ -1948,7 +1948,22 @@ var deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); deferredPrompt = e; var btn = document.getElementById('installBtn'); if (btn) btn.style.display = 'block'; });
 function installApp() { if (!deferredPrompt) return alert('Menu navigateur → "Ajouter à l\'écran d\'accueil"'); deferredPrompt.prompt(); deferredPrompt.userChoice.then(function() { deferredPrompt = null; var btn = document.getElementById('installBtn'); if (btn) btn.style.display = 'none'; }); }
 
-function refreshAll() { rafraichirProvinceHeader(); peuplerProvinceSelects(); rafraichirEntites(); rafraichirEntitesRN(); afficherListeEntites(); afficherJournaliere(); rafraichirCandidatsSelect(); afficherCandidats(); afficherVersements(); afficherUtilisateurs(); refreshPatrimoineSites(); recalculerTotauxRN(); syncSignatureEncrePickers(); if (typeof rechercherParEntite === 'function') rechercherParEntite(); }
+function refreshAll() { 
+  try { rafraichirProvinceHeader(); } catch(e) {}
+  try { peuplerProvinceSelects(); } catch(e) {}
+  try { rafraichirEntites(); } catch(e) {}
+  try { rafraichirEntitesRN(); } catch(e) {}
+  try { afficherListeEntites(); } catch(e) {}
+  try { afficherJournaliere(); } catch(e) {}
+  try { rafraichirCandidatsSelect(); } catch(e) {}
+  try { afficherCandidats(); } catch(e) {}
+  try { afficherVersements(); } catch(e) {}
+  try { afficherUtilisateurs(); } catch(e) {}
+  try { refreshPatrimoineSites(); } catch(e) {}
+  try { recalculerTotauxRN(); } catch(e) {}
+  try { syncSignatureEncrePickers(); } catch(e) {}
+  try { rechercherParEntite(); } catch(e) {}
+}
 
 // ========== NOUVELLES RECHERCHES GLOBALES (TABLEAU DE BORD) ==========
 function rechercherFreqGeneral() {
