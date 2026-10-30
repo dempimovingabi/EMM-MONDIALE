@@ -918,10 +918,23 @@ function afficherAnnonces() {
 }
 
 function publierAnnonce() {
-  if (!isAdmin()) return alert('Réservé admin');
-  var texte = document.getElementById('annonceText').value.trim(); if (!texte) return alert('Écrivez une annonce');
-  var list = DB.get('annonces', []); list.push({ id: uid(), texte: texte, date: new Date().toLocaleDateString('fr-FR'), auteur: currentUser ? (currentUser.nom || currentUser.email) : 'Admin', archived: false });
-  DB.set('annonces', list); reinitialiserFormAnnonce(); afficherAnnonces(); alert('✅ Annonce publiée');
+  if (!isAdmin() && !isSuperAdmin()) return alert('Réservé admin');
+  var texte = document.getElementById('annonceText').value.trim(); 
+  if (!texte) return alert('Écrivez une annonce');
+  
+  dbFS.collection('annonces').add({
+    texte: texte, 
+    date: new Date().toLocaleDateString('fr-FR'), 
+    dateCreation: Date.now(),
+    auteur: currentUser ? currentUser.email : 'Admin', 
+    archived: false
+  }).then(function() {
+    reinitialiserFormAnnonce(); 
+    alert('✅ Annonce publiée et envoyée à toutes les églises !');
+    if (typeof verifierNouvellesAnnonces === 'function') verifierNouvellesAnnonces();
+  }).catch(function(error) {
+    alert("Erreur de publication : " + error.message);
+  });
 }
 function reinitialiserFormAnnonce() { var el = document.getElementById('annonceText'); if (el) el.value = ''; }
 function modifierAnnonce(id) {
@@ -2070,6 +2083,7 @@ auth.onAuthStateChanged(function(user) {
     var label = document.getElementById('userRoleLabel');
     if (label) label.textContent = '👤 ' + user.email;
     showScreen('mainScreen');
+    verifierNouvellesAnnonces(); 
     ecouterStatutPremium(user.uid);
     if (typeof refreshAll === 'function') refreshAll();
     if (typeof afficherDashboard === 'function') afficherDashboard();
@@ -2352,5 +2366,47 @@ function majInterfacePremium() {
   }
 }
 
+// --- SYSTEME DE NOTIFICATIONS CLOUD (FIRESTORE) ---
+var _derniereAnnonceVueId = localStorage.getItem('derniereAnnonceVue') || null;
+
+function verifierNouvellesAnnonces() {
+  if (!currentUser) return;
+  
+  dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).onSnapshot(function(querySnapshot) {
+    if (querySnapshot.empty) return;
+    
+    var derniereAnnonce = querySnapshot.docs[0];
+    var annonceId = derniereAnnonce.id;
+    
+    var badge = document.getElementById('notifBadge');
+    if (badge) {
+      if (_derniereAnnonceVueId !== annonceId) {
+        badge.style.display = 'block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  });
+}
+
+function ouvrirNotifications() {
+  var badge = document.getElementById('notifBadge');
+  if (badge) badge.style.display = 'none';
+  
+  dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).get().then(function(snap) {
+    if (!snap.empty) {
+      localStorage.setItem('derniereAnnonceVue', snap.docs[0].id);
+      _derniereAnnonceVueId = snap.docs[0].id;
+    }
+  });
+
+  var annoncesBox = document.getElementById('announcementsBox');
+  if (annoncesBox) {
+    annoncesBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    annoncesBox.style.transition = 'background-color 0.5s';
+    annoncesBox.style.backgroundColor = '#e8f5e9';
+    setTimeout(function() { annoncesBox.style.backgroundColor = 'transparent'; }, 2000);
+  }
+}
 
 
