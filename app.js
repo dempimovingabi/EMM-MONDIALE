@@ -2088,7 +2088,7 @@ function ecouterStatutPremium(uid) {
       var data = doc.data(); 
       var expire = data.premiumExpire || 0;
       
-      if (isSuperAdmin()) {
+      if (isSuperAdmin()) { 
         userPremiumStatus = true; 
         userPremiumExpire = now + (365 * 24 * 60 * 60 * 1000); 
       } else if (data.premium === true && expire > now) { 
@@ -2099,7 +2099,6 @@ function ecouterStatutPremium(uid) {
         userPremiumExpire = 0; 
       }
     } else {
-      // Si le document n'existe pas, on considère que c'est gratuit et on affiche le bouton
       userPremiumStatus = false; 
       userPremiumExpire = 0;
     }
@@ -2113,13 +2112,16 @@ function ecouterStatutPremium(uid) {
     }
     
     if (typeof majInterfacePremium === 'function') majInterfacePremium();
+    
+    // --- APPEL DE LA BANNIÈRE ---
+    if (typeof afficherBanniereAbonnement === 'function') afficherBanniereAbonnement();
+    
   }, function(error) {
-    // En cas d'erreur (règles Firebase), on affiche le bouton par défaut
     var btnPrem = document.getElementById('btnPremium');
     if (btnPrem) btnPrem.style.display = 'block';
     if (typeof majInterfacePremium === 'function') majInterfacePremium();
   });
-}
+    }
 // --- DEBUT VERIFICATION PREMIUM PDF & WORD ---
 var _ancien_ouvrirModalPdf = ouvrirModalPdf;
 ouvrirModalPdf = function(contexte) {
@@ -2151,12 +2153,11 @@ function fermerModalPremium() { document.getElementById('premiumModal').style.di
 function majInterfacePremium() {
   var box = document.getElementById('monCompteBox');
   if (box && currentUser) {
-    var isDev = currentUser.email === SUPER_ADMIN_EMAIL;
+    var isDev = isSuperAdmin();
     var statut = isDev ? "<span style='color:green'>✅ Développeur (Illimité)</span>" : (userPremiumStatus ? "<span style='color:green'>✅ Premium</span>" : "<span style='color:red'>❌ Gratuit</span>");
     var expire = (userPremiumStatus && !isDev) ? new Date(userPremiumExpire).toLocaleDateString() : "-";
     box.innerHTML = "<p><strong>Email :</strong> " + currentUser.email + "</p><p><strong>Statut :</strong> " + statut + "</p>" + (isDev ? "" : "<p><strong>Valide jusqu'au :</strong> " + expire + "</p>");
     
-    // Afficher et charger la liste des clients pour le Super Admin
     var card = document.getElementById('cardActivationRapide');
     if (card) {
       if (isDev) {
@@ -2166,6 +2167,36 @@ function majInterfacePremium() {
         card.style.display = 'none';
       }
     }
+  }
+  
+  // --- APPEL DE LA BANNIÈRE ---
+  if (typeof afficherBanniereAbonnement === 'function') afficherBanniereAbonnement();
+}
+
+function afficherBanniereAbonnement() {
+  var banner = document.getElementById('premiumAlertBanner');
+  if (!banner) return;
+
+  if (isSuperAdmin()) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  var now = Date.now();
+  var joursRestants = Math.ceil((userPremiumExpire - now) / (1000 * 60 * 60 * 24));
+
+  if (!userPremiumStatus || userPremiumExpire < now) {
+    banner.style.display = 'block';
+    banner.style.backgroundColor = '#ffebee'; 
+    banner.style.color = '#c62828';
+    banner.innerHTML = '🔒 Votre abonnement a expiré. <u>Cliquez ici pour renouveler.</u>';
+  } else if (joursRestants <= 7) {
+    banner.style.display = 'block';
+    banner.style.backgroundColor = '#fff3e0'; 
+    banner.style.color = '#e65100';
+    banner.innerHTML = '⚠️ Votre abonnement expire dans ' + joursRestants + ' jour(s). <u>Renouveler maintenant.</u>';
+  } else {
+    banner.style.display = 'none';
   }
 }
 
