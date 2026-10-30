@@ -352,6 +352,45 @@ function signatureBlockHTML() {
 // --- FIN DE LA PARTIE 1 ---
 
 // ========== TABLEAU DE BORD & ANNONCES ==========
+function exporterCSVFinance() {
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; });
+  
+  if (!cands.length) {
+    return alert("⚠️ Aucune donnée financière à exporter pour cette province.");
+  }
+
+  // Le \uFEFF est important pour qu'Excel affiche correctement les accents (é, à, etc.)
+  var csvContent = "\uFEFF"; 
+  csvContent += "Nom,Entite,Type,Motif,Montant Prevu,Total Verse,Solde,Statut\n";
+
+  cands.forEach(function(c) {
+    // On remplace les virgules par des espaces pour ne pas casser le fichier CSV
+    var nom = (c.nom || '').replace(/,/g, " ");
+    var entite = (c.nomEntite || '').replace(/,/g, " ");
+    var type = (c.typeEntite || '').replace(/,/g, " ");
+    var motif = (c.motif || '').replace(/,/g, " ");
+    
+    var prevu = c.montantPrevu || 0;
+    var verse = c.totalVerse || 0;
+    var solde = prevu - verse;
+    var statut = c.statut === 'termine' ? 'Termine' : 'En cours';
+
+    csvContent += nom + "," + entite + "," + type + "," + motif + "," + prevu + "," + verse.toFixed(2) + "," + solde.toFixed(2) + "," + statut + "\n";
+  });
+
+  // Création du fichier et téléchargement automatique
+  var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "EMM_Finance_" + getProvinceActive() + "_" + new Date().toISOString().slice(0,10) + ".csv");
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  alert("✅ Fichier Excel téléchargé avec succès !");
+                 }
 var _chartPresenceInstance = null; // Variable globale pour garder le graphique en mémoire
 
 function afficherDashboard() {
