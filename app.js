@@ -352,12 +352,18 @@ function signatureBlockHTML() {
 // --- FIN DE LA PARTIE 1 ---
 
 // ========== TABLEAU DE BORD & ANNONCES ==========
+var _chartPresenceInstance = null; // Variable globale pour garder le graphique en mémoire
+
 function afficherDashboard() {
   var box = document.getElementById('dashboardBox');
   if (!box) return;
+  
   var entites = entitesProvince().filter(function(e) { return !e.archived; }).length;
   var parts = participationsProvince().filter(function(p) { return !p.archived; });
-  var totPart = parts.reduce(function(a, p) { return a + p.m + p.s + p.n; }, 0);
+  var totM = 0, totS = 0, totN = 0;
+  parts.forEach(function(p) { totM += p.m; totS += p.s; totN += p.n; });
+  var totPart = totM + totS + totN;
+  
   var fiches = fichesProvince().filter(function(f) { return !f.archived; }).length;
   var cands = candidatsProvince().filter(function(c) { return !c.archived; });
   var totalVerse = cands.reduce(function(a, c) { return a + (c.totalVerse || 0); }, 0);
@@ -366,8 +372,18 @@ function afficherDashboard() {
   deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
   var sitesP = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }).length;
   var biensP = biensPatrimoineProvince().filter(function(b) { return !b.archived; }).length;
+  
   var provinceLabel = getProvinceActive() || 'Toutes';
+  
   var html = '<p style="text-align:center;font-size:12px;color:#0a6e2c;font-weight:600;margin-bottom:10px">🌍 Province : ' + echapper(provinceLabel === '__non_assignee' ? 'Non assignées' : provinceLabel) + '</p>';
+  
+  // Bloc pour le graphique
+  html += '<div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px;">';
+  html += '<h4 style="text-align:center; color:#0a6e2c; margin-bottom:15px;">📊 Répartition des Présences</h4>';
+  html += '<div style="position: relative; height: 250px; width: 100%; display: flex; justify-content: center;">';
+  html += '<canvas id="chartPresenceCanvas"></canvas>';
+  html += '</div></div>';
+
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
   html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
@@ -384,7 +400,60 @@ function afficherDashboard() {
   html += '<tr><td>Sites enregistrés</td><td class="num">' + sitesP + '</td></tr>';
   html += '<tr><td>Biens enregistrés</td><td class="num">' + biensP + '</td></tr>';
   html += '</tbody></table></div>';
+  
   box.innerHTML = html;
+
+  // Dessiner le graphique
+  dessinerGraphiquePresence(totM, totS, totN);
+}
+
+function dessinerGraphiquePresence(m, s, nv) {
+  if (typeof Chart === 'undefined') {
+    console.warn("Chart.js n'est pas chargé.");
+    return;
+  }
+  var canvas = document.getElementById('chartPresenceCanvas');
+  if (!canvas) return;
+
+  // Détruire l'ancien graphique s'il existe (pour éviter les bugs d'affichage)
+  if (_chartPresenceInstance) {
+    _chartPresenceInstance.destroy();
+  }
+
+  var dataValues = [m, s, nv];
+  var labels = ['Membres', 'Sympathisants', 'Nouveaux'];
+  var colors = ['#0a6e2c', '#1976d2', '#ff9800'];
+
+  // Si toutes les données sont à 0, on affiche un cercle gris
+  if (m === 0 && s === 0 && nv === 0) {
+    dataValues = [1];
+    labels = ['Aucune donnée'];
+    colors = ['#e0e0e0'];
+  }
+
+  var ctx = canvas.getContext('2d');
+  _chartPresenceInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dataValues,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { 
+          position: 'bottom',
+          labels: { font: { size: 13 } }
+        }
+      }
+    }
+  });
 }
 
 function afficherAnnonces() {
