@@ -1758,7 +1758,65 @@ function archiverBienPatrimoine(id) { var list = DB.get('patrimoineBiens', []); 
 function supprimerBienPatrimoine(id) { if (!confirm('⚠️ Supprimer ce bien ?')) return; DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.id !== id; })); refreshPatrimoineSites(); }
 function ajouterReparation() { var bienId = document.getElementById('pRepBien').value; var desc = document.getElementById('pRepDesc').value.trim(); var cout = parseFloat(document.getElementById('pRepCout').value) || 0; var date = document.getElementById('pRepDate').value || new Date().toISOString().slice(0, 10); if (!bienId || !desc) return alert('Remplissez le bien et la description'); var list = DB.get('patrimoineReparations', []); list.push({ id: uid(), bienId: bienId, desc: desc, cout: cout, date: date }); DB.set('patrimoineReparations', list); document.getElementById('pRepDesc').value = ''; document.getElementById('pRepCout').value = 0; afficherReparations(); alert('✅ Réparation enregistrée'); }
 function afficherReparations() { var list = DB.get('patrimoineReparations', []); var box = document.getElementById('pListeReparations'); if (!box) return; if (!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888">Aucune réparation.</p>'; return; } var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût</th></tr></thead><tbody>'; list.slice().reverse().forEach(function(r) { var bien = DB.get('patrimoineBiens', []).find(function(b) { return b.id === r.bienId; }); html += '<tr><td>' + fmtDate(r.date) + '</td><td>' + (bien ? bien.code : '-') + '</td><td>' + echapper(r.desc) + '</td><td class="num">' + r.cout.toLocaleString() + '</td></tr>'; }); html += '</tbody></table></div>'; box.innerHTML = html; }
-function rapportPatrimoineGlobal() { var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }); var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; }); var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>'; html += '<div class="table-wrapper"><table class="data-table"><tbody><tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr><tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr></tbody></table></div>'; document.getElementById('pRapportBox').innerHTML = html; }
+function rapportPatrimoineGlobal() {
+  var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
+  var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; });
+  var reparations = DB.get('patrimoineReparations', []);
+  var provLabel = getProvinceActive() || 'Toutes';
+  
+  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — PATRIMOINE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
+  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
+  html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
+  html += '<tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr>';
+  
+  var totalCoutRep = 0;
+  reparations.forEach(function(r) { totalCoutRep += (r.cout || 0); });
+  html += '<tr><td>Total Réparations</td><td class="num">' + reparations.length + '</td></tr>';
+  html += '<tr><td>Coût Total Réparations</td><td class="num" style="color:#c62828">' + totalCoutRep.toLocaleString() + ' $</td></tr>';
+  html += '</tbody></table></div>';
+  
+  html += '<h4 style="margin-top:20px;">Détail des Réparations / Entretiens</h4>';
+  if (reparations.length === 0) {
+      html += '<p>Aucune réparation enregistrée.</p>';
+  } else {
+      html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût</th></tr></thead><tbody>';
+      reparations.forEach(function(r) {
+          var bien = DB.get('patrimoineBiens', []).find(function(b) { return b.id === r.bienId; });
+          html += '<tr><td>' + fmtDate(r.date) + '</td><td>' + (bien ? bien.nom : '-') + '</td><td>' + echapper(r.desc) + '</td><td class="num">' + r.cout.toLocaleString() + ' $</td></tr>';
+      });
+      html += '</tbody></table></div>';
+  }
+  
+  document.getElementById('pRapportBox').innerHTML = html;
+}
+
+function rapportPatrimoineDetaille() {
+  var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
+  var provLabel = getProvinceActive() || 'Toutes';
+  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — PATRIMOINE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
+  
+  sites.forEach(function(site) {
+      var biens = biensPatrimoineProvince().filter(function(b) { return b.siteId === site.id && !b.archived; });
+      html += '<div class="entity-block"><h4>🏛️ ' + echapper(site.nom) + '</h4>';
+      if (biens.length === 0) { html += '<p>Aucun bien.</p>'; }
+      else {
+          html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Code</th><th>Désignation</th><th>Neufs</th><th>Passables</th><th>Mauvais</th><th>Cassés</th><th>Total</th></tr></thead><tbody>';
+          biens.forEach(function(b) {
+              html += '<tr><td>' + b.code + '</td><td>' + echapper(b.nom) + '</td><td class="num">' + (b.qteNeuf || 0) + '</td><td class="num">' + (b.qtePassable || 0) + '</td><td class="num">' + (b.qteMauvais || 0) + '</td><td class="num">' + (b.qteCasse || 0) + '</td><td class="num"><strong>' + (b.qte || 0) + '</strong></td></tr>';
+          });
+          html += '</tbody></table></div>';
+      }
+      html += '</div>';
+  });
+  document.getElementById('pRapportBox').innerHTML = html;
+}
+
+function imprimerRapportPatrimoine() {
+  var html = document.getElementById('pRapportBox').innerHTML;
+  if (!html.trim()) return alert('Générez d\'abord un rapport.');
+  ouvrirModalPdf({ type: 'html', html: html, titre: 'Rapport Patrimoine' });
+        }
+
 function relevePatrimoineSite(siteId) { var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === siteId; }); var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && !b.archived; }); var w = window.open('', '_blank'); w.document.write('<html><head><meta charset="UTF-8"><title>Relevé Patrimoine</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#0a6e2c;color:white;padding:8px}td{padding:6px;border-bottom:1px solid #ddd}h1{text-align:center;color:#0a6e2c}</style></head><body>'); w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1><h2>Relevé Patrimoine : ' + echapper(site.nom) + ' (' + echapper(site.province || 'Non assignée') + ')</h2>'); w.document.write('<table><thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>État</th></tr></thead><tbody>'); biens.forEach(function(b) { w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>'); }); w.document.write('</tbody></table></body></html>'); w.document.close(); setTimeout(function() { w.print(); }, 500); }
 
 // ========== ARCHIVES CENTRALISÉES ==========
