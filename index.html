@@ -45,28 +45,30 @@
 
 <div id="mainScreen" class="screen">
   <div id="premiumAlertBanner" style="display: none; padding: 12px; text-align: center; font-weight: bold; font-size: 14px; cursor: pointer;" onclick="ouvrirModalPremium()"></div>
-  <header class="app-header" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; gap: 8px; flex-wrap: wrap;">
-  <button class="btn-hamburger" onclick="toggleMainMenu()" title="Menu" style="background:transparent; border:none; color:white; font-size:20px; cursor:pointer;">☰</button>
-  <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="width:36px; height:36px; border-radius:50%;">
-  <div class="header-logo-fallback" style="display:none; width:36px; height:36px; border-radius:50%; background:white; color:#0a6e2c; align-items:center; justify-content:center; font-weight:bold;">EMM</div>
-  
-  <div style="flex: 1; margin-left: 5px;">
-    <h1 style="font-size: 14px; margin:0;">EMM MONDIAL</h1>
-    <p id="userRoleLabel" style="font-size: 10px; opacity: 0.9; margin:0;">Chargement...</p>
-  </div>
-  
-  <div style="display: flex; align-items: center; gap: 6px;">
-    <button id="btnProvince" onclick="ouvrirModalProvince()" title="Changer de province" style="background:rgba(255,255,255,0.25);color:white;border:1px solid rgba(255,255,255,0.4);padding:4px 6px;border-radius:8px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;">🌍 Toutes</button>
+  <header class="app-header">
+    <button class="btn-hamburger" onclick="toggleMainMenu()" title="Menu"><span></span><span></span><span></span></button>
+    <img src="logo.png" class="header-logo" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    <div class="header-logo-fallback" style="display:none">EMM</div>
     
-    <button id="btnPremium" onclick="ouvrirModalPremium()" style="background:#ffc107;color:#000;border:none;padding:4px 6px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;display:none;">⭐ Premium</button>
-    
-    <div style="position: relative; cursor: pointer;" onclick="ouvrirNotifications()">
-      <span style="font-size: 18px; background: white; padding: 4px 6px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">🔔</span>
-      <span id="notifBadge" style="display: none; position: absolute; top: 0; right: 0; background-color: red; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white;"></span>
+    <!-- Le titre prend l'espace disponible -->
+    <div style="flex: 1; margin-left: 8px;">
+      <h1 style="font-size: 15px; margin-bottom: 2px;">EMM MONDIAL</h1>
+      <p id="userRoleLabel" style="font-size: 10px; opacity: 0.9;">Chargement...</p>
     </div>
-
-    <button class="btn-logout" onclick="logout()" title="Se déconnecter" style="background:#ffebee; color:#c62828; border:none; padding:4px 8px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;">🚪</button>
-  </div>
+    
+    <!-- La colonne avec les boutons Province et Premium (l'un en dessous de l'autre) -->
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; margin-right: 8px;">
+      <button id="btnProvince" onclick="ouvrirModalProvince()" title="Changer de province" style="background:rgba(255,255,255,0.25);color:white;border:1.5px solid rgba(255,255,255,0.4);padding:4px 8px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;">🌍 Toutes</button>
+      
+      <button id="btnPremium" onclick="ouvrirModalPremium()" style="background:#ffc107;color:#000;border:none;padding:4px 8px;border-radius:10px;font-size:10px;font-weight:700;cursor:pointer;display:none;">⭐ Premium</button>
+      <div style="position: relative; display: flex; justify-content: flex-end; margin-top: 5px;" onclick="ouvrirNotifications()">
+  <span style="font-size: 20px; cursor: pointer; background: white; padding: 4px 8px; border-radius: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">🔔</span>
+  <span id="notifBadge" style="display: none; position: absolute; top: 0; right: 0; background-color: red; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></span>
+      </div>
+    </div>
+    
+    <div id="saveIndicator" style="background:rgba(255,255,255,0.2);color:white;padding:5px 8px;border-radius:12px;font-size:11px;opacity:0.35;transition:opacity 0.3s;white-space:nowrap;flex-shrink:0;">💾</div>
+    <button class="btn-logout" onclick="logout()" title="Se déconnecter">⏻</button>
   </header>
 
   <div id="mainMenu" class="main-menu">
@@ -669,31 +671,59 @@
     <div id="archivesBox"></div>
   </div>
 
-  <!-- 2. GESTION DES CLIENTS PREMIUM -->
-  <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
-    <h3>⚡ Gestion des clients Premium</h3>
-    <p style="font-size:12px; color:#666; margin-bottom:10px;">Cliquez sur Rafraîchir pour voir vos clients et gérer leurs abonnements.</p>
-    
-    <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
-    
-    <!-- Le tableau des clients s'affichera ici -->
-    <div id="listeClientsAdmin">
-      <p style="color:#888; font-size:13px;">Aucune donnée chargée.</p>
+  <div id="tab-admin" class="main-tab-content">
+    <div class="card">
+      <h3>👤 Mon compte</h3>
+      <div id="monCompteBox"></div>
     </div>
-  </div>
 
-  <!-- 3. PUBLIER UNE ANNONCE -->
-  <div class="card">
-    <h3>📢 Publier une annonce</h3>
-    <textarea id="annonceText" rows="3" style="width:100%; border-radius:8px; border:1px solid #ccc; padding:8px;" placeholder="Écrivez votre annonce ici..."></textarea>
-    <button class="btn-primary" onclick="publierAnnonce()" style="margin-top:10px; width:100%;">Publier l'annonce</button>
-  </div>
+    <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
+      <h3>⚡ Gestion des clients Premium</h3>
+      <p style="font-size:12px; color:#666; margin-bottom:10px;">Liste des comptes connectés. Vous pouvez gérer leur abonnement ici.</p>
+      <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
+      <div id="listeClientsAdmin">
+        <p style="color:#888; font-size:13px;">Cliquez sur "Rafraîchir" pour voir les comptes.</p>
+      </div>
+    </div>
 
-  <!-- 4. BOUTON RETOUR AU TABLEAU DE BORD -->
-  <div class="card" style="text-align:center;">
-    <button class="btn-primary" onclick="switchMainTab('general', document.querySelectorAll('.main-tab')[0])" style="width:100%; background:#0a6e2c; padding:12px; font-weight:bold;">
-      🏠 Retour au Tableau de Bord
-    </button>
+    <div class="card">
+      <h3>👥 Gestion des utilisateurs (Local)</h3>
+      <div class="input-group"><label>Nom</label><input type="text" id="uNom"></div>
+      <div class="input-group"><label>Mot de passe</label><input type="text" id="uPass"></div>
+      <div class="input-group"><label>Rôle</label>
+        <select id="uRole"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select>
+      </div>
+      <button class="btn-primary" onclick="ajouterUtilisateur()">Ajouter</button>
+      <button class="btn-secondary" onclick="reinitialiserFormUtilisateur()">🔄 Réinitialiser</button>
+      <h4>Liste des utilisateurs locaux</h4>
+      <div id="listeUtilisateurs"></div>
+    </div>
+
+    <div class="card">
+      <h3>📢 Publier une annonce</h3>
+      <textarea id="annonceText" rows="3"></textarea>
+      <button class="btn-primary" onclick="publierAnnonce()">Publier</button>
+      <button class="btn-secondary" onclick="reinitialiserFormAnnonce()">🔄 Réinitialiser</button>
+    </div>
+
+    <div class="card">
+      <h3>💾 Sauvegarde / Restauration</h3>
+      <button class="btn-secondary" onclick="exporterDonnees()">📤 Exporter</button>
+      <div class="input-group"><label>Collez ici un JSON</label><textarea id="importText" rows="4"></textarea></div>
+      <button class="btn-primary" onclick="restaurerTexte()">🔄 Restaurer</button>
+      <div class="input-group" style="margin-top:10px"><label>Ou fichier .json</label><input type="file" id="importFile" accept=".json,.txt" onchange="importerDonnees(event)"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Diagnostic stockage</h3>
+      <button class="btn-secondary" onclick="afficherDiagnosticStockage()">Afficher l'état du stockage</button>
+      <div id="diagnosticStockage" style="margin-top:10px;font-size:13px"></div>
+    </div>
+
+    <div class="card">
+      <h3>🗑️ Danger</h3>
+      <button class="btn-secondary" style="background:#ffebee;color:#c62828;border-color:#c62828" onclick="toutEffacer()">⚠️ Tout effacer</button>
+    </div>
   </div>
 
 </div>
@@ -813,13 +843,5 @@
   <!-- Vos autres scripts (db.js et app.js) doivent être APRÈS Firebase -->
   <script src="db.js"></script>
   <script src="app.js"></script>
-  <!-- NOUVELLE FENÊTRE POP-UP POUR LES ANNONCES -->
-<div id="annoncesModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-    <div class="modal-box" style="background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; margin: auto; max-height: 80vh; overflow-y: auto;">
-        <h3 style="color: #0a6e2c; margin-bottom: 15px; text-align: center;">📢 Toutes les annonces</h3>
-        <div id="listeAnnoncesModal" style="margin-bottom: 15px;"></div>
-        <button class="btn-primary" style="width: 100%; padding: 12px; background: #0a6e2c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor:pointer;" onclick="document.getElementById('annoncesModal').style.display='none'">Fermer</button>
-    </div>
-</div>
 </body>
         </html>
