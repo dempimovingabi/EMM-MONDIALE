@@ -2481,4 +2481,3 @@ function ouvrirNotifications() {
     setTimeout(function() { annoncesBox.style.backgroundColor = 'transparent'; }, 2000);
   }
 }
-
