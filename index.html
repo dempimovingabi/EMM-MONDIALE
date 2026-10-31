@@ -669,59 +669,31 @@
     <div id="archivesBox"></div>
   </div>
 
-  <div id="tab-admin" class="main-tab-content">
-    <div class="card">
-      <h3>👤 Mon compte</h3>
-      <div id="monCompteBox"></div>
+  <!-- 2. GESTION DES CLIENTS PREMIUM -->
+  <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
+    <h3>⚡ Gestion des clients Premium</h3>
+    <p style="font-size:12px; color:#666; margin-bottom:10px;">Cliquez sur Rafraîchir pour voir vos clients et gérer leurs abonnements.</p>
+    
+    <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
+    
+    <!-- Le tableau des clients s'affichera ici -->
+    <div id="listeClientsAdmin">
+      <p style="color:#888; font-size:13px;">Aucune donnée chargée.</p>
     </div>
+  </div>
 
-    <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
-      <h3>⚡ Gestion des clients Premium</h3>
-      <p style="font-size:12px; color:#666; margin-bottom:10px;">Liste des comptes connectés. Vous pouvez gérer leur abonnement ici.</p>
-      <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
-      <div id="listeClientsAdmin">
-        <p style="color:#888; font-size:13px;">Cliquez sur "Rafraîchir" pour voir les comptes.</p>
-      </div>
-    </div>
+  <!-- 3. PUBLIER UNE ANNONCE -->
+  <div class="card">
+    <h3>📢 Publier une annonce</h3>
+    <textarea id="annonceText" rows="3" style="width:100%; border-radius:8px; border:1px solid #ccc; padding:8px;" placeholder="Écrivez votre annonce ici..."></textarea>
+    <button class="btn-primary" onclick="publierAnnonce()" style="margin-top:10px; width:100%;">Publier l'annonce</button>
+  </div>
 
-    <div class="card">
-      <h3>👥 Gestion des utilisateurs (Local)</h3>
-      <div class="input-group"><label>Nom</label><input type="text" id="uNom"></div>
-      <div class="input-group"><label>Mot de passe</label><input type="text" id="uPass"></div>
-      <div class="input-group"><label>Rôle</label>
-        <select id="uRole"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select>
-      </div>
-      <button class="btn-primary" onclick="ajouterUtilisateur()">Ajouter</button>
-      <button class="btn-secondary" onclick="reinitialiserFormUtilisateur()">🔄 Réinitialiser</button>
-      <h4>Liste des utilisateurs locaux</h4>
-      <div id="listeUtilisateurs"></div>
-    </div>
-
-    <div class="card">
-      <h3>📢 Publier une annonce</h3>
-      <textarea id="annonceText" rows="3"></textarea>
-      <button class="btn-primary" onclick="publierAnnonce()">Publier</button>
-      <button class="btn-secondary" onclick="reinitialiserFormAnnonce()">🔄 Réinitialiser</button>
-    </div>
-
-    <div class="card">
-      <h3>💾 Sauvegarde / Restauration</h3>
-      <button class="btn-secondary" onclick="exporterDonnees()">📤 Exporter</button>
-      <div class="input-group"><label>Collez ici un JSON</label><textarea id="importText" rows="4"></textarea></div>
-      <button class="btn-primary" onclick="restaurerTexte()">🔄 Restaurer</button>
-      <div class="input-group" style="margin-top:10px"><label>Ou fichier .json</label><input type="file" id="importFile" accept=".json,.txt" onchange="importerDonnees(event)"></div>
-    </div>
-
-    <div class="card">
-      <h3>🔍 Diagnostic stockage</h3>
-      <button class="btn-secondary" onclick="afficherDiagnosticStockage()">Afficher l'état du stockage</button>
-      <div id="diagnosticStockage" style="margin-top:10px;font-size:13px"></div>
-    </div>
-
-    <div class="card">
-      <h3>🗑️ Danger</h3>
-      <button class="btn-secondary" style="background:#ffebee;color:#c62828;border-color:#c62828" onclick="toutEffacer()">⚠️ Tout effacer</button>
-    </div>
+  <!-- 4. BOUTON RETOUR AU TABLEAU DE BORD -->
+  <div class="card" style="text-align:center;">
+    <button class="btn-primary" onclick="switchMainTab('general', document.querySelectorAll('.main-tab')[0])" style="width:100%; background:#0a6e2c; padding:12px; font-weight:bold;">
+      🏠 Retour au Tableau de Bord
+    </button>
   </div>
 
 </div>
