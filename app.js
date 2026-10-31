@@ -2560,13 +2560,316 @@ function ouvrirNotifications() {
   
   if (modal && listeBox) {
     modal.style.display = 'flex';
-    listeBox.innerHTML = '<p style="text-align:center;color:#888;">Chargement...</p>';
+// =========================================================
+// 🔥 GESTION DES CLIENTS PREMIUM ET NOTIFICATIONS (ADMIN)
+// =========================================================
+
+var userPremiumStatus = false;
+var userPremiumExpire = 0;
+var SUPER_ADMIN_EMAILS = [
+  "dedickmpiana@gmail.com"
+];
+
+function isSuperAdmin() {
+  return currentUser && SUPER_ADMIN_EMAILS.includes(currentUser.email);
+}
+
+function login() {
+  var errBox = document.getElementById('loginError');
+  if (typeof auth === 'undefined' || typeof dbFS === 'undefined' || !firebase.apps || !firebase.apps.length) {
+    if (errBox) errBox.textContent = '⏳ Chargement en cours, patientez 2 secondes...';
+    return;
+  }
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass = document.getElementById('loginPassword').value.trim();
+  if (!email || !pass) { errBox.textContent = '❌ Entrez l\'email et le mot de passe'; return; }
+  errBox.textContent = '⏳ Connexion...';
+  auth.signInWithEmailAndPassword(email, pass).then(function() { errBox.textContent = ''; document.getElementById('loginPassword').value = ''; }).catch(function(error) { errBox.textContent = '❌ ' + error.message; });
+}
+
+function creerCompte() {
+  var errBox = document.getElementById('loginError');
+  if (typeof auth === 'undefined' || typeof dbFS === 'undefined' || !firebase.apps || !firebase.apps.length) {
+    if (errBox) errBox.textContent = '⏳ Chargement en cours, patientez 2 secondes...';
+    return;
+  }
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass = document.getElementById('loginPassword').value.trim();
+  var phone = document.getElementById('loginPhone') ? document.getElementById('loginPhone').value.trim() : "";
+  
+  if (!email || !pass) { errBox.textContent = '❌ Entrez un email et un mot de passe (min 6 car.)'; return; }
+  if (!phone) { errBox.textContent = '❌ Entrez votre numéro WhatsApp'; return; }
+  
+  errBox.textContent = '⏳ Création...';
+  
+  auth.createUserWithEmailAndPassword(email, pass).then(function(userCredential) {
+    return dbFS.collection('users').doc(userCredential.user.uid).set({
+      email: email, 
+      phone: phone,
+      premium: false, 
+      premiumExpire: 0, 
+      createdAt: new Date()
+    });
+  }).then(function() {
+    errBox.textContent = '✅ Compte créé et enregistré ! Vous pouvez vous connecter.';
+  }).catch(function(error) { 
+    errBox.textContent = '❌ Erreur : ' + error.message; 
+  });
+}
+
+function logout() {
+  if (!confirm('Voulez-vous vraiment vous déconnecter ?')) return;
+  if (typeof auth === 'undefined') { currentUser = null; showScreen('loginScreen'); return; }
+  auth.signOut().then(function() { currentUser = null; userPremiumStatus = false; userPremiumExpire = 0; showScreen('loginScreen'); });
+}
+
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    currentUser = user;
+    var label = document.getElementById('userRoleLabel');
+    if (label) label.textContent = '👤 ' + user.email;
+    showScreen('mainScreen');
+    verifierNouvellesAnnonces(); 
+    ecouterStatutPremium(user.uid);
+    if (typeof refreshAll === 'function') refreshAll();
+    if (typeof afficherDashboard === 'function') afficherDashboard();
+  } else { 
+    currentUser = null; 
+    var loginScreen = document.getElementById('loginScreen');
+    if (loginScreen && !loginScreen.classList.contains('active')) { showScreen('loginScreen'); }
+  }
+});
+
+function ecouterStatutPremium(uid) {
+  dbFS.collection('users').doc(uid).onSnapshot(function(doc) {
+    var btnPrem = document.getElementById('btnPremium');
+    var now = Date.now();
     
-    dbFS.collection('annonces').orderBy('dateCreation', 'desc').get().then(function(querySnapshot) {
-      if (querySnapshot.empty) {
-        listeBox.innerHTML = '<p style="text-align:center;color:#888;">Aucune annonce pour le moment.</p>'; 
-        return; 
+    if (doc.exists) {
+      var data = doc.data(); 
+      var expire = data.premiumExpire || 0;
+      
+      if (isSuperAdmin()) { 
+        userPremiumStatus = true; 
+        userPremiumExpire = now + (365 * 24 * 60 * 60 * 1000); 
+      } else if (data.premium === true && expire > now) { 
+        userPremiumStatus = true; 
+        userPremiumExpire = expire; 
+      } else { 
+        userPremiumStatus = false; 
+        userPremiumExpire = 0; 
       }
+    } else {
+      userPremiumStatus = false; 
+      userPremiumExpire = 0;
+    }
+    
+    if (btnPrem) {
+      if (userPremiumStatus) {
+        btnPrem.style.display = 'none'; 
+      } else {
+        btnPrem.style.display = 'block'; 
+      }
+    }
+    
+    if (typeof majInterfacePremium === 'function') majInterfacePremium();
+    if (typeof afficherBanniereAbonnement === 'function') afficherBanniereAbonnement();
+    
+  }, function(error) {
+    var btnPrem = document.getElementById('btnPremium');
+    if (btnPrem) btnPrem.style.display = 'block';
+    if (typeof majInterfacePremium === 'function') majInterfacePremium();
+  });
+}
+
+// --- VERIFICATION PREMIUM PDF & WORD ---
+var _ancien_ouvrirModalPdf = ouvrirModalPdf;
+ouvrirModalPdf = function(contexte) {
+  if (isSuperAdmin()) { _ancien_ouvrirModalPdf(contexte); return; }
+  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Rapport PDF) est réservée aux églises abonnées Premium.\n\nCliquez sur le bouton ⭐ Premium en haut pour vous abonner."); return; }
+  _ancien_ouvrirModalPdf(contexte);
+};
+
+var _ancien_exporterWordBox = exporterWordBox;
+exporterWordBox = function(boxId, nom) {
+  if (isSuperAdmin()) { _ancien_exporterWordBox(boxId, nom); return; }
+  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Export Word) est réservée aux églises abonnées Premium."); return; }
+  _ancien_exporterWordBox(boxId, nom);
+};
+
+function ouvrirModalPremium() { 
+  if (userPremiumStatus) { alert("✅ Vous êtes Premium actif."); return; } 
+  document.getElementById('premiumModal').style.display = 'flex'; 
+}
+function fermerModalPremium() { 
+  document.getElementById('premiumModal').style.display = 'none'; 
+}
+
+function majInterfacePremium() {
+  var box = document.getElementById('monCompteBox');
+  if (box && currentUser) {
+    var isDev = isSuperAdmin(); 
+    var statut = isDev ? "<span style='color:green'>✅ Développeur (Illimité)</span>" : (userPremiumStatus ? "<span style='color:green'>✅ Premium</span>" : "<span style='color:red'>❌ Gratuit</span>");
+    var expire = (userPremiumStatus && !isDev) ? new Date(userPremiumExpire).toLocaleDateString() : "-";
+    box.innerHTML = "<p><strong>Email :</strong> " + currentUser.email + "</p><p><strong>Statut :</strong> " + statut + "</p>" + (isDev ? "" : "<p><strong>Valide jusqu'au :</strong> " + expire + "</p>");
+    
+    var card = document.getElementById('cardActivationRapide');
+    if (card) {
+      if (isDev) {
+        card.style.display = 'block';
+        if (typeof chargerListeClients === 'function') chargerListeClients();
+      } else {
+        card.style.display = 'none';
+      }
+    }
+  }
+  if (typeof afficherBanniereAbonnement === 'function') afficherBanniereAbonnement();
+}
+
+function afficherBanniereAbonnement() {
+  var banner = document.getElementById('premiumAlertBanner');
+  if (!banner) return;
+  if (isSuperAdmin()) { banner.style.display = 'none'; return; }
+  var now = Date.now();
+  var joursRestants = Math.ceil((userPremiumExpire - now) / (1000 * 60 * 60 * 24));
+  if (!userPremiumStatus || userPremiumExpire < now) {
+    banner.style.display = 'block';
+    banner.style.backgroundColor = '#ffebee'; 
+    banner.style.color = '#c62828';
+    banner.innerHTML = '🔒 Votre abonnement a expiré. <u>Cliquez ici pour renouveler.</u>';
+  } else if (joursRestants <= 7) {
+    banner.style.display = 'block';
+    banner.style.backgroundColor = '#fff3e0'; 
+    banner.style.color = '#e65100';
+    banner.innerHTML = '⚠️ Votre abonnement expire dans ' + joursRestants + ' jour(s). <u>Renouveler maintenant.</u>';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// --- GESTION DES CLIENTS PREMIUM (SUPER ADMIN) ---
+function chargerListeClients() {
+  if (!isSuperAdmin()) return;
+  var box = document.getElementById('listeClientsAdmin');
+  if(!box) return;
+  box.innerHTML = "⏳ Chargement des clients...";
+  
+  dbFS.collection('users').get().then(function(querySnapshot) {
+    if (querySnapshot.empty) { box.innerHTML = "<p>Aucun client trouvé.</p>"; return; }
+    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Email / Tel</th><th>Statut</th><th>Jours restants</th><th>Forfaits</th><th>Outils</th></tr></thead><tbody>';
+    
+    querySnapshot.forEach(function(doc) {
+      var data = doc.data();
+      var docId = doc.id;
+      var email = data.email || 'Inconnu';
+      var phone = data.phone || ''; 
+      
+      if (SUPER_ADMIN_EMAILS.includes(email)) return; 
+      
+      var isPrem = data.premium === true && (data.premiumExpire || 0) > Date.now();
+      var isIllimite = data.premiumExpire > 32503680000000; 
+      var joursRestants = 0;
+      if (isPrem && !isIllimite) { joursRestants = Math.ceil((data.premiumExpire - Date.now()) / (1000 * 60 * 60 * 24)); }
+      
+      var badgeStatut = isIllimite ? '<span class="badge" style="background:#ffd700;color:#000;font-weight:bold;">♾️ Illimité</span>' : (isPrem ? '<span class="badge badge-ok">✅ Premium</span>' : '<span class="badge badge-archive">❌ Gratuit</span>');
+      var txtJours = isIllimite ? 'À vie' : (isPrem ? joursRestants + ' j' : '-');
+      
+      html += '<tr>';
+      html += '<td style="font-size:11px;">' + email + '<br><span style="color:#666;">' + phone + '</span></td>';
+      html += '<td>' + badgeStatut + '</td>';
+      html += '<td style="text-align:center; font-weight:bold; color:' + (isPrem ? '#0a6e2c' : '#c62828') + '">' + txtJours + '</td>';
+      html += '<td style="white-space:nowrap;">';
+      html += '<button class="btn-mini" style="background:#4caf50;" onclick="modifierAbonnement(\'' + docId + '\', 30)">+30j</button> ';
+      html += '<button class="btn-mini" style="background:#2196f3;" onclick="modifierAbonnement(\'' + docId + '\', 60)">+60j</button> ';
+      html += '<button class="btn-mini" style="background:#ff9800;" onclick="modifierAbonnement(\'' + docId + '\', 90)">+90j</button> ';
+      html += '<button class="btn-mini" style="background:#9c27b0;" onclick="modifierAbonnement(\'' + docId + '\', 9999)">♾️</button>';
+      html += '</td>';
+      html += '<td style="white-space:nowrap;">';
+      if (isPrem && phone) {
+        var dateExp = isIllimite ? 'À vie' : new Date(data.premiumExpire).toLocaleDateString('fr-FR');
+        html += '<button class="btn-mini" style="background:#25D366;" onclick="envoyerWhatsApp(\'' + phone + '\', \'' + email + '\', \'' + dateExp + '\')">📱 WA</button> ';
+      }
+      html += '<button class="btn-mini danger" onclick="supprimerClient(\'' + docId + '\')">🗑️</button>';
+      html += '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    box.innerHTML = html;
+  }).catch(function(error) {
+    box.innerHTML = "<p style='color:red;'>Erreur : " + error.message + "</p>";
+  });
+}
+
+function modifierAbonnement(docId, jours) {
+  if (!isSuperAdmin()) return;
+  dbFS.collection('users').doc(docId).get().then(function(doc) {
+    if (!doc.exists) return;
+    var data = doc.data();
+    var nouvelleExpiration;
+    if (jours === 9999) { nouvelleExpiration = 32503680000000; } 
+    else {
+      var baseDate = (data.premiumExpire && data.premiumExpire > Date.now()) ? data.premiumExpire : Date.now();
+      nouvelleExpiration = baseDate + (jours * 24 * 60 * 60 * 1000);
+    }
+    return dbFS.collection('users').doc(docId).update({ premium: true, premiumExpire: nouvelleExpiration });
+  }).then(function() {
+    chargerListeClients(); 
+    alert('✅ Abonnement mis à jour !');
+  }).catch(function(err) { alert("Erreur : " + err.message); });
+}
+
+function envoyerWhatsApp(phone, email, dateExp) {
+  var cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
+  var message = "Bonjour ! Votre compte EMM Mondial (" + email + ") a bien été activé. Il est valide jusqu'au : " + dateExp + ". Que Dieu vous bénisse !";
+  window.open("https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(message), '_blank');
+}
+
+function supprimerClient(docId) {
+  if (!isSuperAdmin()) return;
+  if (!confirm("⚠️ Supprimer définitivement ce client ?")) return;
+  dbFS.collection('users').doc(docId).delete().then(function() {
+    chargerListeClients(); 
+    alert("✅ Client supprimé.");
+  }).catch(function(error) {
+    alert("Erreur : " + error.message);
+  });
+}
+
+// --- SYSTEME DE NOTIFICATIONS (CLOCHE) ---
+var _derniereAnnonceVueId = localStorage.getItem('derniereAnnonceVue') || null;
+
+function verifierNouvellesAnnonces() {
+  if (!currentUser) return;
+  dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).onSnapshot(function(querySnapshot) {
+    if (querySnapshot.empty) return;
+    var derniereAnnonce = querySnapshot.docs[0];
+    var annonceId = derniereAnnonce.id;
+    var badge = document.getElementById('notifBadge');
+    if (badge) {
+      if (_derniereAnnonceVueId !== annonceId) { badge.style.display = 'block'; } 
+      else { badge.style.display = 'none'; }
+    }
+  });
+}
+
+function ouvrirNotifications() {
+  var badge = document.getElementById('notifBadge');
+  if (badge) badge.style.display = 'none';
+  
+  dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).get().then(function(snap) {
+    if (!snap.empty) {
+      localStorage.setItem('derniereAnnonceVue', snap.docs[0].id);
+      _derniereAnnonceVueId = snap.docs[0].id;
+    }
+  });
+
+  var modal = document.getElementById('annoncesModal');
+  var listeBox = document.getElementById('listeAnnoncesModal');
+  
+  if (modal && listeBox) {
+    modal.style.display = 'flex';
+    listeBox.innerHTML = '<p style="text-align:center;color:#888;">Chargement...</p>';
+    dbFS.collection('annonces').orderBy('dateCreation', 'desc').get().then(function(querySnapshot) {
+      if (querySnapshot.empty) { listeBox.innerHTML = '<p style="text-align:center;color:#888;">Aucune annonce pour le moment.</p>'; return; }
       var html = '';
       querySnapshot.forEach(function(doc) {
         var a = doc.data();
@@ -2574,7 +2877,6 @@ function ouvrirNotifications() {
         html += '<div class="item-list" style="margin-bottom:10px; padding:10px; border:1px solid #eee; border-radius:8px; background:#f9f9f9;">';
         html += '<strong style="color:#0a6e2c;">📢 ' + a.date + '</strong> — <span style="font-size:11px;color:#666;">' + (a.auteur||'Admin') + '</span><br>';
         html += '<p style="margin-top:5px; font-size:14px;">' + echapper(a.texte) + '</p>';
-        
         if (isAdmin() || isSuperAdmin()) {
           html += '<button class="btn-mini danger" style="margin-top:8px;" onclick="supprimerAnnonceCloud(\'' + doc.id + '\')">🗑️ Supprimer</button>';
         }
@@ -2592,4 +2894,4 @@ function supprimerAnnonceCloud(id) {
     ouvrirNotifications(); 
     afficherAnnonces(); 
   });
-}
+                 }
