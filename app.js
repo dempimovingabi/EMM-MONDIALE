@@ -1,5 +1,5 @@
 // ============================================
-// EMM MONDIAL — LOGIQUE PRINCIPALE (PARTIE 1)
+// EMM MONDIAL — LOGIQUE PRINCIPALE (VERSION PROPRE - PARTIE 1)
 // ============================================
 
 var currentUser = null;
@@ -115,7 +115,6 @@ function biensPatrimoineProvince() {
   return DB.get('patrimoineBiens', []).filter(function(b) { return b.province === p || (!b.province && ids[b.siteId]); });
 }
 
-// ========== SIGNATURE COULEUR ==========
 function getSignatureColor() { return DB.get('signatureColor', '#0a6e2c'); }
 function setSignatureColor(couleur) {
   if (!couleur || !/^#[0-9A-Fa-f]{6}$/.test(couleur)) return;
@@ -186,7 +185,6 @@ function captureSignaturesFromDOM() {
   return clone.innerHTML;
 }
 
-// ========== SPLASH & UI ==========
 function showSplash() {
   showScreen('splashScreen');
   setTimeout(function() {
@@ -194,7 +192,7 @@ function showSplash() {
     if (splash && splash.classList.contains('active')) {
       showScreen('loginScreen');
     }
-  }, 800); // CORRECTION DE VITESSE : 800ms max
+  }, 800);
 }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
@@ -220,9 +218,6 @@ function switchMainTab(name, btn) {
   if (name === 'admin') { if (typeof majInterfacePremium === 'function') majInterfacePremium(); }
 }
 
-function login() { /* Remplacé par Firebase à la fin */ }
-function logout() { /* Remplacé par Firebase à la fin */ }
-
 function appliquerSession() {
   if (!currentUser) return;
   var label = document.getElementById('userRoleLabel');
@@ -241,7 +236,7 @@ function filtrerListe(list, filtre) { if (filtre === 'archive') return list.filt
 function scrollToSection(id) { var el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function getEntiteNom(id) { var e = DB.get('entites', []).find(function(x) { return x.id === id; }); return e ? e.type + ' - ' + e.nom : 'Inconnu'; }
 
-// ========== MODAL PDF OPTIONS ==========
+// ========// ========== MODAL PDF OPTIONS ==========
 var pdfContexteEnAttente = null;
 function ouvrirModalPdf(contexte) {
   pdfContexteEnAttente = contexte; var sigColor = getSignatureColor();
