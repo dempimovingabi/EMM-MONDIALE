@@ -593,8 +593,15 @@
       </div>
       <div class="input-group"><label>Désignation du bien</label><input type="text" id="pBienNom"></div>
       <div class="input-group"><label>Quantité</label><input type="number" id="pBienQte" value="1"></div>
-      <div class="input-group"><label>État</label>
-        <select id="pBienEtat"><option>Neuf</option><option>Bon</option><option>Passable</option><option>Mauvais</option></select>
+      <div style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #ddd;">
+    <p style="font-size:12px; margin-bottom:5px; font-weight:bold;">Détails de l'état :</p>
+    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+        <div style="flex:1;"><label style="font-size:11px;">Neufs</label><input type="number" id="pQteNeuf" value="0" style="width:100%;"></div>
+        <div style="flex:1;"><label style="font-size:11px;">Passables</label><input type="number" id="pQtePassable" value="0" style="width:100%;"></div>
+        <div style="flex:1;"><label style="font-size:11px;">Mauvais</label><input type="number" id="pQteMauvais" value="0" style="width:100%;"></div>
+        <div style="flex:1;"><label style="font-size:11px;">Cassés</label><input type="number" id="pQteCasse" value="0" style="width:100%;"></div>
+    </div>
+      </div>
       </div>
       <div class="input-group">
         <label>📷 Photo du bien</label>
@@ -635,6 +642,8 @@
       <h3>📊 Rapports Patrimoine</h3>
       <button class="btn-primary" onclick="rapportPatrimoineGlobal()">📊 Global</button>
       <button class="btn-secondary" onclick="imprimerPatrimoine()">🖨️ Imprimer (Premium)</button>
+      <button class="btn-secondary" onclick="imprimerRapportPatrimoine()">🖨️ Imprimer</button>
+      <button class="btn-secondary" onclick="ouvrirModalPdf({type: 'box', boxId: 'pRapportBox', titre: 'Rapport Patrimoine'})">📄 PDF (Premium)</button>
       <div id="pRapportBox" style="margin-top:10px"></div>
     </div>
   </div>
