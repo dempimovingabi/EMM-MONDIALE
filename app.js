@@ -2374,6 +2374,92 @@ function modifierAbonnement(docId, jours) {
   }).then(function() {
     chargerListeClients(); 
     alert('✅ Abonnement mis à jour !');
+// --- FONCTION POUR AFFICHER LA LISTE DES CLIENTS (ADMIN) ---
+function chargerListeClients() {
+  if (!isSuperAdmin()) return;
+  
+  var box = document.getElementById('listeClientsAdmin');
+  if(!box) return;
+  box.innerHTML = "⏳ Chargement des clients...";
+  
+  dbFS.collection('users').get().then(function(querySnapshot) {
+    if (querySnapshot.empty) {
+      box.innerHTML = "<p>Aucun client trouvé.</p>"; return;
+    }
+    
+    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Email / Tel</th><th>Statut</th><th>Jours restants</th><th>Forfaits</th><th>Outils</th></tr></thead><tbody>';
+    
+    querySnapshot.forEach(function(doc) {
+      var data = doc.data();
+      var docId = doc.id;
+      var email = data.email || 'Inconnu';
+      var phone = data.phone || ''; 
+      
+      // On ne s'affiche pas soi-même
+      if (SUPER_ADMIN_EMAILS.includes(email)) return; 
+      
+      var isPrem = data.premium === true && (data.premiumExpire || 0) > Date.now();
+      var isIllimite = data.premiumExpire > 32503680000000; 
+      
+      var joursRestants = 0;
+      if (isPrem && !isIllimite) {
+        joursRestants = Math.ceil((data.premiumExpire - Date.now()) / (1000 * 60 * 60 * 24));
+      }
+      
+      var badgeStatut = isIllimite ? '<span class="badge" style="background:#ffd700;color:#000;font-weight:bold;">♾️ Illimité</span>' : (isPrem ? '<span class="badge badge-ok">✅ Premium</span>' : '<span class="badge badge-archive">❌ Gratuit</span>');
+      var txtJours = isIllimite ? 'À vie' : (isPrem ? joursRestants + ' j' : '-');
+      
+      html += '<tr>';
+      html += '<td style="font-size:11px;">' + email + '<br><span style="color:#666;">' + phone + '</span></td>';
+      html += '<td>' + badgeStatut + '</td>';
+      html += '<td style="text-align:center; font-weight:bold; color:' + (isPrem ? '#0a6e2c' : '#c62828') + '">' + txtJours + '</td>';
+      
+      html += '<td style="white-space:nowrap;">';
+      html += '<button class="btn-mini" style="background:#4caf50;" onclick="modifierAbonnement(\'' + docId + '\', 30)">+30j</button> ';
+      html += '<button class="btn-mini" style="background:#2196f3;" onclick="modifierAbonnement(\'' + docId + '\', 60)">+60j</button> ';
+      html += '<button class="btn-mini" style="background:#ff9800;" onclick="modifierAbonnement(\'' + docId + '\', 90)">+90j</button> ';
+      html += '<button class="btn-mini" style="background:#9c27b0;" onclick="modifierAbonnement(\'' + docId + '\', 9999)">♾️</button>';
+      html += '</td>';
+      
+      html += '<td style="white-space:nowrap;">';
+      if (isPrem && phone) {
+        var dateExp = isIllimite ? 'À vie' : new Date(data.premiumExpire).toLocaleDateString('fr-FR');
+        html += '<button class="btn-mini" style="background:#25D366;" onclick="envoyerWhatsApp(\'' + phone + '\', \'' + email + '\', \'' + dateExp + '\')">📱 WA</button> ';
+      }
+      html += '<button class="btn-mini danger" onclick="supprimerClient(\'' + docId + '\')">🗑️</button>';
+      html += '</td></tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    box.innerHTML = html;
+    
+  }).catch(function(error) {
+    box.innerHTML = "<p style='color:red;'>Erreur : " + error.message + "</p>";
+  });
+}
+
+function modifierAbonnement(docId, jours) {
+  if (!isSuperAdmin()) return;
+  
+  dbFS.collection('users').doc(docId).get().then(function(doc) {
+    if (!doc.exists) return;
+    var data = doc.data();
+    var nouvelleExpiration;
+    
+    if (jours === 9999) {
+      nouvelleExpiration = 32503680000000; 
+    } else {
+      var baseDate = (data.premiumExpire && data.premiumExpire > Date.now()) ? data.premiumExpire : Date.now();
+      nouvelleExpiration = baseDate + (jours * 24 * 60 * 60 * 1000);
+    }
+    
+    return dbFS.collection('users').doc(docId).update({
+      premium: true,
+      premiumExpire: nouvelleExpiration
+    });
+  }).then(function() {
+    chargerListeClients(); 
+    alert('✅ Abonnement mis à jour !');
   }).catch(function(err) { alert("Erreur : " + err.message); });
 }
 
@@ -2393,7 +2479,8 @@ function supprimerClient(docId) {
   }).catch(function(error) {
     alert("Erreur : " + error.message);
   });
-        }
+}
+// --- FIN FONCTION CLIENTS ---
 
 // --- DEBUT FONCTIONS PREMIUM ET VERIFICATIONS ---
 var _ancien_ouvrirModalPdf = ouvrirModalPdf;
@@ -2473,11 +2560,41 @@ function ouvrirNotifications() {
     }
   });
 
-  var annoncesBox = document.getElementById('announcementsBox');
-  if (annoncesBox) {
-    annoncesBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    annoncesBox.style.transition = 'background-color 0.5s';
-    annoncesBox.style.backgroundColor = '#e8f5e9';
-    setTimeout(function() { annoncesBox.style.backgroundColor = 'transparent'; }, 2000);
+  var modal = document.getElementById('annoncesModal');
+  var listeBox = document.getElementById('listeAnnoncesModal');
+  
+  if (modal && listeBox) {
+    modal.style.display = 'flex';
+    listeBox.innerHTML = '<p style="text-align:center;color:#888;">Chargement...</p>';
+    
+    dbFS.collection('annonces').orderBy('dateCreation', 'desc').get().then(function(querySnapshot) {
+      if (querySnapshot.empty) {
+        listeBox.innerHTML = '<p style="text-align:center;color:#888;">Aucune annonce pour le moment.</p>'; 
+        return; 
+      }
+      var html = '';
+      querySnapshot.forEach(function(doc) {
+        var a = doc.data();
+        if (a.archived) return;
+        html += '<div class="item-list" style="margin-bottom:10px; padding:10px; border:1px solid #eee; border-radius:8px; background:#f9f9f9;">';
+        html += '<strong style="color:#0a6e2c;">📢 ' + a.date + '</strong> — <span style="font-size:11px;color:#666;">' + (a.auteur||'Admin') + '</span><br>';
+        html += '<p style="margin-top:5px; font-size:14px;">' + echapper(a.texte) + '</p>';
+        
+        if (isAdmin() || isSuperAdmin()) {
+          html += '<button class="btn-mini danger" style="margin-top:8px;" onclick="supprimerAnnonceCloud(\'' + doc.id + '\')">🗑️ Supprimer</button>';
+        }
+        html += '</div>';
+      });
+      listeBox.innerHTML = html;
+    });
   }
+}
+
+function supprimerAnnonceCloud(id) {
+  if (!isAdmin() && !isSuperAdmin()) return;
+  if (!confirm('Supprimer cette annonce ?')) return;
+  dbFS.collection('annonces').doc(id).delete().then(function() {
+    ouvrirNotifications(); 
+    afficherAnnonces(); 
+  });
 }
