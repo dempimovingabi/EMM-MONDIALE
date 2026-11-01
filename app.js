@@ -143,3 +143,54 @@ function appliquerSession() {
   if (label) label.textContent = (currentUser.role === 'admin' ? '👑 Admin' : '👤 ' + (currentUser.nom || currentUser.email));
   refreshAll(); afficherDashboard(); afficherAnnonces(); rafraichirProvinceHeader();
 }
+// ========== SIGNATURE COULEUR ==========
+function getSignatureColor() { return DB.get('signatureColor', '#0a6e2c'); }
+function setSignatureColor(couleur) {
+  if (!couleur || !/^#[0-9A-Fa-f]{6}$/.test(couleur)) return;
+  DB.set('signatureColor', couleur);
+  document.querySelectorAll('.signature-box').forEach(function(b) { b.style.border = '2px solid ' + couleur; });
+  document.querySelectorAll('.signature-line').forEach(function(l) { l.style.borderTop = '1px solid ' + couleur; l.style.color = couleur; });
+  var mi = document.getElementById('pdfSignatureColor'); if (mi) mi.value = couleur;
+  var mit = document.getElementById('pdfSignatureColorText'); if (mit && document.activeElement !== mit) mit.value = couleur;
+}
+function appliquerCouleurSignature(couleur) {
+  if (!couleur) return; couleur = String(couleur).trim(); if (couleur[0] !== '#') couleur = '#' + couleur;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(couleur)) return alert('⚠️ Format invalide.\nUtilisez #0a6e2c');
+  setSignatureColor(couleur);
+}
+function getSignatureEncreColor() {
+  var c = DB.get('signatureEncreColor', '#111111');
+  if (!c || !/^#[0-9A-Fa-f]{6}$/.test(c)) return '#111111';
+  return c;
+}
+function setSignatureEncreColor(c) {
+  if (!c || !/^#[0-9A-Fa-f]{6}$/.test(c)) return;
+  DB.set('signatureEncreColor', c);
+  if (signatureCtx) { signatureCtx.strokeStyle = c; signatureCtx.fillStyle = c; }
+}
+function appliquerCouleurSignatureEncre(c) {
+  if (!c) return; var v = String(c).trim(); if (v[0] !== '#') v = '#' + v;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(v)) return; setSignatureEncreColor(v);
+}
+function syncSignatureEncrePickers() { }
+
+function initSignatureBlockCanvases() {
+  document.querySelectorAll('canvas.sig-canvas').forEach(function(canvas) {
+    if (canvas.dataset.init === '1') return;
+    var ratio = window.devicePixelRatio || 1; var rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) { setTimeout(initSignatureBlockCanvases, 150); return; }
+    canvas.dataset.init = '1'; canvas.width = rect.width * ratio; canvas.height = rect.height * ratio;
+    var ctx = canvas.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = getSignatureEncreColor(); ctx.fillStyle = getSignatureEncreColor();
+    var drawing = false, lastX = 0, lastY = 0;
+    function getPos(e) { var r = canvas.getBoundingClientRect(); var p = (e.touches && e.touches.length) ? e.touches[0] : (e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e); return { x: p.clientX - r.left, y: p.clientY - r.top }; }
+    function start(e) { e.preventDefault(); drawing = true; ctx.strokeStyle = getSignatureEncreColor(); ctx.fillStyle = getSignatureEncreColor(); var p = getPos(e); lastX = p.x; lastY = p.y; ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2); ctx.fill(); }
+    function move(e) { if (!drawing) return; e.preventDefault(); ctx.strokeStyle = getSignatureEncreColor(); var p = getPos(e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke(); lastX = p.x; lastY = p.y; }
+    function stop() { drawing = false; }
+    canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop);
+    canvas.addEventListener('touchstart', start, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); canvas.addEventListener('touchend', stop); canvas.addEventListener('touchcancel', stop);
+  });
+}
+function effacerSignatureBlock(btn) { var box = btn.closest('.signature-box'); if (!box) return; var canvas = box.querySelector('canvas.sig-canvas'); if (!canvas) return; var ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+function captureSignaturesFromDOM() { return null; }
