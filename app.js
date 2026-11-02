@@ -2463,22 +2463,38 @@ function verifierNouvellesAnnonces() {
 }
 
 function ouvrirNotifications() {
-  var badge = document.getElementById('notifBadge');
-  if (badge) badge.style.display = 'none';
+  var badge = document.getElementById('notifBadge'); if (badge) badge.style.display = 'none';
   
+  // Marquer comme lu
   dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).get().then(function(snap) {
-    if (!snap.empty) {
-      localStorage.setItem('derniereAnnonceVue', snap.docs[0].id);
-      _derniereAnnonceVueId = snap.docs[0].id;
-    }
+    if (!snap.empty) { localStorage.setItem('derniereAnnonceVue', snap.docs[0].id); _derniereAnnonceVueId = snap.docs[0].id; }
   });
 
-  var annoncesBox = document.getElementById('announcementsBox');
-  if (annoncesBox) {
-    annoncesBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    annoncesBox.style.transition = 'background-color 0.5s';
-    annoncesBox.style.backgroundColor = '#e8f5e9';
-    setTimeout(function() { annoncesBox.style.backgroundColor = 'transparent'; }, 2000);
+  var modal = document.getElementById('annoncesModal'); 
+  var listeBox = document.getElementById('listeAnnoncesModal');
+  
+  if (modal && listeBox) {
+    modal.style.display = 'flex';
+    listeBox.innerHTML = '<p style="text-align:center;color:#888;">Chargement...</p>';
+    
+    // Récupérer les annonces depuis Firebase
+    dbFS.collection('annonces').orderBy('dateCreation', 'desc').get().then(function(querySnapshot) {
+      if (querySnapshot.empty) {
+        listeBox.innerHTML = '<p style="text-align:center;color:#888;">Aucune annonce pour le moment.</p>'; 
+        return; 
+      }
+      var html = '';
+      querySnapshot.forEach(function(doc) {
+        var a = doc.data();
+        if (a.archived) return;
+        html += '<div class="item-list" style="margin-bottom:10px; padding:10px; border:1px solid #eee; border-radius:8px; background:#f9f9f9;">';
+        html += '<strong style="color:#0a6e2c;">📢 ' + (a.date || '') + '</strong> — <span style="font-size:11px;color:#666;">' + (a.auteur||'Admin') + '</span><br>';
+        html += '<p style="margin-top:5px; font-size:14px;">' + echapper(a.texte || '') + '</p>';
+        html += '</div>';
+      });
+      listeBox.innerHTML = html;
+    }).catch(function(error) {
+      listeBox.innerHTML = '<p style="color:red;">Erreur : ' + error.message + '</p>';
+    });
   }
 }
-
