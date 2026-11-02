@@ -194,7 +194,7 @@ function showSplash() {
     if (splash && splash.classList.contains('active')) {
       showScreen('loginScreen');
     }
-  }, 1500); // On passe à 1,5 seconde pour laisser le temps à Firebase de charger
+  }, 800); // CORRECTION DE VITESSE : 800ms max
 }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
@@ -217,10 +217,8 @@ function switchMainTab(name, btn) {
   if (name === 'depouillement') setTimeout(syncSignatureEncrePickers, 150);
   if (name === 'patrimoine') refreshPatrimoineSites();
   if (name === 'archives') afficherArchives();
-  if (name === 'admin') { 
-      if (typeof majInterfacePremium === 'function') majInterfacePremium(); 
-    afficherAnnoncesAdmin(); // <-- Ajoutez cette ligne
-  }
+  if (name === 'admin') { if (typeof majInterfacePremium === 'function') majInterfacePremium(); }
+}
 
 function login() { /* Remplacé par Firebase à la fin */ }
 function logout() { /* Remplacé par Firebase à la fin */ }
@@ -1733,32 +1731,12 @@ function genererCodeBien(siteId, cat) {
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && b.categorie === cat; }); return prefixSite + '-' + cat + '-' + (biens.length + 1).toString().padStart(3, '0');
 }
 function ajouterBienPatrimoine() {
-  var prov = exigerProvince(); if (!prov) return; 
-  var siteId = document.getElementById('pBienSite').value; 
-  var nom = document.getElementById('pBienNom').value.trim(); 
-  var qte = parseInt(document.getElementById('pBienQte').value) || 1; 
-  var etat = document.getElementById('pBienEtat').value;
-  var qteNeuf = parseInt(document.getElementById('pQteNeuf').value) || 0;
-  var qtePassable = parseInt(document.getElementById('pQtePassable').value) || 0;
-  var qteMauvais = parseInt(document.getElementById('pQteMauvais').value) || 0;
-  var qteCasse = parseInt(document.getElementById('pQteCasse').value) || 0;
-
-  if (!siteId) return alert('Sélectionnez un site'); 
-  if (!nom) return alert('Entrez la désignation');
-  
-  var list = DB.get('patrimoineBiens', []); 
-  var code = genererCodeBien(siteId, 'AUT'); // Utilisation d'une catégorie par défaut
-  
-  list.push({ 
-      id: uid(), siteId: siteId, categorie: 'AUT', code: code, nom: nom, qte: qte, etat: etat, 
-      qteNeuf: qteNeuf, qtePassable: qtePassable, qteMauvais: qteMauvais, qteCasse: qteCasse,
-      province: prov, archived: false 
-  });
-  
-  DB.set('patrimoineBiens', list); 
-  reinitialiserFormBienPatrimoine(); 
-  refreshPatrimoineSites(); 
-  alert('✅ Bien ajouté : ' + code);
+  var prov = exigerProvince(); if (!prov) return; var siteId = document.getElementById('pBienSite').value; var cat = document.getElementById('pBienCategorie').value;
+  var nom = document.getElementById('pBienNom').value.trim(); var qte = parseInt(document.getElementById('pBienQte').value) || 1; var etat = document.getElementById('pBienEtat').value;
+  if (!siteId) return alert('Sélectionnez un site'); if (!nom) return alert('Entrez la désignation');
+  var list = DB.get('patrimoineBiens', []); var code = genererCodeBien(siteId, cat);
+  list.push({ id: uid(), siteId: siteId, categorie: cat, code: code, nom: nom, qte: qte, etat: etat, photo: photoBienTemp || null, province: prov, archived: false });
+  DB.set('patrimoineBiens', list); reinitialiserFormBienPatrimoine(); refreshPatrimoineSites(); alert('✅ Bien ajouté : ' + code + ' (' + prov + ')');
 }
 function reinitialiserFormBienPatrimoine() { document.getElementById('pBienNom').value = ''; document.getElementById('pBienQte').value = 1; document.getElementById('pBienEtat').selectedIndex = 0; document.getElementById('pPhotoPreview').innerHTML = ''; photoBienTemp = null; }
 
@@ -1780,67 +1758,7 @@ function archiverBienPatrimoine(id) { var list = DB.get('patrimoineBiens', []); 
 function supprimerBienPatrimoine(id) { if (!confirm('⚠️ Supprimer ce bien ?')) return; DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.id !== id; })); refreshPatrimoineSites(); }
 function ajouterReparation() { var bienId = document.getElementById('pRepBien').value; var desc = document.getElementById('pRepDesc').value.trim(); var cout = parseFloat(document.getElementById('pRepCout').value) || 0; var date = document.getElementById('pRepDate').value || new Date().toISOString().slice(0, 10); if (!bienId || !desc) return alert('Remplissez le bien et la description'); var list = DB.get('patrimoineReparations', []); list.push({ id: uid(), bienId: bienId, desc: desc, cout: cout, date: date }); DB.set('patrimoineReparations', list); document.getElementById('pRepDesc').value = ''; document.getElementById('pRepCout').value = 0; afficherReparations(); alert('✅ Réparation enregistrée'); }
 function afficherReparations() { var list = DB.get('patrimoineReparations', []); var box = document.getElementById('pListeReparations'); if (!box) return; if (!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888">Aucune réparation.</p>'; return; } var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût</th></tr></thead><tbody>'; list.slice().reverse().forEach(function(r) { var bien = DB.get('patrimoineBiens', []).find(function(b) { return b.id === r.bienId; }); html += '<tr><td>' + fmtDate(r.date) + '</td><td>' + (bien ? bien.code : '-') + '</td><td>' + echapper(r.desc) + '</td><td class="num">' + r.cout.toLocaleString() + '</td></tr>'; }); html += '</tbody></table></div>'; box.innerHTML = html; }
-function rapportPatrimoineGlobal() {
-function rapportPatrimoineGlobal() {
-  var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
-  var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; });
-  var reparations = DB.get('patrimoineReparations', []);
-  var provLabel = getProvinceActive() || 'Toutes';
-  
-  var html = '<div class="rapport-header"><h3>📊 RAPPORT GLOBAL — PATRIMOINE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
-  html += '<div class="table-wrapper"><table class="data-table"><tbody>';
-  html += '<tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr>';
-  html += '<tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr>';
-  
-  var totalCoutRep = 0;
-  reparations.forEach(function(r) { totalCoutRep += (r.cout || 0); });
-  html += '<tr><td>Total Réparations</td><td class="num">' + reparations.length + '</td></tr>';
-  html += '<tr><td>Coût Total Réparations</td><td class="num" style="color:#c62828">' + totalCoutRep.toLocaleString() + ' $</td></tr>';
-  html += '</tbody></table></div>';
-  
-  // Ajout des réparations dans le rapport global
-  html += '<h4 style="margin-top:20px;">Détail des Réparations / Entretiens</h4>';
-  if (reparations.length === 0) {
-      html += '<p>Aucune réparation enregistrée.</p>';
-  } else {
-      html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût</th></tr></thead><tbody>';
-      reparations.forEach(function(r) {
-          var bien = DB.get('patrimoineBiens', []).find(function(b) { return b.id === r.bienId; });
-          html += '<tr><td>' + fmtDate(r.date) + '</td><td>' + (bien ? bien.nom : '-') + '</td><td>' + echapper(r.desc) + '</td><td class="num">' + r.cout.toLocaleString() + ' $</td></tr>';
-      });
-      html += '</tbody></table></div>';
-  }
-  
-  document.getElementById('pRapportBox').innerHTML = html;
-}
-
-function rapportPatrimoineDetaille() {
-  var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
-  var provLabel = getProvinceActive() || 'Toutes';
-  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — PATRIMOINE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
-  
-  sites.forEach(function(site) {
-      var biens = biensPatrimoineProvince().filter(function(b) { return b.siteId === site.id && !b.archived; });
-      html += '<div class="entity-block"><h4>🏛️ ' + echapper(site.nom) + '</h4>';
-      if (biens.length === 0) { html += '<p>Aucun bien.</p>'; }
-      else {
-          html += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Code</th><th>Désignation</th><th>Neufs</th><th>Passables</th><th>Mauvais</th><th>Cassés</th><th>Total</th></tr></thead><tbody>';
-          biens.forEach(function(b) {
-              html += '<tr><td>' + b.code + '</td><td>' + echapper(b.nom) + '</td><td class="num">' + (b.qteNeuf || 0) + '</td><td class="num">' + (b.qtePassable || 0) + '</td><td class="num">' + (b.qteMauvais || 0) + '</td><td class="num">' + (b.qteCasse || 0) + '</td><td class="num"><strong>' + (b.qte || 0) + '</strong></td></tr>';
-          });
-          html += '</tbody></table></div>';
-      }
-      html += '</div>';
-  });
-  document.getElementById('pRapportBox').innerHTML = html;
-}
-
-function imprimerRapportPatrimoine() {
-  var html = document.getElementById('pRapportBox').innerHTML;
-  if (!html.trim()) return alert('Générez d\'abord un rapport.');
-  ouvrirModalPdf({ type: 'html', html: html, titre: 'Rapport Patrimoine' });
-        }
-
+function rapportPatrimoineGlobal() { var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }); var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; }); var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📊 RAPPORT PATRIMOINE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>'; html += '<div class="table-wrapper"><table class="data-table"><tbody><tr><td>Total Sites</td><td class="num">' + sites.length + '</td></tr><tr><td>Total Biens</td><td class="num">' + biens.length + '</td></tr></tbody></table></div>'; document.getElementById('pRapportBox').innerHTML = html; }
 function relevePatrimoineSite(siteId) { var site = DB.get('patrimoineSites', []).find(function(s) { return s.id === siteId; }); var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && !b.archived; }); var w = window.open('', '_blank'); w.document.write('<html><head><meta charset="UTF-8"><title>Relevé Patrimoine</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#0a6e2c;color:white;padding:8px}td{padding:6px;border-bottom:1px solid #ddd}h1{text-align:center;color:#0a6e2c}</style></head><body>'); w.document.write('<h1>ÉGLISE MESSIANIQUE MONDIALE</h1><h2>Relevé Patrimoine : ' + echapper(site.nom) + ' (' + echapper(site.province || 'Non assignée') + ')</h2>'); w.document.write('<table><thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>État</th></tr></thead><tbody>'); biens.forEach(function(b) { w.document.write('<tr><td>' + b.code + '</td><td>' + b.nom + '</td><td>' + b.qte + '</td><td>' + b.etat + '</td></tr>'); }); w.document.write('</tbody></table></body></html>'); w.document.close(); setTimeout(function() { w.print(); }, 500); }
 
 // ========== ARCHIVES CENTRALISÉES ==========
@@ -1923,144 +1841,65 @@ function afficherArchives() {
 
   var filterAndRender = function(dataObj) {
     Object.keys(dataObj).forEach(function(entiteName) {
-// ========== ARCHIVES CENTRALISÉES (ARBORESCENCE) ==========
-function afficherArchives() {
-  var box = document.getElementById('archivesBox'); 
-  if (!box) return;
-  
-  var recherche = (document.getElementById('archiveSearch').value || '').toLowerCase().trim();
-  
-  // Structure de données : data[Entite][Module][Annee][Mois] = [items]
-  var archiveData = {};
-
-  // Fonction utilitaire pour ajouter un élément dans l'arborescence
-  var addToArchive = function(entiteName, module, dateStr, item, typeLabel, description, typeKey) {
-    if (!entiteName || entiteName === 'Inconnu') entiteName = "Entité non assignée";
-    var d = new Date(dateStr || Date.now());
-    var annee = d.getFullYear() || 'Année inconnue';
-    var mois = d.toLocaleString('fr-FR', { month: 'long' });
-    
-    if (!archiveData[entiteName]) archiveData[entiteName] = {};
-    if (!archiveData[entiteName][module]) archiveData[entiteName][module] = {};
-    if (!archiveData[entiteName][module][annee]) archiveData[entiteName][module][annee] = {};
-    if (!archiveData[entiteName][module][annee][mois]) archiveData[entiteName][module][annee][mois] = [];
-    
-    archiveData[entiteName][module][annee][mois].push({ item: item, typeLabel: typeLabel, desc: description, typeKey: typeKey });
-  };
-
-  // Préparation des données
-  var entitesMap = {}; DB.get('entites', []).forEach(e => entitesMap[e.id] = e.nom);
-  var candsMap = {}; DB.get('candidats', []).forEach(c => candsMap[c.id] = c);
-  var sitesMap = {}; DB.get('patrimoineSites', []).forEach(s => sitesMap[s.id] = s);
-
-  // 1. Fréquences
-  DB.get('participations', []).filter(x => x.archived).forEach(p => {
-    addToArchive(entitesMap[p.entiteId], 'Fréquence', p.date, p, '📝 Participation', 'Date: ' + fmtDate(p.date), 'participations');
-  });
-  DB.get('fichesMensuelles', []).filter(x => x.archived).forEach(f => {
-    addToArchive(entitesMap[f.entiteId], 'Fréquence', f.dateCreation, f, '📆 Fiche Mensuelle', f.mois + ' ' + f.annee, 'fichesMensuelles');
-  });
-
-  // 2. Finance
-  DB.get('candidats', []).filter(x => x.archived).forEach(c => {
-    addToArchive(c.nomEntite, 'Finance', c.dateInscription, c, '👤 Candidat', c.nom + ' (' + c.motif + ')', 'candidats');
-  });
-  DB.get('versements', []).filter(x => x.archived).forEach(v => {
-    var c = candsMap[v.candId];
-    addToArchive(c ? c.nomEntite : null, 'Finance', v.dateCreation || v.date, v, '💵 Versement', (c ? c.nom : 'Inconnu') + ' - ' + v.montantUSD.toFixed(2) + '$', 'versements');
-  });
-
-  // 3. Dépouillement
-  DB.get('depouillements', []).filter(x => x.archived).forEach(d => {
-    var ents = d.entites || [];
-    ents.forEach(e => {
-      addToArchive(e.nomEntite, 'Dépouillement', d.dateCreation || d.date, d, '🧾 Séance Dépouillement', 'Phase ' + d.phase + ' (' + d.mois + ' ' + d.annee + ')', 'depouillements');
-    });
-  });
-
-  // 4. Patrimoine
-  DB.get('patrimoineSites', []).filter(x => x.archived).forEach(s => {
-    addToArchive(s.nom, 'Patrimoine', s.dateCreation, s, '🏛️ Site', s.type, 'patrimoineSites');
-  });
-  DB.get('patrimoineBiens', []).filter(x => x.archived).forEach(b => {
-    var s = sitesMap[b.siteId];
-    addToArchive(s ? s.nom : null, 'Patrimoine', b.dateCreation || Date.now(), b, '📦 Bien', (b.code || '') + ' - ' + b.nom, 'patrimoineBiens');
-  });
-
-  // Génération du HTML (Dossiers cliquables)
-  var totalGeneral = 0;
-  var html = '';
-
-  Object.keys(archiveData).sort().forEach(function(entiteName) {
-    // Filtrage par recherche
-    if (recherche && entiteName.toLowerCase().indexOf(recherche) === -1) {
-      var hasMatch = false;
-      Object.keys(archiveData[entiteName]).forEach(mod => {
-        Object.keys(archiveData[entiteName][mod]).forEach(an => {
-          Object.keys(archiveData[entiteName][mod][an]).forEach(mo => {
-            archiveData[entiteName][mod][an][mo].forEach(x => {
-              if (x.desc.toLowerCase().indexOf(recherche) !== -1 || x.typeLabel.toLowerCase().indexOf(recherche) !== -1) hasMatch = true;
+      if (recherche && entiteName.toLowerCase().indexOf(recherche) === -1) {
+        // Si la recherche ne correspond pas au nom de l'entité, on regarde si un élément à l'intérieur correspond
+        var hasMatch = false;
+        Object.keys(dataObj[entiteName]).forEach(mod => {
+          Object.keys(dataObj[entiteName][mod]).forEach(an => {
+            Object.keys(dataObj[entiteName][mod][an]).forEach(mo => {
+              dataObj[entiteName][mod][an][mo].forEach(x => {
+                if (x.desc.toLowerCase().indexOf(recherche) !== -1 || x.typeLabel.toLowerCase().indexOf(recherche) !== -1) hasMatch = true;
+              });
             });
           });
         });
-      });
-      if (!hasMatch) return;
-    }
+        if (!hasMatch) return;
+      }
 
-    var entiteTotal = 0;
-    var htmlEntite = '<details style="margin-bottom:15px; background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:10px;">';
-    htmlEntite += '<summary style="font-size:16px; font-weight:bold; color:#0a6e2c; cursor:pointer; padding:5px;">🏛️ Entité : ' + echapper(entiteName) + '</summary>';
+      var entiteTotal = 0;
+      var htmlEntite = '<details style="margin-bottom:15px; background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:10px;">';
+      htmlEntite += '<summary style="font-size:16px; font-weight:bold; color:#0a6e2c; cursor:pointer; padding:5px;">🏛️ Entité : ' + echapper(entiteName) + '</summary>';
 
-    Object.keys(archiveData[entiteName]).sort().forEach(function(module) {
-      var htmlModule = '<details style="margin-left:15px; margin-top:10px; background:#fff; border:1px solid #eee; border-radius:6px; padding:8px;">';
-      htmlModule += '<summary style="font-size:14px; font-weight:bold; color:#1976d2; cursor:pointer;">📁 Module : ' + module + '</summary>';
+      Object.keys(dataObj[entiteName]).forEach(function(module) {
+        var htmlModule = '<details style="margin-left:15px; margin-top:10px; background:#fff; border:1px solid #eee; border-radius:6px; padding:8px;">';
+        htmlModule += '<summary style="font-size:14px; font-weight:bold; color:#1976d2; cursor:pointer;">📁 Module : ' + module + '</summary>';
 
-      Object.keys(archiveData[entiteName][module]).sort((a,b) => b - a).forEach(function(annee) {
-        var htmlAnnee = '<details style="margin-left:15px; margin-top:8px; background:#f4f4f4; border-radius:6px; padding:6px;">';
-        htmlAnnee += '<summary style="font-size:13px; font-weight:bold; color:#555; cursor:pointer;">📅 Année : ' + annee + '</summary>';
+        Object.keys(dataObj[entiteName][module]).sort((a,b) => b - a).forEach(function(annee) {
+          var htmlAnnee = '<details style="margin-left:15px; margin-top:8px; background:#f4f4f4; border-radius:6px; padding:6px;">';
+          htmlAnnee += '<summary style="font-size:13px; font-weight:bold; color:#555; cursor:pointer;">📅 Année : ' + annee + '</summary>';
 
-        Object.keys(archiveData[entiteName][module][annee]).sort().forEach(function(mois) {
-          var htmlMois = '<details style="margin-left:15px; margin-top:6px; background:#fafafa; border-left:3px solid #f9a825; padding:5px;">';
-          htmlMois += '<summary style="font-size:12px; font-weight:bold; color:#e65100; cursor:pointer;">🗓️ Mois : ' + mois + '</summary>';
-          
-          htmlMois += '<div style="margin-left:10px; margin-top:5px; font-size:12px;">';
-          archiveData[entiteName][module][annee][mois].forEach(function(obj) {
-            if (recherche && obj.desc.toLowerCase().indexOf(recherche) === -1 && obj.typeLabel.toLowerCase().indexOf(recherche) === -1 && entiteName.toLowerCase().indexOf(recherche) === -1) return;
+          Object.keys(dataObj[entiteName][module][annee]).forEach(function(mois) {
+            var htmlMois = '<details style="margin-left:15px; margin-top:6px; background:#fafafa; border-left:3px solid #f9a825; padding:5px;">';
+            htmlMois += '<summary style="font-size:12px; font-weight:bold; color:#e65100; cursor:pointer;">🗓️ Mois : ' + mois + '</summary>';
             
-            entiteTotal++; totalGeneral++;
-            htmlMois += '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dotted #ccc; padding:5px 0;">';
-            htmlMois += '<div><strong>' + obj.typeLabel + '</strong> : ' + echapper(obj.desc) + '</div>';
-            htmlMois += '<div style="white-space:nowrap;">';
-            htmlMois += '<button class="btn-mini blue" onclick="restaurerArchive(\'' + obj.typeKey + '\', \'' + obj.item.id + '\')">↩️</button> ';
-            htmlMois += '<button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + obj.typeKey + '\', \'' + obj.item.id + '\')">🗑️</button>';
-            htmlMois += '</div></div>';
+            htmlMois += '<div style="margin-left:10px; margin-top:5px; font-size:12px;">';
+            dataObj[entiteName][module][annee][mois].forEach(function(obj) {
+              if (recherche && obj.desc.toLowerCase().indexOf(recherche) === -1 && obj.typeLabel.toLowerCase().indexOf(recherche) === -1 && entiteName.toLowerCase().indexOf(recherche) === -1) return;
+              
+              entiteTotal++; totalGeneral++;
+              htmlMois += '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dotted #ccc; padding:5px 0;">';
+              htmlMois += '<div><strong>' + obj.typeLabel + '</strong> : ' + echapper(obj.desc) + '</div>';
+              htmlMois += '<div style="white-space:nowrap;">';
+              htmlMois += '<button class="btn-mini blue" onclick="restaurerArchive(\'' + getTypeKey(obj.typeLabel) + '\', \'' + obj.item.id + '\')">↩️</button> ';
+              htmlMois += '<button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + getTypeKey(obj.typeLabel) + '\', \'' + obj.item.id + '\')">🗑️</button>';
+              htmlMois += '</div></div>';
+            });
+            htmlMois += '</div></details>';
+            htmlAnnee += htmlMois;
           });
-          htmlMois += '</div></details>';
-          htmlAnnee += htmlMois;
+          htmlAnnee += '</details>';
+          htmlModule += htmlAnnee;
         });
-        htmlAnnee += '</details>';
-        htmlModule += htmlAnnee;
+        htmlModule += '</details>';
+        htmlEntite += htmlModule;
       });
-      htmlModule += '</details>';
-      htmlEntite += htmlModule;
+      
+      if (entiteTotal > 0) {
+        htmlEntite += '</details>';
+        html += htmlEntite;
+      }
     });
-    
-    if (entiteTotal > 0) {
-      htmlEntite += '</details>';
-      html += htmlEntite;
-    }
-  });
-
-  if (totalGeneral === 0) {
-    box.innerHTML = '<div class="card"><p style="text-align:center;padding:24px;color:#888;font-size:14px">📭 Aucun document trouvé dans les archives.</p></div>';
-    return;
-  }
-
-  var intro = '<div class="card" style="background:#fffde7;border-left:4px solid #f9a825"><h3 style="color:#e65100">📦 Bibliothèque d\'Archives — ' + totalGeneral + ' document(s)</h3>';
-  intro += '<p style="font-size:12px;color:#666;margin-top:6px">Cliquez sur les dossiers pour les ouvrir. Les éléments sont classés par Entité, Module, Année et Mois.</p></div>';
-  
-  box.innerHTML = intro + html;
-                 }
+  };
 
   // Fonction utilitaire pour retrouver la clé de la table
   function getTypeKey(label) {
@@ -2166,23 +2005,21 @@ document.addEventListener('DOMContentLoaded', function() {
   peuplerProvinceSelects(); 
   syncSignatureEncrePickers(); 
   
-  // 3. On force le passage au login après 1,5 seconde MAX
-setTimeout(function() {
-  var splash = document.getElementById('splashScreen');
-  if (splash && splash.classList.contains('active')) {
-    showScreen('loginScreen');
-  }
-}, 1500);
+  // 3. On force le passage au login après 800ms MAX, sans attendre Firebase
+  setTimeout(function() {
+    var splash = document.getElementById('splashScreen');
+    if (splash && splash.classList.contains('active')) {
+      showScreen('loginScreen');
+    }
+  }, 800);
 
-// 4. En arrière-plan, on initialise la base de données locale (sans bloquer)
-setTimeout(function() {
-  if (typeof DB !== 'undefined' && DB.init) {
+  // 4. En arrière-plan, on initialise la base de données locale
+  setTimeout(function() {
     DB.init().then(function() {
       try { initDB(); } catch(e) {}
       console.log('✅ Base locale prête');
     }).catch(function(e) { console.error('❌ DB:', e); });
-  }
-}, 100);
+  }, 100);
   
   setTimeout(initSignature, 800); 
 });
@@ -2568,54 +2405,22 @@ function verifierNouvellesAnnonces() {
 }
 
 function ouvrirNotifications() {
-  var badge = document.getElementById('notifBadge'); if (badge) badge.style.display = 'none';
+  var badge = document.getElementById('notifBadge');
+  if (badge) badge.style.display = 'none';
   
-  // Marquer comme lu
   dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).get().then(function(snap) {
-    if (!snap.empty) { localStorage.setItem('derniereAnnonceVue', snap.docs[0].id); _derniereAnnonceVueId = snap.docs[0].id; }
+    if (!snap.empty) {
+      localStorage.setItem('derniereAnnonceVue', snap.docs[0].id);
+      _derniereAnnonceVueId = snap.docs[0].id;
+    }
   });
 
-  var modal = document.getElementById('annoncesModal'); 
-  var listeBox = document.getElementById('listeAnnoncesModal');
-  
-  if (modal && listeBox) {
-    modal.style.display = 'flex';
-    listeBox.innerHTML = '<p style="text-align:center;color:#888;">Chargement...</p>';
-    
-    // Récupérer les annonces depuis Firebase
-    dbFS.collection('annonces').orderBy('dateCreation', 'desc').get().then(function(querySnapshot) {
-      if (querySnapshot.empty) {
-        listeBox.innerHTML = '<p style="text-align:center;color:#888;">Aucune annonce pour le moment.</p>'; 
-        return; 
-      }
-      var html = '';
-      querySnapshot.forEach(function(doc) {
-        var a = doc.data();
-        if (a.archived) return;
-        html += '<div class="item-list" style="margin-bottom:10px; padding:10px; border:1px solid #eee; border-radius:8px; background:#f9f9f9;">';
-        html += '<strong style="color:#0a6e2c;">📢 ' + (a.date || '') + '</strong> — <span style="font-size:11px;color:#666;">' + (a.auteur||'Admin') + '</span><br>';
-        html += '<p style="margin-top:5px; font-size:14px;">' + echapper(a.texte || '') + '</p>';
-        html += '</div>';
-      });
-      listeBox.innerHTML = html;
-    }).catch(function(error) {
-      listeBox.innerHTML = '<p style="color:red;">Erreur : ' + error.message + '</p>';
-    });
+  var annoncesBox = document.getElementById('announcementsBox');
+  if (annoncesBox) {
+    annoncesBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    annoncesBox.style.transition = 'background-color 0.5s';
+    annoncesBox.style.backgroundColor = '#e8f5e9';
+    setTimeout(function() { annoncesBox.style.backgroundColor = 'transparent'; }, 2000);
   }
 }
-// --- AFFICHAGE DES ANNONCES DANS L'ADMIN ---
-function afficherAnnoncesAdmin() {
-  var box = document.getElementById('adminListeAnnonces');
-  if (!box || !isAdmin()) return;
-  
-  var list = DB.get('annonces', []).filter(a => !a.archived);
-  if(!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888;">Aucune annonce active.</p>'; return; }
-  
-  var html = '<h4>Annonces actives</h4><div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Texte</th><th>Actions</th></tr></thead><tbody>';
-  list.forEach(function(a) {
-    html += '<tr><td>' + a.date + '</td><td>' + echapper(a.texte) + '</td>';
-    html += '<td><button class="btn-mini orange" onclick="modifierAnnonce(\'' + a.id + '\')">✏️</button> <button class="btn-mini danger" onclick="supprimerAnnonce(\'' + a.id + '\')">🗑️</button></td></tr>';
-  });
-  html += '</tbody></table></div>';
-  box.innerHTML = html;
-}
+
