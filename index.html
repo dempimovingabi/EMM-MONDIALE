@@ -245,12 +245,13 @@
         <div class="input-group"><label>Nouveaux venus restés</label><input type="number" id="freqNouveauxRestes" min="0"></div>
 
         <h5>Culte Mensuel</h5>
-        <div class="input-group"><label>Membres</label><input type="number" id="culteNumMembres" min="0"></div>
-        <div class="input-group"><label>Sympathisants</label><input type="number" id="culteNumSympathisants" min="0"></div>
-        <div class="input-group"><label>Nouveaux venus</label><input type="number" id="culteNumNouveaux" min="0"></div>
-        <div style="background: #333; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-            <strong>Total Culte Mensuel : <span id="totalCulteMensuel">0</span></strong>
-        </div>
+        <div class="input-group"><label>Membres</label><input type="number" id="culteNumMembres" min="0" oninput="calculerTotalCulte()"></div>
+        <div class="input-group"><label>Sympathisants</label><input type="number" id="culteNumSympathisants" min="0" oninput="calculerTotalCulte()"></div>
+        <div class="input-group"><label>Nouveaux venus</label><input type="number" id="culteNumNouveaux" min="0" oninput="calculerTotalCulte()"></div>
+
+        <div style="background: #444; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #4CAF50;">
+        <strong style="font-size: 16px;">Total Culte Mensuel : <span id="totalCulteMensuel" style="color: #4CAF50;">0</span></strong>
+     </div>
 
         <h5>Activités & Divers</h5>
         <div class="input-group"><label>Familles qui donnent le Johrei</label><input type="number" id="famillesJohrei" min="0"></div>
@@ -277,15 +278,31 @@
         <button class="btn-primary" onclick="enregistrerNumerique()">💾 Enregistrer le Rapport Numérique</button>
     </div>
 
-    <!-- ========================================== -->
-    <!-- SECTION ADMINISTRATEUR (Cachée par défaut) -->
-    <!-- ========================================== -->
-    <div class="card" id="sectionAdmin" style="display: none; border: 2px solid #e74c3c;">
-        <h3>🛡️ Espace Administrateur Provincial</h3>
+  <!-- ========================================== -->
+<!-- SECTION ADMINISTRATEUR (Rapports)          -->
+<!-- ========================================== -->
+<div class="card" id="sectionAdmin" style="display: none; border: 2px solid #e74c3c;">
+    <h3>🛡️ Espace Administrateur Provincial</h3>
+    
+    <!-- Panneau de contrôle des rapports -->
+    <div style="background: #222; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         <div class="input-group">
-            <label>🔍 Rechercher une entité</label>
+            <label>🔍 Rechercher une entité (pour le rapport détaillé)</label>
             <input type="text" id="rechercheEntite" placeholder="Tapez le nom de l'entité...">
         </div>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button class="btn-primary" onclick="genererRapportDetaille()">📋 Rapport Détaillé (Entité)</button>
+            <button class="btn-primary" onclick="genererRapportGlobal()">🌍 Rapport Global (Toutes les entités)</button>
+            <button class="btn-secondary" onclick="lancerImpression()">🖨️ Imprimer / PDF</button>
+        </div>
+    </div>
+
+    <!-- Zone d'affichage du rapport -->
+    <div id="affichageRapport" style="background: #fff; color: #000; padding: 25px; border-radius: 5px; min-height: 300px;">
+        <p style="text-align:center; color:#888;">Le rapport s'affichera ici après génération.</p>
+    </div>
+</div>
         
         <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
             <button class="btn-primary" onclick="genererRapportGlobal()">📊 Rapport Global</button>
@@ -679,5 +696,111 @@
 </script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+  // --- CALCULS AUTOMATIQUES ---
+
+// Fonction pour le Total du Culte Mensuel (Rapport Numérique)
+function calculerTotalCulte() {
+    let membres = parseInt(document.getElementById('culteNumMembres').value) || 0;
+    let sympas = parseInt(document.getElementById('culteNumSympathisants').value) || 0;
+    let nouveaux = parseInt(document.getElementById('culteNumNouveaux').value) || 0;
+    
+    let total = membres + sympas + nouveaux;
+    document.getElementById('totalCulteMensuel').innerText = total;
+}
+
+// --- GENERATION DES RAPPORTS ---
+
+// Variable globale pour simuler les données (à remplacer par votre base de données plus tard)
+let donneesRapports = []; 
+
+// Fonction pour le Rapport Détaillé
+function genererRapportDetaille() {
+    let entite = document.getElementById('rechercheEntite').value;
+    if(!entite) {
+        alert("Veuillez entrer le nom d'une entité pour le rapport détaillé.");
+        return;
+    }
+
+    let zone = document.getElementById('affichageRapport');
+    // Ici, on génère le HTML du rapport détaillé
+    zone.innerHTML = `
+        <div style="text-align:center; margin-bottom:20px;">
+            <h2>RAPPORT DÉTAILLÉ - ${entite.toUpperCase()}</h2>
+            <p>Date de génération : ${new Date().toLocaleDateString()}</p>
+        </div>
+        <hr>
+        <h3>📊 RAPPORT DE DIFFUSION</h3>
+        <p><strong>Fréquence Mensuelle :</strong></p>
+        <ul>
+            <li>Membres : [Données à récupérer]</li>
+            <li>Sympathisants : [Données à récupérer]</li>
+            <li>Nouveaux venus : [Données à récupérer]</li>
+        </ul>
+        <p><strong>Textes et Activités :</strong></p>
+        <p>Thèmes exploités : ...</p>
+        <p>Grâces reçues : ...</p>
+        <p>Objectifs : ...</p>
+        
+        <hr>
+        <h3>📈 RAPPORT NUMÉRIQUE</h3>
+        <p>Membres baptisés : ...</p>
+        <p>Fréquentation : ...</p>
+    `;
+}
+
+// Fonction pour le Rapport Global
+function genererRapportGlobal() {
+    let zone = document.getElementById('affichageRapport');
+    
+    // Ici, on fait la sommation de toutes les entités
+    zone.innerHTML = `
+        <div style="text-align:center; margin-bottom:20px;">
+            <h2>RAPPORT GLOBAL (TOUTES LES ENTITÉS)</h2>
+            <p>Date de génération : ${new Date().toLocaleDateString()}</p>
+        </div>
+        <hr>
+        <h3>📊 TOTAUX DIFFUSION</h3>
+        <p>Total Membres : [Somme automatique]</p>
+        <p>Total Sympathisants : [Somme automatique]</p>
+        
+        <h3>📝 COLLECTION DES TEXTES (Diffusion)</h3>
+        <p><strong>Thèmes exploités (toutes entités) :</strong></p>
+        <ul>
+            <li>Entité A : [Texte de l'entité A]</li>
+            <li>Entité B : [Texte de l'entité B]</li>
+        </ul>
+        <p><strong>Grâces reçues (toutes entités) :</strong></p>
+        <ul>
+            <li>...</li>
+        </ul>
+        
+        <hr>
+        <h3>📈 TOTAUX NUMÉRIQUE</h3>
+        <p>Total Membres baptisés : ...</p>
+        <p>Total Culte Mensuel : ...</p>
+    `;
+}
+
+// Fonction pour lancer l'impression (génère un PDF via l'impression du navigateur)
+function lancerImpression() {
+    let contenuRapport = document.getElementById('affichageRapport').innerHTML;
+    
+    // On ouvre une nouvelle fenêtre pour l'impression (évite d'imprimer les boutons et le menu)
+    let fenetreImpression = window.open('', '', 'height=800,width=800');
+    fenetreImpression.document.write('<html><head><title>Impression du Rapport</title>');
+    fenetreImpression.document.write('<style>body { font-family: Arial, sans-serif; padding: 20px; } h2 { color: #333; } hr { border: 1px solid #ccc; }</style>');
+    fenetreImpression.document.write('</head><body>');
+    fenetreImpression.document.write(contenuRapport);
+    fenetreImpression.document.write('</body></html>');
+    
+    fenetreImpression.document.close();
+    fenetreImpression.focus();
+    
+    // Lance l'impression automatiquement (l'utilisateur peut choisir "Enregistrer en PDF")
+    setTimeout(() => {
+        fenetreImpression.print();
+        fenetreImpression.close();
+    }, 500);
+}
 </body>
 </html>
