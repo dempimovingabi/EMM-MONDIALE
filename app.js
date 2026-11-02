@@ -194,7 +194,7 @@ function showSplash() {
     if (splash && splash.classList.contains('active')) {
       showScreen('loginScreen');
     }
-  }, 800); // CORRECTION DE VITESSE : 800ms max
+  }, 1500); // On passe à 1,5 seconde pour laisser le temps à Firebase de charger
 }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
@@ -2166,21 +2166,23 @@ document.addEventListener('DOMContentLoaded', function() {
   peuplerProvinceSelects(); 
   syncSignatureEncrePickers(); 
   
-  // 3. On force le passage au login après 800ms MAX, sans attendre Firebase
-  setTimeout(function() {
-    var splash = document.getElementById('splashScreen');
-    if (splash && splash.classList.contains('active')) {
-      showScreen('loginScreen');
-    }
-  }, 800);
+  // 3. On force le passage au login après 1,5 seconde MAX
+setTimeout(function() {
+  var splash = document.getElementById('splashScreen');
+  if (splash && splash.classList.contains('active')) {
+    showScreen('loginScreen');
+  }
+}, 1500);
 
-  // 4. En arrière-plan, on initialise la base de données locale
-  setTimeout(function() {
+// 4. En arrière-plan, on initialise la base de données locale (sans bloquer)
+setTimeout(function() {
+  if (typeof DB !== 'undefined' && DB.init) {
     DB.init().then(function() {
       try { initDB(); } catch(e) {}
       console.log('✅ Base locale prête');
     }).catch(function(e) { console.error('❌ DB:', e); });
-  }, 100);
+  }
+}, 100);
   
   setTimeout(initSignature, 800); 
 });
