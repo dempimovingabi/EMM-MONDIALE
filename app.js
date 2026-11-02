@@ -1731,12 +1731,32 @@ function genererCodeBien(siteId, cat) {
   var biens = DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId === siteId && b.categorie === cat; }); return prefixSite + '-' + cat + '-' + (biens.length + 1).toString().padStart(3, '0');
 }
 function ajouterBienPatrimoine() {
-  var prov = exigerProvince(); if (!prov) return; var siteId = document.getElementById('pBienSite').value; var cat = document.getElementById('pBienCategorie').value;
-  var nom = document.getElementById('pBienNom').value.trim(); var qte = parseInt(document.getElementById('pBienQte').value) || 1; var etat = document.getElementById('pBienEtat').value;
-  if (!siteId) return alert('Sélectionnez un site'); if (!nom) return alert('Entrez la désignation');
-  var list = DB.get('patrimoineBiens', []); var code = genererCodeBien(siteId, cat);
-  list.push({ id: uid(), siteId: siteId, categorie: cat, code: code, nom: nom, qte: qte, etat: etat, photo: photoBienTemp || null, province: prov, archived: false });
-  DB.set('patrimoineBiens', list); reinitialiserFormBienPatrimoine(); refreshPatrimoineSites(); alert('✅ Bien ajouté : ' + code + ' (' + prov + ')');
+  var prov = exigerProvince(); if (!prov) return; 
+  var siteId = document.getElementById('pBienSite').value; 
+  var nom = document.getElementById('pBienNom').value.trim(); 
+  var qte = parseInt(document.getElementById('pBienQte').value) || 1; 
+  var etat = document.getElementById('pBienEtat').value;
+  var qteNeuf = parseInt(document.getElementById('pQteNeuf').value) || 0;
+  var qtePassable = parseInt(document.getElementById('pQtePassable').value) || 0;
+  var qteMauvais = parseInt(document.getElementById('pQteMauvais').value) || 0;
+  var qteCasse = parseInt(document.getElementById('pQteCasse').value) || 0;
+
+  if (!siteId) return alert('Sélectionnez un site'); 
+  if (!nom) return alert('Entrez la désignation');
+  
+  var list = DB.get('patrimoineBiens', []); 
+  var code = genererCodeBien(siteId, 'AUT'); // Utilisation d'une catégorie par défaut
+  
+  list.push({ 
+      id: uid(), siteId: siteId, categorie: 'AUT', code: code, nom: nom, qte: qte, etat: etat, 
+      qteNeuf: qteNeuf, qtePassable: qtePassable, qteMauvais: qteMauvais, qteCasse: qteCasse,
+      province: prov, archived: false 
+  });
+  
+  DB.set('patrimoineBiens', list); 
+  reinitialiserFormBienPatrimoine(); 
+  refreshPatrimoineSites(); 
+  alert('✅ Bien ajouté : ' + code);
 }
 function reinitialiserFormBienPatrimoine() { document.getElementById('pBienNom').value = ''; document.getElementById('pBienQte').value = 1; document.getElementById('pBienEtat').selectedIndex = 0; document.getElementById('pPhotoPreview').innerHTML = ''; photoBienTemp = null; }
 
@@ -1759,6 +1779,7 @@ function supprimerBienPatrimoine(id) { if (!confirm('⚠️ Supprimer ce bien ?'
 function ajouterReparation() { var bienId = document.getElementById('pRepBien').value; var desc = document.getElementById('pRepDesc').value.trim(); var cout = parseFloat(document.getElementById('pRepCout').value) || 0; var date = document.getElementById('pRepDate').value || new Date().toISOString().slice(0, 10); if (!bienId || !desc) return alert('Remplissez le bien et la description'); var list = DB.get('patrimoineReparations', []); list.push({ id: uid(), bienId: bienId, desc: desc, cout: cout, date: date }); DB.set('patrimoineReparations', list); document.getElementById('pRepDesc').value = ''; document.getElementById('pRepCout').value = 0; afficherReparations(); alert('✅ Réparation enregistrée'); }
 function afficherReparations() { var list = DB.get('patrimoineReparations', []); var box = document.getElementById('pListeReparations'); if (!box) return; if (!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888">Aucune réparation.</p>'; return; } var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Bien</th><th>Description</th><th>Coût</th></tr></thead><tbody>'; list.slice().reverse().forEach(function(r) { var bien = DB.get('patrimoineBiens', []).find(function(b) { return b.id === r.bienId; }); html += '<tr><td>' + fmtDate(r.date) + '</td><td>' + (bien ? bien.code : '-') + '</td><td>' + echapper(r.desc) + '</td><td class="num">' + r.cout.toLocaleString() + '</td></tr>'; }); html += '</tbody></table></div>'; box.innerHTML = html; }
 function rapportPatrimoineGlobal() {
+function rapportPatrimoineGlobal() {
   var sites = sitesPatrimoineProvince().filter(function(s) { return !s.archived; });
   var biens = biensPatrimoineProvince().filter(function(b) { return !b.archived; });
   var reparations = DB.get('patrimoineReparations', []);
@@ -1775,6 +1796,7 @@ function rapportPatrimoineGlobal() {
   html += '<tr><td>Coût Total Réparations</td><td class="num" style="color:#c62828">' + totalCoutRep.toLocaleString() + ' $</td></tr>';
   html += '</tbody></table></div>';
   
+  // Ajout des réparations dans le rapport global
   html += '<h4 style="margin-top:20px;">Détail des Réparations / Entretiens</h4>';
   if (reparations.length === 0) {
       html += '<p>Aucune réparation enregistrée.</p>';
