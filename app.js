@@ -217,8 +217,10 @@ function switchMainTab(name, btn) {
   if (name === 'depouillement') setTimeout(syncSignatureEncrePickers, 150);
   if (name === 'patrimoine') refreshPatrimoineSites();
   if (name === 'archives') afficherArchives();
-  if (name === 'admin') { if (typeof majInterfacePremium === 'function') majInterfacePremium(); }
-}
+  if (name === 'admin') { 
+      if (typeof majInterfacePremium === 'function') majInterfacePremium(); 
+    afficherAnnoncesAdmin(); // <-- Ajoutez cette ligne
+  }
 
 function login() { /* Remplacé par Firebase à la fin */ }
 function logout() { /* Remplacé par Firebase à la fin */ }
