@@ -352,15 +352,24 @@
       <div id="pListeSites"></div>
     </div>
     <div class="card">
-      <h3>➕ Enregistrer un bien</h3>
-      <div class="input-group"><label>Site associé</label><select id="pBienSite"></select></div>
-      <div class="input-group"><label>Catégorie</label>
-        <select id="pBienCategorie">
-          <option value="LIT">Liturgie</option><option value="SAL">Salle de culte</option>
-          <option value="BUR">Bureau administratif</option><option value="IMM">Immobilier</option>
-          <option value="AUT">Autres biens</option>
-        </select>
-      </div>
+  <h3>➕ Enregistrer un bien</h3>
+  <div class="input-group"><label>Site associé</label><select id="pBienSite"></select></div>
+  <div class="input-group"><label>Désignation</label><input type="text" id="pBienNom"></div>
+  <div class="input-group"><label>Quantité Totale</label><input type="number" id="pBienQte" value="1"></div>
+  
+  <!-- Nouveaux champs pour le détail de l'état -->
+  <div style="display:flex; gap:5px; margin-bottom:10px;">
+      <div style="flex:1;"><label style="font-size:11px;">Neufs</label><input type="number" id="pQteNeuf" value="0" style="width:100%; padding:5px;"></div>
+      <div style="flex:1;"><label style="font-size:11px;">Passables</label><input type="number" id="pQtePassable" value="0" style="width:100%; padding:5px;"></div>
+      <div style="flex:1;"><label style="font-size:11px;">Mauvais</label><input type="number" id="pQteMauvais" value="0" style="width:100%; padding:5px;"></div>
+      <div style="flex:1;"><label style="font-size:11px;">Cassés</label><input type="number" id="pQteCasse" value="0" style="width:100%; padding:5px;"></div>
+  </div>
+  <div class="input-group"><label>État général</label>
+    <select id="pBienEtat"><option>Neuf</option><option>Bon</option><option>Passable</option><option>Mauvais</option><option>Cassé</option></select>
+  </div>
+  <button class="btn-primary" onclick="ajouterBienPatrimoine()">Enregistrer le bien</button>
+  <div id="pListeBiens" style="margin-top:15px;"></div>
+    </div>
       <div class="input-group"><label>Désignation</label><input type="text" id="pBienNom"></div>
       <div class="input-group"><label>Quantité</label><input type="number" id="pBienQte" value="1"></div>
       <div class="input-group"><label>État</label>
@@ -389,13 +398,17 @@
       <div id="pListeReparations" style="margin-top:10px"></div>
     </div>
     <div class="card">
-      <h3>📊 Rapports Patrimoine</h3>
-      <button class="btn-primary" onclick="rapportPatrimoineGlobal()">📊 Global</button>
-      <button class="btn-secondary" onclick="imprimerRapportPatrimoine()">🖨️ Imprimer</button>
-      <button class="btn-secondary" onclick="ouvrirModalPdf({type: 'box', boxId: 'pRapportBox', titre: 'Rapport Patrimoine'})">📄 PDF (Premium)</button>
-      <div id="pRapportBox" style="margin-top:10px"></div>
-    </div>
+  <h3>📊 Rapports Patrimoine</h3>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+    <button class="btn-primary" onclick="rapportPatrimoineGlobal()">📊 Global</button>
+    <button class="btn-secondary" onclick="rapportPatrimoineDetaille()">📋 Détaillé</button>
+    
+    <!-- Boutons de relevé demandés -->
+    <button class="btn-secondary" onclick="ouvrirModalPdf({type: 'box', boxId: 'pRapportBox', titre: 'Relevé Fiche par Entité'})">📄 Relevé Entité (PDF)</button>
+    <button class="btn-secondary" onclick="ouvrirModalPdf({type: 'box', boxId: 'pRapportBox', titre: 'Relevé Fiche Globale'})">📄 Relevé Global (PDF)</button>
   </div>
+  <div id="pRapportBox"></div>
+    </div>
 
   <div id="tab-archives" class="main-tab-content">
     <div class="card">
