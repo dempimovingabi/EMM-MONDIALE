@@ -115,31 +115,200 @@
 </div>
 
 <div id="tab-frequence" class="main-tab-content">
+    
+    <!-- BOUTONS PRINCIPAUX DE NAVIGATION -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <button class="btn-primary" style="flex: 1; padding: 15px; font-size: 16px;" onclick="ouvrirSectionFrequence('diffusion')">📊 RAPPORT DIFFUSION</button>
+        <button class="btn-primary" style="flex: 1; padding: 15px; font-size: 16px; background-color: #008CBA;" onclick="ouvrirSectionFrequence('numerique')">📈 RAPPORT NUMÉRIQUE</button>
+    </div>
 
     <!-- ========================================== -->
-    <!-- RAPPORT 1 : DIFFUSION                      -->
+    <!-- SECTION DIFFUSION (Cachée par défaut)      -->
     <!-- ========================================== -->
-    <div class="card">
-        <h3>📊 RAPPORT DE DIFFUSION</h3>
+    <div id="section-diffusion" style="display: none;">
         
-        <!-- A. Fréquence Journalière -->
-        <div style="margin-bottom: 20px; border: 1px solid #444; padding: 10px; border-radius: 5px;">
-            <h4 style="color: #4CAF50;">A. FRÉQUENCE JOURNALIÈRE</h4>
+        <!-- FORMULAIRE ENREGISTRER UNE ENTITÉ -->
+        <div class="card" style="border-left: 4px solid #4CAF50;">
+            <h3>➕ Enregistrer une Entité</h3>
             <div class="input-group">
-                <label>Date (du lundi au dimanche)</label>
-                <input type="date" id="dateJournaliere">
+                <label>Type d'entité</label>
+                <select id="typeEntite">
+                    <option value="Jorhei Center">Jorhei Center</option>
+                    <option value="Unité Religieuse">Unité Religieuse</option>
+                    <option value="Foyer de Lumière">Foyer de Lumière</option>
+                </select>
             </div>
             <div class="input-group">
-                <label>Entité (Jorhei Center, Unité, Foyer)</label>
-                <select id="entiteJournaliere"><option>-- Choisir --</option></select>
+                <label>Nom de l'entité</label>
+                <input type="text" id="nomEntite" placeholder="Ex: JC Kanyoka, Unité Nganza...">
             </div>
-            <div class="input-group"><label>Nom du Responsable</label><input type="text" id="respJournalier"></div>
+            <div class="input-group">
+                <label>Nom du Responsable</label>
+                <input type="text" id="nomResponsableEntite" placeholder="Nom et prénom">
+            </div>
+            <button class="btn-primary" onclick="ajouterEntite()">💾 Enregistrer l'entité</button>
+        </div>
+
+        <!-- FRÉQUENCE JOURNALIÈRE -->
+        <div class="card">
+            <h3>📅 A. Fréquence Journalière</h3>
+            <div class="input-group">
+                <label>Entité</label>
+                <select id="selectEntiteJournaliere">
+                    <option value="">-- Choisir une entité --</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Date</label><input type="date" id="dateJournaliere"></div>
             <div class="input-group"><label>Membres</label><input type="number" id="partMembres" min="0" value="0"></div>
             <div class="input-group"><label>Sympathisants</label><input type="number" id="partSympathisants" min="0" value="0"></div>
             <div class="input-group"><label>Nouveaux venus</label><input type="number" id="partNouveaux" min="0" value="0"></div>
-            <button class="btn-primary" onclick="enregistrerJournalier()">💾 Enregistrer la participation</button>
-            <p style="font-size:12px;color:#888;">(Le total hebdomadaire se calcule automatiquement après enregistrement)</p>
+            <button class="btn-secondary" onclick="enregistrerJournalier()">💾 Enregistrer la participation</button>
         </div>
+
+        <!-- FRÉQUENCE MENSUELLE (VOTRE LONG FORMULAIRE) -->
+        <div class="card">
+            <h3>📆 B. Fréquence Mensuelle</h3>
+            
+            <div class="input-group">
+                <label>Mois / Année</label>
+                <input type="month" id="moisAnnee">
+            </div>
+            <div class="input-group"><label>Nom du Responsable</label><input type="text" id="respMensuel"></div>
+            
+            <h5>Présentation</h5>
+            <div class="input-group"><label>Nombre d'Encadreurs</label><input type="number" id="nbEncadreurs" min="0"></div>
+            <div class="input-group">
+                <label>Jour de réunion d'évaluation</label>
+                <select id="jourReunion"><option>Lundi</option><option>Mardi</option><option>Mercredi</option><option>Jeudi</option><option>Vendredi</option><option>Samedi</option><option>Dimanche</option></select>
+            </div>
+            <div class="input-group"><label>Membres actifs</label><input type="number" id="membresActifs" min="0"></div>
+            <div class="input-group"><label>Sympathisants</label><input type="number" id="sympathisantsActifs" min="0"></div>
+
+            <h5>Fréquentation au culte mensuel</h5>
+            <div class="input-group"><label>Membres</label><input type="number" id="culteMembres" min="0" oninput="calculerTotalDiffusion()"></div>
+            <div class="input-group"><label>Sympathisants</label><input type="number" id="culteSympathisants" min="0" oninput="calculerTotalDiffusion()"></div>
+            <div class="input-group"><label>Nouveaux venus</label><input type="number" id="culteNouveaux" min="0" oninput="calculerTotalDiffusion()"></div>
+            <div style="background: #333; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <strong>Total Culte : <span id="totalCulteDiffusion" style="color: #4CAF50;">0</span></strong>
+            </div>
+
+            <h5>Activités & Foyers</h5>
+            <div class="input-group"><label>Foyers de Lumière accompagnés</label><input type="number" id="foyersAccompagnes" min="0"></div>
+            <div class="input-group"><label>Membres avec Goshintai</label><input type="number" id="avecGoshintai" min="0"></div>
+            <div class="input-group"><label>Membres sans Goshintai</label><input type="number" id="sansGoshintai" min="0"></div>
+            <div class="input-group"><label>Foyers de sympathisants</label><input type="number" id="foyersSympathisants" min="0"></div>
+            <div class="input-group"><label>Fleurs distribuées</label><input type="number" id="fleursDistribuees" min="0"></div>
+            <div class="input-group"><label>Potagers confectionnés</label><input type="number" id="potagersConfectionnes" min="0"></div>
+            <div class="input-group"><label>Total potagers de l'unité</label><input type="number" id="totalPotagers" min="0"></div>
+            <div class="input-group"><label>Maisons ouvertes (fleurs)</label><input type="number" id="maisonsOuvertes" min="0"></div>
+            <div class="input-group"><label>Témoignages recueillis</label><input type="number" id="temoignages" min="0"></div>
+
+            <h5>Confirmation (Candidats)</h5>
+            <div class="input-group"><label>Foyers candidats Goshintai</label><input type="number" id="candGoshintai" min="0"></div>
+            <div class="input-group"><label>Sympathisants Initiation</label><input type="number" id="candInitiation" min="0"></div>
+            <div class="input-group"><label>Candidats Ré-initiation</label><input type="number" id="candReinitiation" min="0"></div>
+            <div class="input-group"><label>Candidats Shoku</label><input type="number" id="candShoku" min="0"></div>
+            <div class="input-group"><label>Candidats Kannon</label><input type="number" id="candKannon" min="0"></div>
+            <div class="input-group"><label>Candidats Mitamaya</label><input type="number" id="candMitamaya" min="0"></div>
+
+            <h5>Assistance Religieuse</h5>
+            <div class="input-group"><label>Maisons des membres</label><input type="number" id="maisonsMembres" min="0"></div>
+            <div class="input-group"><label>Maisons des sympathisants</label><input type="number" id="maisonsSympathisants" min="0"></div>
+            <div class="input-group"><label>Maisons membres assistées</label><input type="number" id="assistMembres" min="0"></div>
+            <div class="input-group"><label>Maisons sympathisants assistées</label><input type="number" id="assistSympathisants" min="0"></div>
+            <div class="input-group"><label>Concessions agricoles église</label><input type="number" id="concessionsEglise" min="0"></div>
+            <div class="input-group"><label>Terrains de l'église</label><input type="number" id="terrainsEglise" min="0"></div>
+            <div class="input-group"><label>Concessions suivies</label><input type="number" id="concessionsSuivies" min="0"></div>
+            <div class="input-group"><label>Font l'agriculture naturelle</label><input type="text" id="agriNaturelle"></div>
+            <div class="input-group"><label>Produits disponibles</label><textarea id="produitsDispo" rows="2"></textarea></div>
+            <div class="input-group"><label>Campagnes de nettoyage</label><input type="number" id="campagnesNettoyage" min="0"></div>
+
+            <h5>Formation & Enseignements</h5>
+            <div class="input-group"><label>Cours d'enseignements réalisés</label><input type="number" id="coursEnseignements" min="0"></div>
+            <div class="input-group"><label>Thèmes exploités</label><textarea id="themesExploites" rows="3"></textarea></div>
+            <div class="input-group"><label>Cours de fleurs (unité)</label><input type="number" id="coursFleursUnite" min="0"></div>
+            <div class="input-group"><label>Cours de fleurs (maisons messianiques)</label><input type="number" id="coursFleursMess" min="0"></div>
+            <div class="input-group"><label>Cours de fleurs (maisons non-messianiques)</label><input type="number" id="coursFleursNonMess" min="0"></div>
+
+            <h5>Bilan et Objectifs</h5>
+            <div class="input-group"><label>Grâces reçues</label><textarea id="gracesRecues" rows="2"></textarea></div>
+            <div class="input-group"><label>Points à améliorer</label><textarea id="pointsAmeliorer" rows="2"></textarea></div>
+            <div class="input-group"><label>Solutions proposées</label><textarea id="solutionsProposees" rows="2"></textarea></div>
+            <div class="input-group"><label>Objectifs du mois prochain</label><textarea id="objectifsProchain" rows="2"></textarea></div>
+            <div class="input-group"><label>Actions à mener</label><textarea id="actionsMener" rows="2"></textarea></div>
+
+            <button class="btn-primary" onclick="enregistrerMensuel()">💾 Enregistrer le Rapport Mensuel</button>
+        </div>
+
+        <!-- RAPPORTS ET IMPRESSION (DIFFUSION) -->
+        <div class="card" style="border: 2px solid #e74c3c;">
+            <h3>🛡️ Rapports Diffusion</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <button class="btn-primary" onclick="genererRapportDetailleDiff()">📋 Relevé Fiche Détaillée</button>
+                <button class="btn-primary" onclick="genererRapportGlobalDiff()">🌍 Relevé Fiche Globale</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; background: #222; padding: 10px; border-radius: 5px;">
+                <button class="btn-secondary" onclick="imprimerRapport('rapportDiffusionZone')">🖨️ PDF</button>
+                <button class="btn-secondary" onclick="exporterWord('rapportDiffusionZone')">📝 Word</button>
+                <button class="btn-secondary" onclick="envoyerWhatsApp('rapportDiffusionZone')">💬 WhatsApp</button>
+                <button class="btn-secondary" onclick="envoyerEmail('rapportDiffusionZone')">✉️ Email</button>
+            </div>
+
+            <div id="rapportDiffusionZone" style="background: #fff; color: #000; padding: 20px; border-radius: 5px; min-height: 200px;">
+                <p style="text-align:center; color:#888;">Le rapport s'affichera ici.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION NUMÉRIQUE (Cachée par défaut)      -->
+    <!-- ========================================== -->
+    <div id="section-numerique" style="display: none;">
+        <div class="card">
+            <h3>📈 Saisie du Rapport Numérique</h3>
+            
+            <h5>Membres</h5>
+            <div class="input-group"><label>Membres baptisés</label><input type="number" id="numBaptises" min="0"></div>
+            <div class="input-group"><label>Membres actifs</label><input type="number" id="numActifs" min="0"></div>
+            <div class="input-group"><label>Membres inactifs</label><input type="number" id="numInactifs" min="0"></div>
+            <div class="input-group"><label>Initiés du mois</label><input type="number" id="numInities" min="0"></div>
+            <div class="input-group"><label>Membres entrés</label><input type="number" id="numEntres" min="0"></div>
+            <div class="input-group"><label>Membres sortis</label><input type="number" id="numSortis" min="0"></div>
+            <div class="input-group"><label>Membres récupérés</label><input type="number" id="numRecuperes" min="0"></div>
+            <div class="input-group"><label>Membres décédés</label><input type="number" id="numDecedes" min="0"></div>
+
+            <h5>Culte Mensuel</h5>
+            <div class="input-group"><label>Membres</label><input type="number" id="culteNumMembres" min="0" oninput="calculerTotalNumerique()"></div>
+            <div class="input-group"><label>Sympathisants</label><input type="number" id="culteNumSympathisants" min="0" oninput="calculerTotalNumerique()"></div>
+            <div class="input-group"><label>Nouveaux venus</label><input type="number" id="culteNumNouveaux" min="0" oninput="calculerTotalNumerique()"></div>
+            <div style="background: #333; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <strong>Total Culte : <span id="totalCulteNumerique" style="color: #4CAF50;">0</span></strong>
+            </div>
+            
+            <button class="btn-primary" onclick="enregistrerNumerique()">💾 Enregistrer le Rapport Numérique</button>
+        </div>
+
+        <!-- RAPPORTS ET IMPRESSION (NUMÉRIQUE) -->
+        <div class="card" style="border: 2px solid #e74c3c;">
+            <h3>🛡️ Rapports Numériques</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <button class="btn-primary" onclick="genererRapportDetailleNum()">📋 Relevé Fiche Détaillée</button>
+                <button class="btn-primary" onclick="genererRapportGlobalNum()">🌍 Relevé Fiche Globale</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; background: #222; padding: 10px; border-radius: 5px;">
+                <button class="btn-secondary" onclick="imprimerRapport('rapportNumeriqueZone')">🖨️ PDF</button>
+                <button class="btn-secondary" onclick="exporterWord('rapportNumeriqueZone')">📝 Word</button>
+                <button class="btn-secondary" onclick="envoyerWhatsApp('rapportNumeriqueZone')">💬 WhatsApp</button>
+                <button class="btn-secondary" onclick="envoyerEmail('rapportNumeriqueZone')">✉️ Email</button>
+            </div>
+
+            <div id="rapportNumeriqueZone" style="background: #fff; color: #000; padding: 20px; border-radius: 5px; min-height: 200px;">
+                <p style="text-align:center; color:#888;">Le rapport s'affichera ici.</p>
+            </div>
+        </div>
+    </div>
 
         <!-- B. Fréquence Mensuelle -->
         <div style="border: 1px solid #444; padding: 10px; border-radius: 5px;">
@@ -696,6 +865,7 @@
 </script>
 <script src="db.js"></script>
 <script src="app.js"></script>
+  
   // --- CALCULS AUTOMATIQUES ---
 
 // Fonction pour le Total du Culte Mensuel (Rapport Numérique)
@@ -761,46 +931,105 @@ function genererRapportGlobal() {
         <hr>
         <h3>📊 TOTAUX DIFFUSION</h3>
         <p>Total Membres : [Somme automatique]</p>
-        <p>Total Sympathisants : [Somme automatique]</p>
-        
-        <h3>📝 COLLECTION DES TEXTES (Diffusion)</h3>
-        <p><strong>Thèmes exploités (toutes entités) :</strong></p>
-        <ul>
-            <li>Entité A : [Texte de l'entité A]</li>
-            <li>Entité B : [Texte de l'entité B]</li>
-        </ul>
-        <p><strong>Grâces reçues (toutes entités) :</strong></p>
-        <ul>
-            <li>...</li>
-        </ul>
-        
-        <hr>
-        <h3>📈 TOTAUX NUMÉRIQUE</h3>
-        <p>Total Membres baptisés : ...</p>
-        <p>Total Culte Mensuel : ...</p>
-    `;
+<script>
+// --- NAVIGATION ---
+function ouvrirSectionFrequence(section) {
+    document.getElementById('section-diffusion').style.display = 'none';
+    document.getElementById('section-numerique').style.display = 'none';
+    document.getElementById('section-' + section).style.display = 'block';
 }
 
-// Fonction pour lancer l'impression (génère un PDF via l'impression du navigateur)
-function lancerImpression() {
-    let contenuRapport = document.getElementById('affichageRapport').innerHTML;
+// --- GESTION DES ENTITÉS ---
+let listeEntites = []; // Stockage temporaire
+
+function ajouterEntite() {
+    let type = document.getElementById('typeEntite').value;
+    let nom = document.getElementById('nomEntite').value;
+    if(nom === "") { alert("Veuillez entrer le nom de l'entité."); return; }
     
-    // On ouvre une nouvelle fenêtre pour l'impression (évite d'imprimer les boutons et le menu)
-    let fenetreImpression = window.open('', '', 'height=800,width=800');
-    fenetreImpression.document.write('<html><head><title>Impression du Rapport</title>');
-    fenetreImpression.document.write('<style>body { font-family: Arial, sans-serif; padding: 20px; } h2 { color: #333; } hr { border: 1px solid #ccc; }</style>');
-    fenetreImpression.document.write('</head><body>');
-    fenetreImpression.document.write(contenuRapport);
-    fenetreImpression.document.write('</body></html>');
+    let entiteComplete = type + " - " + nom;
+    listeEntites.push(entiteComplete);
     
-    fenetreImpression.document.close();
-    fenetreImpression.focus();
+    let select = document.getElementById('selectEntiteJournaliere');
+    let option = document.createElement('option');
+    option.text = entiteComplete;
+    option.value = entiteComplete;
+    select.add(option);
     
-    // Lance l'impression automatiquement (l'utilisateur peut choisir "Enregistrer en PDF")
-    setTimeout(() => {
-        fenetreImpression.print();
-        fenetreImpression.close();
-    }, 500);
+    alert("Entité enregistrée !");
+    document.getElementById('nomEntite').value = "";
 }
+
+// --- CALCULS AUTOMATIQUES ---
+function calculerTotalDiffusion() {
+    let m = parseInt(document.getElementById('culteMembres').value) || 0;
+    let s = parseInt(document.getElementById('culteSympathisants').value) || 0;
+    let n = parseInt(document.getElementById('culteNouveaux').value) || 0;
+    document.getElementById('totalCulteDiffusion').innerText = m + s + n;
+}
+
+function calculerTotalNumerique() {
+    let m = parseInt(document.getElementById('culteNumMembres').value) || 0;
+    let s = parseInt(document.getElementById('culteNumSympathisants').value) || 0;
+    let n = parseInt(document.getElementById('culteNumNouveaux').value) || 0;
+    document.getElementById('totalCulteNumerique').innerText = m + s + n;
+}
+
+// --- RAPPORTS (Exemples de structure) ---
+function genererRapportGlobalDiff() {
+    let zone = document.getElementById('rapportDiffusionZone');
+    zone.innerHTML = `<h2 style="text-align:center;">RAPPORT GLOBAL DIFFUSION</h2><hr><p>Entités enregistrées : ${listeEntites.length}</p><p>Les données globales s'afficheront ici.</p>`;
+}
+
+function genererRapportDetailleDiff() {
+    let zone = document.getElementById('rapportDiffusionZone');
+    zone.innerHTML = `<h2 style="text-align:center;">RAPPORT DÉTAILLÉ DIFFUSION</h2><hr><p>Veuillez sélectionner une entité.</p>`;
+}
+
+function genererRapportGlobalNum() {
+    let zone = document.getElementById('rapportNumeriqueZone');
+    zone.innerHTML = `<h2 style="text-align:center;">RAPPORT GLOBAL NUMÉRIQUE</h2><hr><p>Les données globales s'afficheront ici.</p>`;
+}
+
+function genererRapportDetailleNum() {
+    let zone = document.getElementById('rapportNumeriqueZone');
+    zone.innerHTML = `<h2 style="text-align:center;">RAPPORT DÉTAILLÉ NUMÉRIQUE</h2><hr><p>Veuillez sélectionner une entité.</p>`;
+}
+
+// --- EXPORTATIONS ---
+function imprimerRapport(idZone) {
+    let contenu = document.getElementById(idZone).innerHTML;
+    let fenetre = window.open('', '', 'height=800,width=800');
+    fenetre.document.write('<html><head><title>Impression</title><style>body{font-family:Arial;padding:20px;}</style></head><body>');
+    fenetre.document.write(contenu);
+    fenetre.document.write('</body></html>');
+    fenetre.document.close();
+    fenetre.focus();
+    setTimeout(() => { fenetre.print(); fenetre.close(); }, 500);
+}
+
+function exporterWord(idZone) {
+    let contenu = document.getElementById(idZone).innerHTML;
+    let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>${contenu}</body></html>`;
+    let blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    let url = URL.createObjectURL(blob);
+    let lien = document.createElement('a');
+    lien.href = url;
+    lien.download = 'Rapport.doc';
+    document.body.appendChild(lien);
+    lien.click();
+    document.body.removeChild(lien);
+}
+
+function envoyerWhatsApp(idZone) {
+    let texte = document.getElementById(idZone).innerText;
+    window.open("https://wa.me/?text=" + encodeURIComponent(texte), '_blank');
+}
+
+function envoyerEmail(idZone) {
+    let texte = document.getElementById(idZone).innerText;
+    window.location.href = "mailto:?subject=Rapport&body=" + encodeURIComponent(texte);
+}
+  </script>
 </body>
 </html>
