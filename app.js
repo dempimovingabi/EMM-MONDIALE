@@ -1899,65 +1899,144 @@ function afficherArchives() {
 
   var filterAndRender = function(dataObj) {
     Object.keys(dataObj).forEach(function(entiteName) {
-      if (recherche && entiteName.toLowerCase().indexOf(recherche) === -1) {
-        // Si la recherche ne correspond pas au nom de l'entité, on regarde si un élément à l'intérieur correspond
-        var hasMatch = false;
-        Object.keys(dataObj[entiteName]).forEach(mod => {
-          Object.keys(dataObj[entiteName][mod]).forEach(an => {
-            Object.keys(dataObj[entiteName][mod][an]).forEach(mo => {
-              dataObj[entiteName][mod][an][mo].forEach(x => {
-                if (x.desc.toLowerCase().indexOf(recherche) !== -1 || x.typeLabel.toLowerCase().indexOf(recherche) !== -1) hasMatch = true;
-              });
-            });
-          });
-        });
-        if (!hasMatch) return;
-      }
+// ========== ARCHIVES CENTRALISÉES (ARBORESCENCE) ==========
+function afficherArchives() {
+  var box = document.getElementById('archivesBox'); 
+  if (!box) return;
+  
+  var recherche = (document.getElementById('archiveSearch').value || '').toLowerCase().trim();
+  
+  // Structure de données : data[Entite][Module][Annee][Mois] = [items]
+  var archiveData = {};
 
-      var entiteTotal = 0;
-      var htmlEntite = '<details style="margin-bottom:15px; background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:10px;">';
-      htmlEntite += '<summary style="font-size:16px; font-weight:bold; color:#0a6e2c; cursor:pointer; padding:5px;">🏛️ Entité : ' + echapper(entiteName) + '</summary>';
-
-      Object.keys(dataObj[entiteName]).forEach(function(module) {
-        var htmlModule = '<details style="margin-left:15px; margin-top:10px; background:#fff; border:1px solid #eee; border-radius:6px; padding:8px;">';
-        htmlModule += '<summary style="font-size:14px; font-weight:bold; color:#1976d2; cursor:pointer;">📁 Module : ' + module + '</summary>';
-
-        Object.keys(dataObj[entiteName][module]).sort((a,b) => b - a).forEach(function(annee) {
-          var htmlAnnee = '<details style="margin-left:15px; margin-top:8px; background:#f4f4f4; border-radius:6px; padding:6px;">';
-          htmlAnnee += '<summary style="font-size:13px; font-weight:bold; color:#555; cursor:pointer;">📅 Année : ' + annee + '</summary>';
-
-          Object.keys(dataObj[entiteName][module][annee]).forEach(function(mois) {
-            var htmlMois = '<details style="margin-left:15px; margin-top:6px; background:#fafafa; border-left:3px solid #f9a825; padding:5px;">';
-            htmlMois += '<summary style="font-size:12px; font-weight:bold; color:#e65100; cursor:pointer;">🗓️ Mois : ' + mois + '</summary>';
-            
-            htmlMois += '<div style="margin-left:10px; margin-top:5px; font-size:12px;">';
-            dataObj[entiteName][module][annee][mois].forEach(function(obj) {
-              if (recherche && obj.desc.toLowerCase().indexOf(recherche) === -1 && obj.typeLabel.toLowerCase().indexOf(recherche) === -1 && entiteName.toLowerCase().indexOf(recherche) === -1) return;
-              
-              entiteTotal++; totalGeneral++;
-              htmlMois += '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dotted #ccc; padding:5px 0;">';
-              htmlMois += '<div><strong>' + obj.typeLabel + '</strong> : ' + echapper(obj.desc) + '</div>';
-              htmlMois += '<div style="white-space:nowrap;">';
-              htmlMois += '<button class="btn-mini blue" onclick="restaurerArchive(\'' + getTypeKey(obj.typeLabel) + '\', \'' + obj.item.id + '\')">↩️</button> ';
-              htmlMois += '<button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + getTypeKey(obj.typeLabel) + '\', \'' + obj.item.id + '\')">🗑️</button>';
-              htmlMois += '</div></div>';
-            });
-            htmlMois += '</div></details>';
-            htmlAnnee += htmlMois;
-          });
-          htmlAnnee += '</details>';
-          htmlModule += htmlAnnee;
-        });
-        htmlModule += '</details>';
-        htmlEntite += htmlModule;
-      });
-      
-      if (entiteTotal > 0) {
-        htmlEntite += '</details>';
-        html += htmlEntite;
-      }
-    });
+  // Fonction utilitaire pour ajouter un élément dans l'arborescence
+  var addToArchive = function(entiteName, module, dateStr, item, typeLabel, description, typeKey) {
+    if (!entiteName || entiteName === 'Inconnu') entiteName = "Entité non assignée";
+    var d = new Date(dateStr || Date.now());
+    var annee = d.getFullYear() || 'Année inconnue';
+    var mois = d.toLocaleString('fr-FR', { month: 'long' });
+    
+    if (!archiveData[entiteName]) archiveData[entiteName] = {};
+    if (!archiveData[entiteName][module]) archiveData[entiteName][module] = {};
+    if (!archiveData[entiteName][module][annee]) archiveData[entiteName][module][annee] = {};
+    if (!archiveData[entiteName][module][annee][mois]) archiveData[entiteName][module][annee][mois] = [];
+    
+    archiveData[entiteName][module][annee][mois].push({ item: item, typeLabel: typeLabel, desc: description, typeKey: typeKey });
   };
+
+  // Préparation des données
+  var entitesMap = {}; DB.get('entites', []).forEach(e => entitesMap[e.id] = e.nom);
+  var candsMap = {}; DB.get('candidats', []).forEach(c => candsMap[c.id] = c);
+  var sitesMap = {}; DB.get('patrimoineSites', []).forEach(s => sitesMap[s.id] = s);
+
+  // 1. Fréquences
+  DB.get('participations', []).filter(x => x.archived).forEach(p => {
+    addToArchive(entitesMap[p.entiteId], 'Fréquence', p.date, p, '📝 Participation', 'Date: ' + fmtDate(p.date), 'participations');
+  });
+  DB.get('fichesMensuelles', []).filter(x => x.archived).forEach(f => {
+    addToArchive(entitesMap[f.entiteId], 'Fréquence', f.dateCreation, f, '📆 Fiche Mensuelle', f.mois + ' ' + f.annee, 'fichesMensuelles');
+  });
+
+  // 2. Finance
+  DB.get('candidats', []).filter(x => x.archived).forEach(c => {
+    addToArchive(c.nomEntite, 'Finance', c.dateInscription, c, '👤 Candidat', c.nom + ' (' + c.motif + ')', 'candidats');
+  });
+  DB.get('versements', []).filter(x => x.archived).forEach(v => {
+    var c = candsMap[v.candId];
+    addToArchive(c ? c.nomEntite : null, 'Finance', v.dateCreation || v.date, v, '💵 Versement', (c ? c.nom : 'Inconnu') + ' - ' + v.montantUSD.toFixed(2) + '$', 'versements');
+  });
+
+  // 3. Dépouillement
+  DB.get('depouillements', []).filter(x => x.archived).forEach(d => {
+    var ents = d.entites || [];
+    ents.forEach(e => {
+      addToArchive(e.nomEntite, 'Dépouillement', d.dateCreation || d.date, d, '🧾 Séance Dépouillement', 'Phase ' + d.phase + ' (' + d.mois + ' ' + d.annee + ')', 'depouillements');
+    });
+  });
+
+  // 4. Patrimoine
+  DB.get('patrimoineSites', []).filter(x => x.archived).forEach(s => {
+    addToArchive(s.nom, 'Patrimoine', s.dateCreation, s, '🏛️ Site', s.type, 'patrimoineSites');
+  });
+  DB.get('patrimoineBiens', []).filter(x => x.archived).forEach(b => {
+    var s = sitesMap[b.siteId];
+    addToArchive(s ? s.nom : null, 'Patrimoine', b.dateCreation || Date.now(), b, '📦 Bien', (b.code || '') + ' - ' + b.nom, 'patrimoineBiens');
+  });
+
+  // Génération du HTML (Dossiers cliquables)
+  var totalGeneral = 0;
+  var html = '';
+
+  Object.keys(archiveData).sort().forEach(function(entiteName) {
+    // Filtrage par recherche
+    if (recherche && entiteName.toLowerCase().indexOf(recherche) === -1) {
+      var hasMatch = false;
+      Object.keys(archiveData[entiteName]).forEach(mod => {
+        Object.keys(archiveData[entiteName][mod]).forEach(an => {
+          Object.keys(archiveData[entiteName][mod][an]).forEach(mo => {
+            archiveData[entiteName][mod][an][mo].forEach(x => {
+              if (x.desc.toLowerCase().indexOf(recherche) !== -1 || x.typeLabel.toLowerCase().indexOf(recherche) !== -1) hasMatch = true;
+            });
+          });
+        });
+      });
+      if (!hasMatch) return;
+    }
+
+    var entiteTotal = 0;
+    var htmlEntite = '<details style="margin-bottom:15px; background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:10px;">';
+    htmlEntite += '<summary style="font-size:16px; font-weight:bold; color:#0a6e2c; cursor:pointer; padding:5px;">🏛️ Entité : ' + echapper(entiteName) + '</summary>';
+
+    Object.keys(archiveData[entiteName]).sort().forEach(function(module) {
+      var htmlModule = '<details style="margin-left:15px; margin-top:10px; background:#fff; border:1px solid #eee; border-radius:6px; padding:8px;">';
+      htmlModule += '<summary style="font-size:14px; font-weight:bold; color:#1976d2; cursor:pointer;">📁 Module : ' + module + '</summary>';
+
+      Object.keys(archiveData[entiteName][module]).sort((a,b) => b - a).forEach(function(annee) {
+        var htmlAnnee = '<details style="margin-left:15px; margin-top:8px; background:#f4f4f4; border-radius:6px; padding:6px;">';
+        htmlAnnee += '<summary style="font-size:13px; font-weight:bold; color:#555; cursor:pointer;">📅 Année : ' + annee + '</summary>';
+
+        Object.keys(archiveData[entiteName][module][annee]).sort().forEach(function(mois) {
+          var htmlMois = '<details style="margin-left:15px; margin-top:6px; background:#fafafa; border-left:3px solid #f9a825; padding:5px;">';
+          htmlMois += '<summary style="font-size:12px; font-weight:bold; color:#e65100; cursor:pointer;">🗓️ Mois : ' + mois + '</summary>';
+          
+          htmlMois += '<div style="margin-left:10px; margin-top:5px; font-size:12px;">';
+          archiveData[entiteName][module][annee][mois].forEach(function(obj) {
+            if (recherche && obj.desc.toLowerCase().indexOf(recherche) === -1 && obj.typeLabel.toLowerCase().indexOf(recherche) === -1 && entiteName.toLowerCase().indexOf(recherche) === -1) return;
+            
+            entiteTotal++; totalGeneral++;
+            htmlMois += '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dotted #ccc; padding:5px 0;">';
+            htmlMois += '<div><strong>' + obj.typeLabel + '</strong> : ' + echapper(obj.desc) + '</div>';
+            htmlMois += '<div style="white-space:nowrap;">';
+            htmlMois += '<button class="btn-mini blue" onclick="restaurerArchive(\'' + obj.typeKey + '\', \'' + obj.item.id + '\')">↩️</button> ';
+            htmlMois += '<button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + obj.typeKey + '\', \'' + obj.item.id + '\')">🗑️</button>';
+            htmlMois += '</div></div>';
+          });
+          htmlMois += '</div></details>';
+          htmlAnnee += htmlMois;
+        });
+        htmlAnnee += '</details>';
+        htmlModule += htmlAnnee;
+      });
+      htmlModule += '</details>';
+      htmlEntite += htmlModule;
+    });
+    
+    if (entiteTotal > 0) {
+      htmlEntite += '</details>';
+      html += htmlEntite;
+    }
+  });
+
+  if (totalGeneral === 0) {
+    box.innerHTML = '<div class="card"><p style="text-align:center;padding:24px;color:#888;font-size:14px">📭 Aucun document trouvé dans les archives.</p></div>';
+    return;
+  }
+
+  var intro = '<div class="card" style="background:#fffde7;border-left:4px solid #f9a825"><h3 style="color:#e65100">📦 Bibliothèque d\'Archives — ' + totalGeneral + ' document(s)</h3>';
+  intro += '<p style="font-size:12px;color:#666;margin-top:6px">Cliquez sur les dossiers pour les ouvrir. Les éléments sont classés par Entité, Module, Année et Mois.</p></div>';
+  
+  box.innerHTML = intro + html;
+                 }
 
   // Fonction utilitaire pour retrouver la clé de la table
   function getTypeKey(label) {
@@ -2497,4 +2576,20 @@ function ouvrirNotifications() {
       listeBox.innerHTML = '<p style="color:red;">Erreur : ' + error.message + '</p>';
     });
   }
+}
+// --- AFFICHAGE DES ANNONCES DANS L'ADMIN ---
+function afficherAnnoncesAdmin() {
+  var box = document.getElementById('adminListeAnnonces');
+  if (!box || !isAdmin()) return;
+  
+  var list = DB.get('annonces', []).filter(a => !a.archived);
+  if(!list.length) { box.innerHTML = '<p style="font-size:12px;color:#888;">Aucune annonce active.</p>'; return; }
+  
+  var html = '<h4>Annonces actives</h4><div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Texte</th><th>Actions</th></tr></thead><tbody>';
+  list.forEach(function(a) {
+    html += '<tr><td>' + a.date + '</td><td>' + echapper(a.texte) + '</td>';
+    html += '<td><button class="btn-mini orange" onclick="modifierAnnonce(\'' + a.id + '\')">✏️</button> <button class="btn-mini danger" onclick="supprimerAnnonce(\'' + a.id + '\')">🗑️</button></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  box.innerHTML = html;
 }
