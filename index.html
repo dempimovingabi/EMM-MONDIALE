@@ -420,26 +420,36 @@
   </div>
 
   <div id="tab-admin" class="main-tab-content">
-    <div class="card">
-      <h3>👤 Mon compte</h3>
-      <div id="monCompteBox"></div>
-    </div>
-    <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
-      <h3>⚡ Gestion des clients Premium</h3>
-      <p style="font-size:12px; color:#666; margin-bottom:10px;">Gérez les abonnements de vos clients ici.</p>
-      <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
-      <div id="listeClientsAdmin"><p style="color:#888; font-size:13px;">Cliquez sur "Rafraîchir" pour voir les comptes.</p></div>
-    </div>
-    <div class="card">
-      <h3>📢 Publier une annonce</h3>
-      <textarea id="annonceText" rows="3" style="width:100%; border-radius:8px; border:1px solid #ccc; padding:8px;" placeholder="Écrivez votre annonce ici..."></textarea>
-      <button class="btn-primary" onclick="publierAnnonce()" style="margin-top:10px; width:100%;">Publier l'annonce</button>
-    </div>
-    <div class="card" style="text-align:center;">
-      <button class="btn-primary" onclick="switchMainTab('general', document.querySelectorAll('.main-tab')[0])" style="width:100%; background:#0a6e2c; padding:12px; font-weight:bold;">
-        🏠 Retour au Tableau de Bord
-      </button>
-    </div>
+  <!-- 1. Mon compte -->
+  <div class="card">
+    <h3>👤 Mon compte</h3>
+    <div id="monCompteBox"></div>
+  </div>
+
+  <!-- 2. Gestion des clients Premium (Visible seulement par le Super Admin) -->
+  <div class="card" id="cardActivationRapide" style="display:none; border: 2px solid #ffc107;">
+    <h3>⚡ Gestion des clients Premium</h3>
+    <p style="font-size:12px; color:#666; margin-bottom:10px;">Gérez les abonnements de vos clients ici.</p>
+    <button class="btn-secondary" onclick="chargerListeClients()" style="margin-bottom:10px;">🔄 Rafraîchir la liste</button>
+    <div id="listeClientsAdmin"><p style="color:#888; font-size:13px;">Cliquez sur "Rafraîchir" pour voir les comptes.</p></div>
+  </div>
+
+  <!-- 3. Publier une annonce -->
+  <div class="card">
+    <h3>📢 Publier une annonce</h3>
+    <textarea id="annonceText" rows="3" style="width:100%; border-radius:8px; border:1px solid #ccc; padding:8px;" placeholder="Écrivez votre annonce ici..."></textarea>
+    <button class="btn-primary" onclick="publierAnnonce()" style="margin-top:10px; width:100%;">Publier l'annonce</button>
+    
+    <!-- Liste des annonces existantes avec boutons Modifier/Supprimer -->
+    <div id="adminListeAnnonces" style="margin-top:20px;"></div>
+  </div>
+
+  <!-- 4. Retour au tableau de bord -->
+  <div class="card" style="text-align:center;">
+    <button class="btn-primary" onclick="switchMainTab('general', document.querySelectorAll('.main-tab')[0])" style="width:100%; background:#0a6e2c; padding:12px; font-weight:bold;">
+      🏠 Retour au Tableau de Bord
+    </button>
+  </div>
   </div>
 </div> <!-- Fin mainScreen -->
   <!-- FENÊTRES POP-UP (MODALS) -->
