@@ -189,12 +189,13 @@ function captureSignaturesFromDOM() {
 // ========== SPLASH & UI ==========
 function showSplash() {
   showScreen('splashScreen');
+  // CORRECTION DE VITESSE : On force le passage au login après 800ms MAX
   setTimeout(function() {
     var splash = document.getElementById('splashScreen');
     if (splash && splash.classList.contains('active')) {
       showScreen('loginScreen');
     }
-  }, 800); // CORRECTION DE VITESSE : 800ms max
+  }, 800);
 }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); s.style.display = 'none'; });
@@ -308,37 +309,14 @@ function confirmerImpressionPdf() {
   if (!pdfContexteEnAttente) return;
   var options = lireOptionsPdf(); setSignatureColor(options.signatureColor);
   var ctx = pdfContexteEnAttente; var contenu = '', titre = 'Rapport';
-  
-  if (ctx.type === 'box') { 
-    var box = document.getElementById(ctx.boxId); 
-    if (!box || !box.innerHTML.trim()) { fermerModalPdf(); return alert('Rapport vide'); } 
-    contenu = box.innerHTML; titre = ctx.titre || 'Rapport EMM'; 
-  } else if (ctx.type === 'html') { 
-    contenu = ctx.html; titre = ctx.titre || 'Rapport EMM'; 
-  }
-  
+  if (ctx.type === 'box') { var box = document.getElementById(ctx.boxId); if (!box || !box.innerHTML.trim()) { fermerModalPdf(); return alert('Rapport vide'); } contenu = box.innerHTML; titre = ctx.titre || 'Rapport EMM'; }
+  else if (ctx.type === 'html') { contenu = ctx.html; titre = ctx.titre || 'Rapport EMM'; }
   if (!contenu) { fermerModalPdf(); return alert('Rapport vide'); }
-  
-  // TENTATIVE D'OUVERTURE DE LA FENÊTRE
-  var w = window.open('', '_blank'); 
-  
-  // SI LE NAVIGATEUR BLOQUE LA FENÊTRE (Pop-up bloqué)
-  if (!w) {
-    alert("⚠️ Votre navigateur a bloqué l'ouverture de la fenêtre d'impression.\n\nAllez dans les paramètres de votre navigateur et autorisez les 'Pop-ups' pour ce site.");
-    return;
-  }
-  
-  var css = cssImpression(options);
+  var w = window.open('', '_blank'); var css = cssImpression(options);
   w.document.write('<html><head><meta charset="UTF-8"><title>' + titre + '</title><style>' + css + '</style></head><body>');
   w.document.write('<h1>EMM MONDIAL</h1><hr>' + contenu);
-  w.document.write('<p style="text-align:center;font-size:' + (options.fontSize - 2) + 'pt;color:#888;margin-top:20px">Généré le ' + new Date().toLocaleString('fr-FR') + ' par ' + (currentUser ? (currentUser.email) : '') + '</p>');
-  w.document.write('</body></html>'); 
-  w.document.close(); 
-  fermerModalPdf(); 
-  
-  setTimeout(function() { 
-    w.print(); 
-  }, 800);
+  w.document.write('<p style="text-align:center;font-size:' + (options.fontSize - 2) + 'pt;color:#888;margin-top:20px">Généré le ' + new Date().toLocaleString('fr-FR') + ' par ' + (currentUser ? (currentUser.nom || currentUser.email) : '') + '</p>');
+  w.document.write('</body></html>'); w.document.close(); fermerModalPdf(); setTimeout(function() { w.print(); }, 800);
 }
 
 function signatureBlockHTML() {
@@ -352,57 +330,12 @@ function signatureBlockHTML() {
 // --- FIN DE LA PARTIE 1 ---
 
 // ========== TABLEAU DE BORD & ANNONCES ==========
-function exporterCSVFinance() {
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; });
-  
-  if (!cands.length) {
-    return alert("⚠️ Aucune donnée financière à exporter pour cette province.");
-  }
-
-  // Le \uFEFF est important pour qu'Excel affiche correctement les accents (é, à, etc.)
-  var csvContent = "\uFEFF"; 
-  csvContent += "Nom,Entite,Type,Motif,Montant Prevu,Total Verse,Solde,Statut\n";
-
-  cands.forEach(function(c) {
-    // On remplace les virgules par des espaces pour ne pas casser le fichier CSV
-    var nom = (c.nom || '').replace(/,/g, " ");
-    var entite = (c.nomEntite || '').replace(/,/g, " ");
-    var type = (c.typeEntite || '').replace(/,/g, " ");
-    var motif = (c.motif || '').replace(/,/g, " ");
-    
-    var prevu = c.montantPrevu || 0;
-    var verse = c.totalVerse || 0;
-    var solde = prevu - verse;
-    var statut = c.statut === 'termine' ? 'Termine' : 'En cours';
-
-    csvContent += nom + "," + entite + "," + type + "," + motif + "," + prevu + "," + verse.toFixed(2) + "," + solde.toFixed(2) + "," + statut + "\n";
-  });
-
-  // Création du fichier et téléchargement automatique
-  var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  var url = URL.createObjectURL(blob);
-  var link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", "EMM_Finance_" + getProvinceActive() + "_" + new Date().toISOString().slice(0,10) + ".csv");
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  alert("✅ Fichier Excel téléchargé avec succès !");
-                 }
-var _chartPresenceInstance = null; // Variable globale pour garder le graphique en mémoire
-
 function afficherDashboard() {
   var box = document.getElementById('dashboardBox');
   if (!box) return;
-  
   var entites = entitesProvince().filter(function(e) { return !e.archived; }).length;
   var parts = participationsProvince().filter(function(p) { return !p.archived; });
-  var totM = 0, totS = 0, totN = 0;
-  parts.forEach(function(p) { totM += p.m; totS += p.s; totN += p.n; });
-  var totPart = totM + totS + totN;
-  
+  var totPart = parts.reduce(function(a, p) { return a + p.m + p.s + p.n; }, 0);
   var fiches = fichesProvince().filter(function(f) { return !f.archived; }).length;
   var cands = candidatsProvince().filter(function(c) { return !c.archived; });
   var totalVerse = cands.reduce(function(a, c) { return a + (c.totalVerse || 0); }, 0);
@@ -411,18 +344,8 @@ function afficherDashboard() {
   deps.forEach(function(d) { d.entites.forEach(function(e) { var s = sumEntiteDep(e); soldeDepFC += s.soldeFC; soldeDepUSD += s.soldeUSD; }); });
   var sitesP = sitesPatrimoineProvince().filter(function(s) { return !s.archived; }).length;
   var biensP = biensPatrimoineProvince().filter(function(b) { return !b.archived; }).length;
-  
   var provinceLabel = getProvinceActive() || 'Toutes';
-  
   var html = '<p style="text-align:center;font-size:12px;color:#0a6e2c;font-weight:600;margin-bottom:10px">🌍 Province : ' + echapper(provinceLabel === '__non_assignee' ? 'Non assignées' : provinceLabel) + '</p>';
-  
-  // Bloc pour le graphique
-  html += '<div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px;">';
-  html += '<h4 style="text-align:center; color:#0a6e2c; margin-bottom:15px;">📊 Répartition des Présences</h4>';
-  html += '<div style="position: relative; height: 250px; width: 100%; display: flex; justify-content: center;">';
-  html += '<canvas id="chartPresenceCanvas"></canvas>';
-  html += '</div></div>';
-
   html += '<div class="table-wrapper"><table class="data-table"><tbody>';
   html += '<tr><th colspan="2">📈 MODULE I — FRÉQUENCES</th></tr>';
   html += '<tr><td>Entités actives</td><td class="num">' + entites + '</td></tr>';
@@ -439,60 +362,7 @@ function afficherDashboard() {
   html += '<tr><td>Sites enregistrés</td><td class="num">' + sitesP + '</td></tr>';
   html += '<tr><td>Biens enregistrés</td><td class="num">' + biensP + '</td></tr>';
   html += '</tbody></table></div>';
-  
   box.innerHTML = html;
-
-  // Dessiner le graphique
-  dessinerGraphiquePresence(totM, totS, totN);
-}
-
-function dessinerGraphiquePresence(m, s, nv) {
-  if (typeof Chart === 'undefined') {
-    console.warn("Chart.js n'est pas chargé.");
-    return;
-  }
-  var canvas = document.getElementById('chartPresenceCanvas');
-  if (!canvas) return;
-
-  // Détruire l'ancien graphique s'il existe (pour éviter les bugs d'affichage)
-  if (_chartPresenceInstance) {
-    _chartPresenceInstance.destroy();
-  }
-
-  var dataValues = [m, s, nv];
-  var labels = ['Membres', 'Sympathisants', 'Nouveaux'];
-  var colors = ['#0a6e2c', '#1976d2', '#ff9800'];
-
-  // Si toutes les données sont à 0, on affiche un cercle gris
-  if (m === 0 && s === 0 && nv === 0) {
-    dataValues = [1];
-    labels = ['Aucune donnée'];
-    colors = ['#e0e0e0'];
-  }
-
-  var ctx = canvas.getContext('2d');
-  _chartPresenceInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: dataValues,
-        backgroundColor: colors,
-        borderWidth: 2,
-        borderColor: '#ffffff'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { 
-          position: 'bottom',
-          labels: { font: { size: 13 } }
-        }
-      }
-    }
-  });
 }
 
 function afficherAnnonces() {
@@ -918,23 +788,10 @@ function afficherAnnonces() {
 }
 
 function publierAnnonce() {
-  if (!isAdmin() && !isSuperAdmin()) return alert('Réservé admin');
-  var texte = document.getElementById('annonceText').value.trim(); 
-  if (!texte) return alert('Écrivez une annonce');
-  
-  dbFS.collection('annonces').add({
-    texte: texte, 
-    date: new Date().toLocaleDateString('fr-FR'), 
-    dateCreation: Date.now(),
-    auteur: currentUser ? currentUser.email : 'Admin', 
-    archived: false
-  }).then(function() {
-    reinitialiserFormAnnonce(); 
-    alert('✅ Annonce publiée et envoyée à toutes les églises !');
-    if (typeof verifierNouvellesAnnonces === 'function') verifierNouvellesAnnonces();
-  }).catch(function(error) {
-    alert("Erreur de publication : " + error.message);
-  });
+  if (!isAdmin()) return alert('Réservé admin');
+  var texte = document.getElementById('annonceText').value.trim(); if (!texte) return alert('Écrivez une annonce');
+  var list = DB.get('annonces', []); list.push({ id: uid(), texte: texte, date: new Date().toLocaleDateString('fr-FR'), auteur: currentUser ? (currentUser.nom || currentUser.email) : 'Admin', archived: false });
+  DB.set('annonces', list); reinitialiserFormAnnonce(); afficherAnnonces(); alert('✅ Annonce publiée');
 }
 function reinitialiserFormAnnonce() { var el = document.getElementById('annonceText'); if (el) el.value = ''; }
 function modifierAnnonce(id) {
@@ -1270,24 +1127,19 @@ function rapportFinGlobal() {
   html += '<tr><td>Candidats actifs</td><td class="num">' + cands.length + '</td></tr><tr><td>Terminés</td><td class="num">' + cands.filter(function(c) { return c.statut === 'termine'; }).length + '</td></tr><tr><td>Total prévu</td><td class="num">' + totalPrevu.toFixed(2) + '$</td></tr><tr><td>Total versé</td><td class="num">' + totalVerse.toFixed(2) + '$</td></tr><tr><td>Solde</td><td class="num">' + (totalPrevu - totalVerse).toFixed(2) + '$</td></tr><tr><td>Versements</td><td class="num">' + vers.length + '</td></tr></tbody></table></div>'; document.getElementById('rapportFinBox').innerHTML = html;
 }
 function rapportFinDetaille() {
-  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); });
-  var provLabel = getProvinceActive() || 'Toutes';
-  var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
+  var cands = candidatsProvince().filter(function(c) { return !c.archived; }).slice().sort(function(a, b) { return a.nom.localeCompare(b.nom); }); var provLabel = getProvinceActive() || 'Toutes'; var html = '<div class="rapport-header"><h3>📋 RAPPORT DÉTAILLÉ — FINANCE</h3><p>🌍 ' + echapper(provLabel === '__non_assignee' ? 'Non assignées' : provLabel) + '</p></div>';
   if (!cands.length) html += '<p>Aucun candidat.</p>';
-  else {
-    cands.forEach(function(c) {
-      html += '<div class="entity-block"><h4>';
-      if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">';
-      html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
+  else { cands.forEach(function(c) {
+      html += '<div class="entity-block"><h4>'; if (c.photo) html += '<img src="' + c.photo + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #0a6e2c;cursor:pointer;vertical-align:middle;margin-right:8px" onclick="voirPhoto(\'' + c.id + '\')">'; html += '👤 ' + echapper(c.nom) + (c.province ? ' <span style="display:inline-block;padding:2px 8px;background:#0d6efd;color:white;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px">🌍 ' + echapper(c.province) + '</span>' : '') + '</h4>';
       html += '<div style="font-size:12px;color:#666;margin-bottom:6px">' + echapper(c.typeEntite) + ' - ' + echapper(c.nomEntite) + ' | Motif : ' + echapper(c.motif) + '</div><div class="table-wrapper"><table class="data-table"><tbody>';
-      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr>';
-      html += '<tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr>';
-      html += '<tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr>';
-      html += '</tbody></table></div></div>';
+      html += '<tr><td>Statut</td><td>' + (c.statut === 'termine' ? '✅ Terminé' : '⏳ En cours') + '</td></tr><tr><td>Montant prévu</td><td class="num">' + c.montantPrevu + ' $</td></tr><tr><td>Total versé</td><td class="num">' + c.totalVerse.toFixed(2) + ' $</td></tr><tr><td>Solde restant</td><td class="num" style="color:#c62828">' + (c.montantPrevu - c.totalVerse).toFixed(2) + ' $</td></tr></tbody></table></div></div>';
     });
   }
   document.getElementById('rapportFinBox').innerHTML = html;
 }
+// --- FIN DE LA PARTIE 2 ---
+
+// ========== MODULE III — SÉANCE DÉPOUILLEMENT ==========
 function demarrerSeance() {
   var prov = exigerProvince(); if (!prov) return;
   var annee = document.getElementById('dAnnee').value; var mois = document.getElementById('dMois').value;
@@ -1776,155 +1628,23 @@ function _typesArchives() {
   ];
 }
 function afficherArchives() {
-  var box = document.getElementById('archivesBox'); if (!box) return;
-  var recherche = (document.getElementById('archiveSearch').value || '').toLowerCase().trim();
-  
-  // Structure de données : data[Entite][Module][Annee][Mois] = [items]
-  var archiveData = {};
-
-  var addToArchive = function(entiteName, module, dateStr, item, typeLabel, description) {
-    if (!entiteName || entiteName === 'Inconnu') entiteName = "Entité non assignée";
-    var d = new Date(dateStr || Date.now());
-    var annee = d.getFullYear() || 'Année inconnue';
-    var mois = d.toLocaleString('fr-FR', { month: 'long' });
-    
-    if (!archiveData[entiteName]) archiveData[entiteName] = {};
-    if (!archiveData[entiteName][module]) archiveData[entiteName][module] = {};
-    if (!archiveData[entiteName][module][annee]) archiveData[entiteName][module][annee] = {};
-    if (!archiveData[entiteName][module][annee][mois]) archiveData[entiteName][module][annee][mois] = [];
-    
-    archiveData[entiteName][module][annee][mois].push({ item: item, typeLabel: typeLabel, desc: description });
-  };
-
-  // Préparation des données
-  var entitesMap = {}; DB.get('entites', []).forEach(e => entitesMap[e.id] = e.nom);
-  var candsMap = {}; DB.get('candidats', []).forEach(c => candsMap[c.id] = c);
-  var sitesMap = {}; DB.get('patrimoineSites', []).forEach(s => sitesMap[s.id] = s);
-
-  // 1. Fréquences
-  DB.get('participations', []).filter(x => x.archived).forEach(p => {
-    addToArchive(entitesMap[p.entiteId], 'Fréquence', p.date, p, '📝 Participation', 'Date: ' + fmtDate(p.date));
+  var box = document.getElementById('archivesBox'); if (!box) return; var recherche = (document.getElementById('archiveSearch').value || '').toLowerCase().trim(); var catFiltre = document.getElementById('archiveCategorie').value;
+  var types = _typesArchives(); var totalGeneral = 0; var blocs = '';
+  types.forEach(function(t) {
+    if (catFiltre && catFiltre !== t.key) return; var list = parProvince(DB.get(t.key, [])).filter(function(x) { return x.archived === true; });
+    if (recherche) { list = list.filter(function(x) { var n = (t.nom(x) || '').toLowerCase(); return n.indexOf(recherche) !== -1; }); }
+    totalGeneral += list.length; if (!list.length) return;
+    blocs += '<div class="card" style="margin-bottom:12px"><h3>' + t.icon + ' ' + t.label + ' <span class="badge badge-archive">' + list.length + ' archivé(s)</span></h3>';
+    blocs += '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"><button class="btn-mini blue" onclick="restaurerTouteCategorie(\'' + t.key + '\')">↩️ Tout restaurer</button><button class="btn-mini danger" onclick="purgerTouteCategorie(\'' + t.key + '\')">🗑️ Tout purger</button></div>';
+    blocs += '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Détail</th><th style="width:170px">Actions</th></tr></thead><tbody>';
+    list.forEach(function(x) { var nomAffiche = echapper(t.nom(x) || '(sans détail)'); blocs += '<tr><td>' + nomAffiche + '</td><td><button class="btn-mini blue" onclick="restaurerArchive(\'' + t.key + '\', \'' + x.id + '\')">↩️ Restaurer</button> <button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + t.key + '\', \'' + x.id + '\')">🗑️ Supprimer</button></td></tr>'; });
+    blocs += '</tbody></table></div></div>';
   });
-  DB.get('fichesMensuelles', []).filter(x => x.archived).forEach(f => {
-    addToArchive(entitesMap[f.entiteId], 'Fréquence', f.dateCreation, f, '📆 Fiche Mensuelle', f.mois + ' ' + f.annee);
-  });
-
-  // 2. Finance
-  DB.get('candidats', []).filter(x => x.archived).forEach(c => {
-    addToArchive(c.nomEntite, 'Finance', c.dateInscription, c, '👤 Candidat', c.nom + ' (' + c.motif + ')');
-  });
-  DB.get('versements', []).filter(x => x.archived).forEach(v => {
-    var c = candsMap[v.candId];
-    addToArchive(c ? c.nomEntite : null, 'Finance', v.dateCreation || v.date, v, '💵 Versement', (c ? c.nom : 'Inconnu') + ' - ' + v.montantUSD.toFixed(2) + '$');
-  });
-
-  // 3. Dépouillement
-  DB.get('depouillements', []).filter(x => x.archived).forEach(d => {
-    var ents = d.entites || [];
-    ents.forEach(e => {
-      addToArchive(e.nomEntite, 'Dépouillement', d.dateCreation || d.date, d, '🧾 Séance Dépouillement', 'Phase ' + d.phase + ' (' + d.mois + ' ' + d.annee + ')');
-    });
-  });
-
-  // 4. Patrimoine
-  DB.get('patrimoineSites', []).filter(x => x.archived).forEach(s => {
-    addToArchive(s.nom, 'Patrimoine', s.dateCreation, s, '🏛️ Site', s.type);
-  });
-  DB.get('patrimoineBiens', []).filter(x => x.archived).forEach(b => {
-    var s = sitesMap[b.siteId];
-    addToArchive(s ? s.nom : null, 'Patrimoine', b.dateCreation || Date.now(), b, '📦 Bien', (b.code || '') + ' - ' + b.nom);
-  });
-
-  // Filtrage par recherche
-  var totalGeneral = 0;
-  var html = '';
-
-  var filterAndRender = function(dataObj) {
-    Object.keys(dataObj).forEach(function(entiteName) {
-      if (recherche && entiteName.toLowerCase().indexOf(recherche) === -1) {
-        // Si la recherche ne correspond pas au nom de l'entité, on regarde si un élément à l'intérieur correspond
-        var hasMatch = false;
-        Object.keys(dataObj[entiteName]).forEach(mod => {
-          Object.keys(dataObj[entiteName][mod]).forEach(an => {
-            Object.keys(dataObj[entiteName][mod][an]).forEach(mo => {
-              dataObj[entiteName][mod][an][mo].forEach(x => {
-                if (x.desc.toLowerCase().indexOf(recherche) !== -1 || x.typeLabel.toLowerCase().indexOf(recherche) !== -1) hasMatch = true;
-              });
-            });
-          });
-        });
-        if (!hasMatch) return;
-      }
-
-      var entiteTotal = 0;
-      var htmlEntite = '<details style="margin-bottom:15px; background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:10px;">';
-      htmlEntite += '<summary style="font-size:16px; font-weight:bold; color:#0a6e2c; cursor:pointer; padding:5px;">🏛️ Entité : ' + echapper(entiteName) + '</summary>';
-
-      Object.keys(dataObj[entiteName]).forEach(function(module) {
-        var htmlModule = '<details style="margin-left:15px; margin-top:10px; background:#fff; border:1px solid #eee; border-radius:6px; padding:8px;">';
-        htmlModule += '<summary style="font-size:14px; font-weight:bold; color:#1976d2; cursor:pointer;">📁 Module : ' + module + '</summary>';
-
-        Object.keys(dataObj[entiteName][module]).sort((a,b) => b - a).forEach(function(annee) {
-          var htmlAnnee = '<details style="margin-left:15px; margin-top:8px; background:#f4f4f4; border-radius:6px; padding:6px;">';
-          htmlAnnee += '<summary style="font-size:13px; font-weight:bold; color:#555; cursor:pointer;">📅 Année : ' + annee + '</summary>';
-
-          Object.keys(dataObj[entiteName][module][annee]).forEach(function(mois) {
-            var htmlMois = '<details style="margin-left:15px; margin-top:6px; background:#fafafa; border-left:3px solid #f9a825; padding:5px;">';
-            htmlMois += '<summary style="font-size:12px; font-weight:bold; color:#e65100; cursor:pointer;">🗓️ Mois : ' + mois + '</summary>';
-            
-            htmlMois += '<div style="margin-left:10px; margin-top:5px; font-size:12px;">';
-            dataObj[entiteName][module][annee][mois].forEach(function(obj) {
-              if (recherche && obj.desc.toLowerCase().indexOf(recherche) === -1 && obj.typeLabel.toLowerCase().indexOf(recherche) === -1 && entiteName.toLowerCase().indexOf(recherche) === -1) return;
-              
-              entiteTotal++; totalGeneral++;
-              htmlMois += '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dotted #ccc; padding:5px 0;">';
-              htmlMois += '<div><strong>' + obj.typeLabel + '</strong> : ' + echapper(obj.desc) + '</div>';
-              htmlMois += '<div style="white-space:nowrap;">';
-              htmlMois += '<button class="btn-mini blue" onclick="restaurerArchive(\'' + getTypeKey(obj.typeLabel) + '\', \'' + obj.item.id + '\')">↩️</button> ';
-              htmlMois += '<button class="btn-mini danger" onclick="supprimerDefinitifArchive(\'' + getTypeKey(obj.typeLabel) + '\', \'' + obj.item.id + '\')">🗑️</button>';
-              htmlMois += '</div></div>';
-            });
-            htmlMois += '</div></details>';
-            htmlAnnee += htmlMois;
-          });
-          htmlAnnee += '</details>';
-          htmlModule += htmlAnnee;
-        });
-        htmlModule += '</details>';
-        htmlEntite += htmlModule;
-      });
-      
-      if (entiteTotal > 0) {
-        htmlEntite += '</details>';
-        html += htmlEntite;
-      }
-    });
-  };
-
-  // Fonction utilitaire pour retrouver la clé de la table
-  function getTypeKey(label) {
-    if (label.includes('Participation')) return 'participations';
-    if (label.includes('Fiche')) return 'fichesMensuelles';
-    if (label.includes('Candidat')) return 'candidats';
-    if (label.includes('Versement')) return 'versements';
-    if (label.includes('Dépouillement')) return 'depouillements';
-    if (label.includes('Site')) return 'patrimoineSites';
-    if (label.includes('Bien')) return 'patrimoineBiens';
-    return '';
-  }
-
-  filterAndRender(archiveData);
-
-  if (totalGeneral === 0) {
-    box.innerHTML = '<div class="card"><p style="text-align:center;padding:24px;color:#888;font-size:14px">📭 Aucun document trouvé dans les archives.</p></div>';
-    return;
-  }
-
-  var intro = '<div class="card" style="background:#fffde7;border-left:4px solid #f9a825"><h3 style="color:#e65100">📦 Bibliothèque d\'Archives — ' + totalGeneral + ' document(s)</h3>';
-  intro += '<p style="font-size:12px;color:#666;margin-top:6px">Cliquez sur les dossiers pour les ouvrir. Les éléments sont classés par Entité, Module, Année et Mois.</p></div>';
-  
-  box.innerHTML = intro + html;
-  }
+  if (!totalGeneral) { var msgVide = catFiltre || recherche ? '📭 Aucun élément archivé ne correspond à ces filtres.' : '📭 Aucun élément archivé pour le moment. Les éléments que vous archivez apparaîtront ici.'; box.innerHTML = '<div class="card"><p style="text-align:center;padding:24px;color:#888;font-size:14px">' + msgVide + '</p></div>'; return; }
+  var intro = '<div class="card" style="background:#fffde7;border-left:4px solid #f9a825"><h3 style="color:#e65100">📦 Archives — ' + totalGeneral + ' élément(s)</h3>';
+  intro += '<p style="font-size:12px;color:#666;margin-top:6px">Les éléments archivés sont exclus des rapports PDF. Restaure-les pour les réintégrer dans les rapports et listes actives.</p></div>';
+  box.innerHTML = intro + blocs;
+}
 function restaurerArchive(type, id) { var list = DB.get(type, []); var item = list.find(function(x) { return x.id === id; }); if (!item) return alert('❌ Élément introuvable'); item.archived = false; DB.set(type, list); afficherArchives(); refreshAll(); alert('✅ Élément restauré'); }
 function restaurerTouteCategorie(type) { var list = DB.get(type, []); var n = 0; list.forEach(function(x) { if (x.archived === true) { x.archived = false; n++; } }); if (!n) return alert('Aucun élément à restaurer'); if (!confirm('↩️ Restaurer ' + n + ' élément(s) de cette catégorie ?')) return; DB.set(type, list); afficherArchives(); refreshAll(); alert('✅ ' + n + ' élément(s) restauré(s)'); }
 function supprimerDefinitifArchive(type, id) { if (!confirm('⚠️ Supprimer DÉFINITIVEMENT cet élément ?\n\nCette action est irréversible.')) return; var list = DB.get(type, []).filter(function(x) { return x.id !== id; }); DB.set(type, list); if (type === 'candidats') DB.set('versements', DB.get('versements', []).filter(function(v) { return v.candId !== id; })); if (type === 'entites') { DB.set('participations', DB.get('participations', []).filter(function(p) { return p.entiteId !== id; })); DB.set('fichesMensuelles', DB.get('fichesMensuelles', []).filter(function(f) { return f.entiteId !== id; })); } if (type === 'patrimoineSites') DB.set('patrimoineBiens', DB.get('patrimoineBiens', []).filter(function(b) { return b.siteId !== id; })); afficherArchives(); refreshAll(); alert('✅ Supprimé définitivement'); }
@@ -1948,22 +1668,7 @@ var deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); deferredPrompt = e; var btn = document.getElementById('installBtn'); if (btn) btn.style.display = 'block'; });
 function installApp() { if (!deferredPrompt) return alert('Menu navigateur → "Ajouter à l\'écran d\'accueil"'); deferredPrompt.prompt(); deferredPrompt.userChoice.then(function() { deferredPrompt = null; var btn = document.getElementById('installBtn'); if (btn) btn.style.display = 'none'; }); }
 
-function refreshAll() { 
-  try { rafraichirProvinceHeader(); } catch(e) {}
-  try { peuplerProvinceSelects(); } catch(e) {}
-  try { rafraichirEntites(); } catch(e) {}
-  try { rafraichirEntitesRN(); } catch(e) {}
-  try { afficherListeEntites(); } catch(e) {}
-  try { afficherJournaliere(); } catch(e) {}
-  try { rafraichirCandidatsSelect(); } catch(e) {}
-  try { afficherCandidats(); } catch(e) {}
-  try { afficherVersements(); } catch(e) {}
-  try { afficherUtilisateurs(); } catch(e) {}
-  try { refreshPatrimoineSites(); } catch(e) {}
-  try { recalculerTotauxRN(); } catch(e) {}
-  try { syncSignatureEncrePickers(); } catch(e) {}
-  try { rechercherParEntite(); } catch(e) {}
-}
+function refreshAll() { rafraichirProvinceHeader(); peuplerProvinceSelects(); rafraichirEntites(); rafraichirEntitesRN(); afficherListeEntites(); afficherJournaliere(); rafraichirCandidatsSelect(); afficherCandidats(); afficherVersements(); afficherUtilisateurs(); refreshPatrimoineSites(); recalculerTotauxRN(); syncSignatureEncrePickers(); if (typeof rechercherParEntite === 'function') rechercherParEntite(); }
 
 // ========== NOUVELLES RECHERCHES GLOBALES (TABLEAU DE BORD) ==========
 function rechercherFreqGeneral() {
@@ -1995,35 +1700,28 @@ function rechercherPatGeneral() {
 }
 function reinitialiserRecherchePatGeneral() { document.getElementById('gSearchPatTexte').value = ''; document.getElementById('resultatRecherchePatGeneral').innerHTML = ''; }
 
-// ========== INITIALISATION GENERALE (ULTRA RAPIDE) ==========
-document.addEventListener('DOMContentLoaded', function() {
+// ========== INITIALISATION GENERALE ==========
+window.addEventListener('load', function() {
   // 1. On affiche le splash screen instantanément
   showScreen('splashScreen');
   
-  // 2. On initialise l'interface immédiatement
+  // 2. On lance l'initialisation de la base de données en arrière-plan
+  DB.init().then(function() {
+    try { initDB(); } catch(e) {}
+    console.log('✅ Base de données prête');
+  }).catch(function(e) {
+    console.error('❌ Erreur init DB:', e);
+  });
+
+  // 3. On initialise l'interface SANS attendre la base de données
   rafraichirProvinceHeader(); 
   peuplerProvinceSelects(); 
   syncSignatureEncrePickers(); 
+  showSplash(); // Le splash disparaîtra après 800ms max
   
-  // 3. On force le passage au login après 800ms MAX, sans attendre Firebase
-  setTimeout(function() {
-    var splash = document.getElementById('splashScreen');
-    if (splash && splash.classList.contains('active')) {
-      showScreen('loginScreen');
-    }
-  }, 800);
-
-  // 4. En arrière-plan, on initialise la base de données locale
-  setTimeout(function() {
-    DB.init().then(function() {
-      try { initDB(); } catch(e) {}
-      console.log('✅ Base locale prête');
-    }).catch(function(e) { console.error('❌ DB:', e); });
-  }, 100);
-  
-  setTimeout(initSignature, 800); 
+  setTimeout(initSignature, 500); 
+  setTimeout(initSignature, 1500);
 });
-
 document.addEventListener('click', function(e) { var menu = document.getElementById('mainMenu'); var btn = document.querySelector('.btn-hamburger'); if (menu && menu.classList.contains('open') && !menu.contains(e.target) && btn && !btn.contains(e.target)) { fermerMainMenu(); } });
 window._signalerSauvegarde = function() { var el = document.getElementById('saveIndicator'); if (!el) return; el.style.opacity = '1'; el.textContent = '💾 Sauvegardé'; clearTimeout(window._saveTimeout); window._saveTimeout = setTimeout(function() { el.style.opacity = '0.35'; el.textContent = '💾'; }, 1200); };
 function majBandeauOffline() { var banner = document.getElementById('offlineBanner'); if (!banner) return; banner.style.display = navigator.onLine ? 'none' : 'block'; }
@@ -2034,71 +1732,37 @@ window.addEventListener('online', majBandeauOffline); window.addEventListener('o
 // =========================================================
 var userPremiumStatus = false;
 var userPremiumExpire = 0;
-var SUPER_ADMIN_EMAILS = [
-  "dedickmpiana@gmail.com"
-  // Pour ajouter un développeur, mettez une virgule et son email : "ami@gmail.com"
-];
-
-function isSuperAdmin() {
-  return currentUser && SUPER_ADMIN_EMAILS.includes(currentUser.email);
-}
+var SUPER_ADMIN_EMAIL = "dedickmpiana@gmail.com";
 
 function login() {
-  var errBox = document.getElementById('loginError');
-  if (typeof auth === 'undefined' || typeof dbFS === 'undefined' || !firebase.apps || !firebase.apps.length) {
-    if (errBox) errBox.textContent = '⏳ Chargement en cours, patientez 2 secondes...';
-    return;
-  }
   var email = document.getElementById('loginEmail').value.trim();
   var pass = document.getElementById('loginPassword').value.trim();
+  var errBox = document.getElementById('loginError');
   if (!email || !pass) { errBox.textContent = '❌ Entrez l\'email et le mot de passe'; return; }
   errBox.textContent = '⏳ Connexion...';
   auth.signInWithEmailAndPassword(email, pass).then(function() { errBox.textContent = ''; document.getElementById('loginPassword').value = ''; }).catch(function(error) { errBox.textContent = '❌ ' + error.message; });
 }
-
 function creerCompte() {
-  var errBox = document.getElementById('loginError');
-  if (typeof auth === 'undefined' || typeof dbFS === 'undefined' || !firebase.apps || !firebase.apps.length) {
-    if (errBox) errBox.textContent = '⏳ Chargement en cours, patientez 2 secondes...';
-    return;
-  }
   var email = document.getElementById('loginEmail').value.trim();
   var pass = document.getElementById('loginPassword').value.trim();
-  var phone = document.getElementById('loginPhone') ? document.getElementById('loginPhone').value.trim() : "";
-  
+  var errBox = document.getElementById('loginError');
   if (!email || !pass) { errBox.textContent = '❌ Entrez un email et un mot de passe (min 6 car.)'; return; }
-  if (!phone) { errBox.textContent = '❌ Entrez votre numéro WhatsApp'; return; }
-  
   errBox.textContent = '⏳ Création...';
-  
   auth.createUserWithEmailAndPassword(email, pass).then(function(userCredential) {
-    return dbFS.collection('users').doc(userCredential.user.uid).set({
-      email: email, 
-      phone: phone,
-      premium: false, 
-      premiumExpire: 0, 
-      createdAt: new Date()
-    });
-  }).then(function() {
-    errBox.textContent = '✅ Compte créé et enregistré ! Vous pouvez vous connecter.';
-  }).catch(function(error) { 
-    errBox.textContent = '❌ Erreur : ' + error.message; 
-  });
+    dbFS.collection('users').doc(userCredential.user.uid).set({ email: email, premium: false, premiumExpire: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    errBox.textContent = '✅ Compte créé !';
+  }).catch(function(error) { errBox.textContent = '❌ ' + error.message; });
 }
-
 function logout() {
   if (!confirm('Voulez-vous vraiment vous déconnecter ?')) return;
-  if (typeof auth === 'undefined') { currentUser = null; showScreen('loginScreen'); return; }
   auth.signOut().then(function() { currentUser = null; userPremiumStatus = false; userPremiumExpire = 0; showScreen('loginScreen'); });
 }
-
 auth.onAuthStateChanged(function(user) {
   if (user) {
     currentUser = user;
     var label = document.getElementById('userRoleLabel');
     if (label) label.textContent = '👤 ' + user.email;
     showScreen('mainScreen');
-    verifierNouvellesAnnonces(); 
     ecouterStatutPremium(user.uid);
     if (typeof refreshAll === 'function') refreshAll();
     if (typeof afficherDashboard === 'function') afficherDashboard();
@@ -2117,7 +1781,7 @@ function ecouterStatutPremium(uid) {
       var data = doc.data(); 
       var expire = data.premiumExpire || 0;
       
-      if (isSuperAdmin()) { 
+      if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) { 
         userPremiumStatus = true; 
         userPremiumExpire = now + (365 * 24 * 60 * 60 * 1000); 
       } else if (data.premium === true && expire > now) { 
@@ -2128,6 +1792,7 @@ function ecouterStatutPremium(uid) {
         userPremiumExpire = 0; 
       }
     } else {
+      // Si le document n'existe pas, on considère que c'est gratuit et on affiche le bouton
       userPremiumStatus = false; 
       userPremiumExpire = 0;
     }
@@ -2141,52 +1806,38 @@ function ecouterStatutPremium(uid) {
     }
     
     if (typeof majInterfacePremium === 'function') majInterfacePremium();
-    
-    // --- APPEL DE LA BANNIÈRE ---
-    if (typeof afficherBanniereAbonnement === 'function') afficherBanniereAbonnement();
-    
   }, function(error) {
+    // En cas d'erreur (règles Firebase), on affiche le bouton par défaut
     var btnPrem = document.getElementById('btnPremium');
     if (btnPrem) btnPrem.style.display = 'block';
     if (typeof majInterfacePremium === 'function') majInterfacePremium();
   });
-    }
-// --- DEBUT VERIFICATION PREMIUM PDF & WORD ---
+        }
+}
 var _ancien_ouvrirModalPdf = ouvrirModalPdf;
 ouvrirModalPdf = function(contexte) {
-  // Si c'est le Super Admin, on le laisse passer direct
-  if (isSuperAdmin()) { _ancien_ouvrirModalPdf(contexte); return; }
-  
-  // Si c'est un client, on vérifie son statut Premium
-  if (!userPremiumStatus) { 
-    alert("🔒 Cette fonctionnalité (Rapport PDF) est réservée aux églises abonnées Premium.\n\nCliquez sur le bouton ⭐ Premium en haut pour vous abonner."); 
-    return; 
-  }
+  if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) { _ancien_ouvrirModalPdf(contexte); return; }
+  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Rapport PDF) est réservée aux églises abonnées Premium.\n\nCliquez sur le bouton ⭐ Premium en haut pour vous abonner."); return; }
   _ancien_ouvrirModalPdf(contexte);
 };
-
 var _ancien_exporterWordBox = exporterWordBox;
 exporterWordBox = function(boxId, nom) {
-  if (isSuperAdmin()) { _ancien_exporterWordBox(boxId, nom); return; }
-  
-  if (!userPremiumStatus) { 
-    alert("🔒 Cette fonctionnalité (Export Word) est réservée aux églises abonnées Premium."); 
-    return; 
-  }
+  if (currentUser && currentUser.email === SUPER_ADMIN_EMAIL) { _ancien_exporterWordBox(boxId, nom); return; }
+  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Export Word) est réservée aux églises abonnées Premium."); return; }
   _ancien_exporterWordBox(boxId, nom);
 };
-// --- FIN VERIFICATION PREMIUM PDF & WORD ---
 function ouvrirModalPremium() { if (userPremiumStatus) { alert("✅ Vous êtes Premium actif."); return; } document.getElementById('premiumModal').style.display = 'flex'; }
 function fermerModalPremium() { document.getElementById('premiumModal').style.display = 'none'; }
 
 function majInterfacePremium() {
   var box = document.getElementById('monCompteBox');
   if (box && currentUser) {
-    var isDev = isSuperAdmin();
+    var isDev = currentUser.email === SUPER_ADMIN_EMAIL;
     var statut = isDev ? "<span style='color:green'>✅ Développeur (Illimité)</span>" : (userPremiumStatus ? "<span style='color:green'>✅ Premium</span>" : "<span style='color:red'>❌ Gratuit</span>");
     var expire = (userPremiumStatus && !isDev) ? new Date(userPremiumExpire).toLocaleDateString() : "-";
     box.innerHTML = "<p><strong>Email :</strong> " + currentUser.email + "</p><p><strong>Statut :</strong> " + statut + "</p>" + (isDev ? "" : "<p><strong>Valide jusqu'au :</strong> " + expire + "</p>");
     
+    // Afficher et charger la liste des clients pour le Super Admin
     var card = document.getElementById('cardActivationRapide');
     if (card) {
       if (isDev) {
@@ -2197,43 +1848,13 @@ function majInterfacePremium() {
       }
     }
   }
-  
-  // --- APPEL DE LA BANNIÈRE ---
-  if (typeof afficherBanniereAbonnement === 'function') afficherBanniereAbonnement();
-}
-
-function afficherBanniereAbonnement() {
-  var banner = document.getElementById('premiumAlertBanner');
-  if (!banner) return;
-
-  if (isSuperAdmin()) {
-    banner.style.display = 'none';
-    return;
-  }
-
-  var now = Date.now();
-  var joursRestants = Math.ceil((userPremiumExpire - now) / (1000 * 60 * 60 * 24));
-
-  if (!userPremiumStatus || userPremiumExpire < now) {
-    banner.style.display = 'block';
-    banner.style.backgroundColor = '#ffebee'; 
-    banner.style.color = '#c62828';
-    banner.innerHTML = '🔒 Votre abonnement a expiré. <u>Cliquez ici pour renouveler.</u>';
-  } else if (joursRestants <= 7) {
-    banner.style.display = 'block';
-    banner.style.backgroundColor = '#fff3e0'; 
-    banner.style.color = '#e65100';
-    banner.innerHTML = '⚠️ Votre abonnement expire dans ' + joursRestants + ' jour(s). <u>Renouveler maintenant.</u>';
-  } else {
-    banner.style.display = 'none';
-  }
 }
 
 // =========================================================
 // 🔥 GESTION DES CLIENTS PREMIUM (SUPER ADMIN)
 // =========================================================
 function chargerListeClients() {
-  if (!isSuperAdmin()) return;
+  if (!currentUser || currentUser.email !== SUPER_ADMIN_EMAIL) return;
   
   var box = document.getElementById('listeClientsAdmin');
   if(!box) return;
@@ -2244,45 +1865,30 @@ function chargerListeClients() {
       box.innerHTML = "<p>Aucun client trouvé.</p>"; return;
     }
     
-    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Email / Tel</th><th>Statut</th><th>Jours restants</th><th>Forfaits</th><th>Outils</th></tr></thead><tbody>';
+    var html = '<div class="table-wrapper"><table class="data-table"><thead><tr><th>Email</th><th>Statut</th><th>Expire le</th><th>Actions</th></tr></thead><tbody>';
     
     querySnapshot.forEach(function(doc) {
       var data = doc.data();
-      var docId = doc.id;
       var email = data.email || 'Inconnu';
-      var phone = data.phone || ''; 
-      
-      if (SUPER_ADMIN_EMAILS.includes(email)) return; 
+      if (email === SUPER_ADMIN_EMAIL) return; // On ne s'affiche pas nous-même
       
       var isPrem = data.premium === true && (data.premiumExpire || 0) > Date.now();
-      var isIllimite = data.premiumExpire > 32503680000000; 
-      
-      var joursRestants = 0;
-      if (isPrem && !isIllimite) {
-        joursRestants = Math.ceil((data.premiumExpire - Date.now()) / (1000 * 60 * 60 * 24));
-      }
-      
-      var badgeStatut = isIllimite ? '<span class="badge" style="background:#ffd700;color:#000;font-weight:bold;">♾️ Illimité</span>' : (isPrem ? '<span class="badge badge-ok">✅ Premium</span>' : '<span class="badge badge-archive">❌ Gratuit</span>');
-      var txtJours = isIllimite ? 'À vie' : (isPrem ? joursRestants + ' j' : '-');
+      var dateExp = (data.premiumExpire && data.premiumExpire > 0) ? new Date(data.premiumExpire).toLocaleDateString('fr-FR') : "-";
       
       html += '<tr>';
-      html += '<td style="font-size:11px;">' + email + '<br><span style="color:#666;">' + phone + '</span></td>';
-      html += '<td>' + badgeStatut + '</td>';
-      html += '<td style="text-align:center; font-weight:bold; color:' + (isPrem ? '#0a6e2c' : '#c62828') + '">' + txtJours + '</td>';
-      
+      html += '<td style="font-size:11px;">' + email + '</td>';
+      html += '<td>' + (isPrem ? '<span class="badge badge-ok">✅ Premium</span>' : '<span class="badge badge-archive">❌ Gratuit</span>') + '</td>';
+      html += '<td class="num">' + dateExp + '</td>';
       html += '<td style="white-space:nowrap;">';
-      html += '<button class="btn-mini" style="background:#4caf50;" onclick="modifierAbonnement(\'' + docId + '\', 30)">+30j</button> ';
-      html += '<button class="btn-mini" style="background:#2196f3;" onclick="modifierAbonnement(\'' + docId + '\', 60)">+60j</button> ';
-      html += '<button class="btn-mini" style="background:#ff9800;" onclick="modifierAbonnement(\'' + docId + '\', 90)">+90j</button> ';
-      html += '<button class="btn-mini" style="background:#9c27b0;" onclick="modifierAbonnement(\'' + docId + '\', 9999)">♾️</button>';
-      html += '</td>';
       
-      html += '<td style="white-space:nowrap;">';
-      if (isPrem && phone) {
-        var dateExp = isIllimite ? 'À vie' : new Date(data.premiumExpire).toLocaleDateString('fr-FR');
-        html += '<button class="btn-mini" style="background:#25D366;" onclick="envoyerWhatsApp(\'' + phone + '\', \'' + email + '\', \'' + dateExp + '\')">📱 WA</button> ';
+      // Bouton pour ajouter 30 jours (et activer si ce n'est pas fait)
+      html += '<button class="btn-mini" style="background:#4caf50;" onclick="modifierAbonnement(\'' + email + '\', 30)">+30 jours</button>';
+      
+      // Bouton pour désactiver
+      if (isPrem) {
+        html += '<button class="btn-mini danger" onclick="modifierAbonnement(\'' + email + '\', 0)">Bloquer</button>';
       }
-      html += '<button class="btn-mini danger" onclick="supprimerClient(\'' + docId + '\')">🗑️</button>';
+      
       html += '</td></tr>';
     });
     
@@ -2294,132 +1900,35 @@ function chargerListeClients() {
   });
 }
 
-function modifierAbonnement(docId, jours) {
-  if (!isSuperAdmin()) return;
+function modifierAbonnement(emailCible, jours) {
+  if (!currentUser || currentUser.email !== SUPER_ADMIN_EMAIL) return;
+  var box = document.getElementById('listeClientsAdmin');
   
-  dbFS.collection('users').doc(docId).get().then(function(doc) {
-    if (!doc.exists) return;
-    var data = doc.data();
-    var nouvelleExpiration;
+  dbFS.collection('users').where('email', '==', emailCible).get().then(function(querySnapshot) {
+    if (querySnapshot.empty) return alert("Utilisateur introuvable");
     
-    if (jours === 9999) {
-      nouvelleExpiration = 32503680000000; 
-    } else {
+    var docId = querySnapshot.docs[0].id;
+    var data = querySnapshot.docs[0].data();
+    
+    var nouvelleExpiration = 0;
+    var estPremium = false;
+    
+    if (jours > 0) {
+      // Si le compte est déjà premium et n'est pas expiré, on ajoute à la date existante
       var baseDate = (data.premiumExpire && data.premiumExpire > Date.now()) ? data.premiumExpire : Date.now();
       nouvelleExpiration = baseDate + (jours * 24 * 60 * 60 * 1000);
+      estPremium = true;
     }
     
-    return dbFS.collection('users').doc(docId).update({
-      premium: true,
+    dbFS.collection('users').doc(docId).update({
+      premium: estPremium,
       premiumExpire: nouvelleExpiration
+    }).then(function() {
+      chargerListeClients(); // On rafraîchit la liste
+    }).catch(function(err) {
+      alert("Erreur : " + err.message);
     });
-  }).then(function() {
-    chargerListeClients(); 
-    alert('✅ Abonnement mis à jour !');
-  }).catch(function(err) { alert("Erreur : " + err.message); });
-}
-
-function envoyerWhatsApp(phone, email, dateExp) {
-  var cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
-  var message = "Bonjour ! Votre compte EMM Mondial (" + email + ") a bien été activé. Il est valide jusqu'au : " + dateExp + ". Que Dieu vous bénisse !";
-  window.open("https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(message), '_blank');
-}
-
-function supprimerClient(docId) {
-  if (!isSuperAdmin()) return;
-  if (!confirm("⚠️ Supprimer définitivement ce client ?")) return;
-  
-  dbFS.collection('users').doc(docId).delete().then(function() {
-    chargerListeClients(); 
-    alert("✅ Client supprimé.");
-  }).catch(function(error) {
-    alert("Erreur : " + error.message);
-  });
-        }
-
-// --- DEBUT FONCTIONS PREMIUM ET VERIFICATIONS ---
-var _ancien_ouvrirModalPdf = ouvrirModalPdf;
-ouvrirModalPdf = function(contexte) {
-  if (isSuperAdmin()) { _ancien_ouvrirModalPdf(contexte); return; }
-  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Rapport PDF) est réservée aux églises abonnées Premium.\n\nCliquez sur le bouton ⭐ Premium en haut pour vous abonner."); return; }
-  _ancien_ouvrirModalPdf(contexte);
-};
-
-var _ancien_exporterWordBox = exporterWordBox;
-exporterWordBox = function(boxId, nom) {
-  if (isSuperAdmin()) { _ancien_exporterWordBox(boxId, nom); return; }
-  if (!userPremiumStatus) { alert("🔒 Cette fonctionnalité (Export Word) est réservée aux églises abonnées Premium."); return; }
-  _ancien_exporterWordBox(boxId, nom);
-};
-
-function ouvrirModalPremium() { 
-  if (userPremiumStatus) { alert("✅ Vous êtes Premium actif."); return; } 
-  document.getElementById('premiumModal').style.display = 'flex'; 
-}
-
-function fermerModalPremium() { 
-  document.getElementById('premiumModal').style.display = 'none'; 
-}
-
-function majInterfacePremium() {
-  var box = document.getElementById('monCompteBox');
-  if (box && currentUser) {
-    var isDev = isSuperAdmin(); // LIGNE MODIFIÉE ICI
-    var statut = isDev ? "<span style='color:green'>✅ Développeur (Illimité)</span>" : (userPremiumStatus ? "<span style='color:green'>✅ Premium</span>" : "<span style='color:red'>❌ Gratuit</span>");
-    var expire = (userPremiumStatus && !isDev) ? new Date(userPremiumExpire).toLocaleDateString() : "-";
-    box.innerHTML = "<p><strong>Email :</strong> " + currentUser.email + "</p><p><strong>Statut :</strong> " + statut + "</p>" + (isDev ? "" : "<p><strong>Valide jusqu'au :</strong> " + expire + "</p>");
     
-    var card = document.getElementById('cardActivationRapide');
-    if (card) {
-      if (isDev) {
-        card.style.display = 'block';
-        if (typeof chargerListeClients === 'function') chargerListeClients();
-      } else {
-        card.style.display = 'none';
-      }
-    }
-  }
-}
-
-// --- SYSTEME DE NOTIFICATIONS CLOUD (FIRESTORE) ---
-var _derniereAnnonceVueId = localStorage.getItem('derniereAnnonceVue') || null;
-
-function verifierNouvellesAnnonces() {
-  if (!currentUser) return;
-  
-  dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).onSnapshot(function(querySnapshot) {
-    if (querySnapshot.empty) return;
-    
-    var derniereAnnonce = querySnapshot.docs[0];
-    var annonceId = derniereAnnonce.id;
-    
-    var badge = document.getElementById('notifBadge');
-    if (badge) {
-      if (_derniereAnnonceVueId !== annonceId) {
-        badge.style.display = 'block';
-      } else {
-        badge.style.display = 'none';
-      }
-    }
   });
 }
-
-function ouvrirNotifications() {
-  var badge = document.getElementById('notifBadge');
-  if (badge) badge.style.display = 'none';
-  
-  dbFS.collection('annonces').orderBy('dateCreation', 'desc').limit(1).get().then(function(snap) {
-    if (!snap.empty) {
-      localStorage.setItem('derniereAnnonceVue', snap.docs[0].id);
-      _derniereAnnonceVueId = snap.docs[0].id;
-    }
-  });
-
-  var annoncesBox = document.getElementById('announcementsBox');
-  if (annoncesBox) {
-    annoncesBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    annoncesBox.style.transition = 'background-color 0.5s';
-    annoncesBox.style.backgroundColor = '#e8f5e9';
-    setTimeout(function() { annoncesBox.style.backgroundColor = 'transparent'; }, 2000);
-  }
-}
+// --- FIN DU FICHIER ---
